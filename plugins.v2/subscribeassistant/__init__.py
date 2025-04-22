@@ -140,6 +140,8 @@ class SubscribeAssistant(_PluginBase):
     _scheduler = None
     # 退出事件
     _event = threading.Event()
+    #分集洗版排除内容类型
+    _tv_episode_exclude_type = []
 
     # endregion
 
@@ -204,6 +206,7 @@ class SubscribeAssistant(_PluginBase):
                                                                           0) or None
         self._auto_pause_tv_no_download_days = self.__get_float_config(config, "auto_pause_tv_no_download_days",
                                                                        0) or None
+        self._tv_episode_exclude_type = config.get("tv_episode_exclude_type", [])
 
         # 停止现有任务
         self.stop_service()
@@ -1053,6 +1056,40 @@ class SubscribeAssistant(_PluginBase):
                                                 ]
                                             }
                                         ]
+                                    },
+                                    {
+                                        'component': 'VRow',
+                                        'props': {
+                                            'style': {
+                                                'margin-top': '0px',
+                                                
+                                            }
+                                        },
+                                        'content': [
+                                            {
+                                                'component': 'VCol',
+                                                'props': {
+                                                    'cols': 12,
+                                                    'md': 4,
+                                                    'show': '{{auto_best_type == `tv_episode`}}'
+                                                },
+                                                'content': [
+                                                    {
+                                                        'component': 'VSelect',
+                                                        'props': {
+                                                            'multiple': True,
+                                                            'model': 'tv_episode_exclude_type',
+                                                            'label': '分集排除内容类型',
+                                                            'items': [
+                                                                {'title': '动漫', 'value': '16'},
+                                                            ],
+                                                            'hint': '选择分集需要排除自动洗版的内容类型',
+                                                            'persistent-hint': True,
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        ]
                                     }
                                 ]
                             }
@@ -1203,6 +1240,7 @@ class SubscribeAssistant(_PluginBase):
             "auto_best_cron": "0 15 * * *",
             "tracker_response": self.__get_default_tracker_response(),
             "tracker_response_listen": True,
+            "tv_episode_exclude_type": []
         }
 
     def get_page(self) -> List[dict]:
@@ -1313,6 +1351,7 @@ class SubscribeAssistant(_PluginBase):
             "auto_pause_no_download_actions": self._auto_pause_no_download_actions,
             "auto_pause_movie_no_download_days": self._auto_pause_movie_no_download_days,
             "auto_pause_tv_no_download_days": self._auto_pause_tv_no_download_days,
+            "tv_episode_exclude_type": self._tv_episode_exclude_type,
         }
         self.update_config(config=config)
 
@@ -1565,7 +1604,13 @@ class SubscribeAssistant(_PluginBase):
             if not subscribe_dict or not mediainfo_dict:
                 logger.warning(f"订阅事件数据缺失，跳过处理。订阅数据: {subscribe_dict}, 媒体信息: {mediainfo_dict}")
                 return
-
+            
+            #判断剧集分集类型是否排除
+            for genre_id in mediainfo_dict.genre_ids:
+                if genre_id in self._tv_episode_exclude_type:
+                    logger.debug(f"剧集分集类型{genre_id}被排除，跳过自动洗版处理")
+                    return 
+                
             # 获取订阅信息和媒体信息
             mediainfo = MediaInfo()
             mediainfo.from_dict(mediainfo_dict)
