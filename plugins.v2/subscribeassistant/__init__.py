@@ -1606,10 +1606,11 @@ class SubscribeAssistant(_PluginBase):
                 return
             
             #判断剧集分集类型是否排除
-            for genre_id in mediainfo_dict.genre_ids:
-                if genre_id in self._tv_episode_exclude_type:
-                    logger.debug(f"剧集分集类型{genre_id}被排除，跳过自动洗版处理")
-                    return 
+            if "tv_episode" == self._auto_best_type:
+                for genre_id in mediainfo_dict.genre_ids:
+                    if genre_id in self._tv_episode_exclude_type:
+                        logger.debug(f"剧集分集类型{genre_id}被排除，跳过自动洗版处理")
+                        return 
                 
             # 获取订阅信息和媒体信息
             mediainfo = MediaInfo()
