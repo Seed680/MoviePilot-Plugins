@@ -125,7 +125,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.1.3"
+    plugin_version = "1.1.4"
     # 插件作者
     plugin_author = "qiaoyun680"
     # 作者主页
@@ -660,6 +660,7 @@ class RenameTorrent(_PluginBase):
                 logger.error(f"识别媒体信息失败，hash: {torrent_info.hash} 种子名称：{torrent_info.name}")
                 success = False
         if success:
+            logger.debug(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} 开始执行重命名")
             if self.format_torrent(torrent_info=torrent_info, meta=meta, media_info=media_info):
                 logger.info(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} 处理完成")
                 return True
@@ -700,10 +701,11 @@ class RenameTorrent(_PluginBase):
         success = True
         
         # 重命名种子名称
-        new_name = self.format_path(
+        new_name = self.format_torrent_name(
                 template_string=self._format_torrent_name,
                 meta=meta,
                 mediainfo=media_info)
+        logger.debug(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} 重命名种子名称:{new_name}")
         try:
             if str(new_name) != _torrent_name:
                 self.downloader.torrents_rename(torrent_hash=_torrent_hash, new_torrent_name=str(new_name))
@@ -714,6 +716,27 @@ class RenameTorrent(_PluginBase):
             logger.error(f"种子重命名失败 hash: {_torrent_hash} {str(e)}")
             success = False
         return success
+    
+    @staticmethod
+    def format_torrent_name(
+        template_string: str,
+        meta: MetaBase,
+        mediainfo: MediaInfo,
+        file_ext: str = None,
+    ) -> Path:
+        """
+        根据媒体信息，返回Format字典
+        :param template_string: Jinja2 模板字符串
+        :param meta: 文件元数据
+        :param mediainfo: 识别的媒体信息
+        :param file_ext: 文件扩展名
+        """
+        def format_dict(meta: MetaBase, mediainfo: MediaInfo, file_ext: str = None) -> Dict[str, Any]:
+            return FileManagerModule._FileManagerModule__get_naming_dict(
+                meta=meta, mediainfo=mediainfo, file_ext=file_ext)
+
+        rename_dict = format_dict(meta=meta, mediainfo=mediainfo, file_ext=file_ext)
+        return FileManagerModule.get_rename_path(template_string, rename_dict)
 
     def recoveryTorrent(self):
         """
@@ -732,5 +755,5 @@ class RenameTorrent(_PluginBase):
                     torrent_oldName = self.get_data(torrent_hash)
                     if torrent_oldName != None:
                         self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(torrent_oldName))
-                        logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_oldName} ==> {torrent_name}")
+                        logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_name} ==> {torrent_oldName}")
                         self.del_data(torrent_hash)
