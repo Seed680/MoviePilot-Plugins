@@ -726,7 +726,7 @@ class RenameTorrent(_PluginBase):
         meta: MetaBase,
         mediainfo: MediaInfo,
         file_ext: str = None,
-    ) -> Path:
+    ) -> str:
         """
         根据媒体信息，返回Format字典
         :param template_string: Jinja2 模板字符串
