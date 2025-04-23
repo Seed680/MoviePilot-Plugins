@@ -125,7 +125,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.1"
+    plugin_version = "1.1.1"
     # 插件作者
     plugin_author = "qiaoyun680"
     # 作者主页
@@ -172,7 +172,6 @@ class RenameTorrent(_PluginBase):
             self.update_config(config=config)
 
             if self._recovery:
-                config.update({"recovery": False})
                 logger.info("立即恢复重命名下载器种子任务")
                 self._scheduler = BackgroundScheduler(timezone=settings.TZ)
                 self._scheduler.add_job(self.recoveryTorrent, 'date',
@@ -551,8 +550,9 @@ class RenameTorrent(_PluginBase):
                                 break
                     # 通过hash查询下载历史记录
                     downloadhis = DownloadHistoryOper().get_by_hash(_hash or torrent_info.hash)
+                    logger.debug(f"通过hash查询下载历史记录 hash:{_hash or torrent_info.hash} downloadhis: {downloadhis}")
                     # 执行处理
-                    if self.main(torrent_info=torrent_info, downloadhis=downloadhis):
+                    if self.main(torrent_info=torrent_info, downloadhis=downloadhis ):
                         # 添加到已处理数据库
                         processed[torrent_info.hash] = d
                         # 本次处理成功计数
@@ -614,16 +614,21 @@ class RenameTorrent(_PluginBase):
         if success and downloadhis:
             # 使用历史记录的识别信息
             # 因为mp默认RSS信息带有副标题，所以对舍弃副标题
+            logger.debug(f"识别到MP 下载历史:{downloadhis.torrent_name}")
+            logger.debug(f"下载历史 种子名称:{downloadhis.torrent_name}")
             left_index = downloadhis.torrent_name.find('[')
             if left_index != -1:
                 downloadhis.torrent_name = downloadhis.torrent_name[:left_index].strip()
+                logger.debug(f"处理后下载历史 种子名称:{downloadhis.torrent_name}")
 
+            
             meta = MetaInfo(title=downloadhis.torrent_name, subtitle=downloadhis.torrent_description)
             media_info = self.chain.recognize_media(meta=meta, mtype=MediaType(downloadhis.type),
                                                     tmdbid=downloadhis.tmdbid, doubanid=downloadhis.doubanid)
         if success and not meta:
-            logger.warn(f"未找到与之关联的下载种子 hash: {torrent_info.hash} 种子名称：{torrent_info.name} 元数据识别可能不准确")
+            logger.info(f"未找到与之关联的下载种子 hash: {torrent_info.hash} 种子名称：{torrent_info.name} 元数据识别可能不准确")
             meta = MetaInfo(torrent_info.name)
+            logger.debug(f"种子名称:{torrent_info.name}")
             if not meta:
                 logger.error(f"元数据获取失败，hash: {torrent_info.hash} 种子名称：{torrent_info.name}")
                 success = False
