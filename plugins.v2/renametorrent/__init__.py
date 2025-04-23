@@ -125,7 +125,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.1.7"
+    plugin_version = "1.1.8"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -710,11 +710,14 @@ class RenameTorrent(_PluginBase):
                 mediainfo=media_info)
         logger.debug(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} 重命名种子名称:{new_name}")
         try:
-            if str(new_name) != _torrent_name:
+            if str(new_name) != _torrent_name and None != _torrent_name:
                 self.downloader.torrents_rename(torrent_hash=_torrent_hash, new_torrent_name=str(new_name))
                 logger.info(f"种子重命名成功 hash: {_torrent_hash} {_torrent_name} ==> {new_name}")
-                self.update_data(_torrent_hash, _torrent_name);
                 # 更改记录写入数据库
+                self.update_data(_torrent_hash, _torrent_name);
+            else:
+                logger.info(f"种子重命名失败 hash:: {_torrent_hash} {_torrent_name} ==> {new_name}")
+                success = False
         except Exception as e:
             logger.error(f"种子重命名失败 hash: {_torrent_hash} {str(e)}")
             success = False
@@ -758,13 +761,14 @@ class RenameTorrent(_PluginBase):
                 if torrent_info:
                     torrent_hash = torrent_info.hash
                     torrent_name = torrent_info.name
-                    torrent_oldName = self.get_data(torrent_hash)
-                    self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(torrent_oldName))
-                    logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_name} ==> {torrent_oldName}")
-                    self.del_data(torrent_hash)
-                    # 恢复处理记录
-                    processed.pop(torrent_hash) 
-                    logger.debug(f"恢复处理记录: hash: {torrent_hash}")
+                    if torrent_name != None:
+                        torrent_oldName = self.get_data(torrent_hash)
+                        self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(torrent_oldName))
+                        logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_name} ==> {torrent_oldName}")
+                        self.del_data(torrent_hash)
+                        # 恢复处理记录
+                        processed.pop(torrent_hash) 
+                        logger.debug(f"恢复处理记录: hash: {torrent_hash}")
         # 保存已处理数据
         self.update_data(key="processed", value=processed)
                         
