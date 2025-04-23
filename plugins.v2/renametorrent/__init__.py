@@ -125,7 +125,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.1.5"
+    plugin_version = "1.1.6"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -745,25 +745,25 @@ class RenameTorrent(_PluginBase):
         """
         恢复下载器中的种子名称
         """
+        # 获取已处理数据
+        processed: dict[str, str] = self.get_data(key="processed") or {}
         # 从下载器获取种子信息
         for d in self._downloader:
             self.set_downloader(d)
             if self.downloader is None:
                 logger.warn(f"下载器: {d} 不存在或未启用")
                 continue
+
             for torrent_info in self.downloader.torrents_info():
                 if torrent_info:
                     torrent_hash = torrent_info.hash
                     torrent_name = torrent_info.name
                     torrent_oldName = self.get_data(torrent_hash)
-                    if torrent_oldName != None:
-                        self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(torrent_oldName))
-                        logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_name} ==> {torrent_oldName}")
-                        self.del_data(torrent_hash)
-                        # 恢复处理记录
-                        # 获取已处理数据
-                        processed: dict[str, str] = self.get_data(key="processed") or {}
-                        # 添加到已处理数据库
-                        processed.pop(hash) 
-                        # 保存已处理数据
-                        self.update_data(key="processed", value=processed)
+                    self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(torrent_oldName))
+                    logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_name} ==> {torrent_oldName}")
+                    self.del_data(torrent_hash)
+                    # 恢复处理记录
+                    processed.pop(hash) 
+        # 保存已处理数据
+        self.update_data(key="processed", value=processed)
+                        
