@@ -2,10 +2,13 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
+from datetime import datetime, timedelta
 import re
 from typing import Any, Dict, List, Optional, Tuple
+import pytz
 
 # 第三方库
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy.orm import Session
 
@@ -26,7 +29,7 @@ from app.modules.transmission import Transmission
 from app.plugins import _PluginBase
 from app.schemas.types import EventType, MediaType
 from app.schemas.types import SystemConfigKey
-
+from app.core.config import settings
 
 @dataclass
 class TorrentFile:
@@ -122,7 +125,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.0.0"
+    plugin_version = "1.1"
     # 插件作者
     plugin_author = "qiaoyun680"
     # 作者主页
@@ -138,21 +141,59 @@ class RenameTorrent(_PluginBase):
     _scheduler = None
 
     # 配置属性
+    # cron表达式
     _cron: str = ""
+    # 启用定时任务
     _cron_enabled: bool = False
+    # 启用事件监听
     _event_enabled: bool = False
+    # 格式化字符
     _format_torrent_name: str = ""
+    # 下载器
     _downloader: list = []
+    # 排除标签
     _exclude_tags: str = ""
+    # 排除目录
     _exclude_dirs: str = ""
+    # 立即运行一次
+    _onlyonce = False
+    # 恢复记录
+    _recovery = False
 
     def init_plugin(self, config: dict = None):
-
+        self.load_config(config)
         self.downloader_helper = DownloaderHelper()
         self.downloadhis = DownloadHistoryOper()
         # 停止现有任务
         self.stop_service()
-        self.load_config(config)
+        if self._onlyonce:
+            self._onlyonce = False
+            config.update({"onlyonce": False})
+            self.update_config(config=config)
+
+            if self._recovery:
+                config.update({"recovery": False})
+                logger.info("立即恢复重命名下载器种子任务")
+                self._scheduler = BackgroundScheduler(timezone=settings.TZ)
+                self._scheduler.add_job(self.recoveryTorrent, 'date',
+                                        run_date=datetime.now(
+                                            tz=pytz.timezone(settings.TZ)
+                                        ) + timedelta(seconds=3),
+                                        name="恢复重命名下载器种子")
+            else:
+                logger.info("立即运行一次重命名下载器种子任务")
+                self._scheduler = BackgroundScheduler(timezone=settings.TZ)
+                self._scheduler.add_job(self.cron_process_main, 'date',
+                                        run_date=datetime.now(
+                                            tz=pytz.timezone(settings.TZ)
+                                        ) + timedelta(seconds=3),
+                                        name="重命名下载器种子")
+
+            if self._scheduler.get_jobs():
+                # 启动服务
+                self._scheduler.print_jobs()
+                self._scheduler.start()
+
 
     def load_config(self, config: dict):
         """加载配置"""
@@ -165,7 +206,9 @@ class RenameTorrent(_PluginBase):
                 "downloader",
                 "exclude_dirs",
                 "exclude_tags",
-                "format_torrent_name"
+                "format_torrent_name",
+                "onlyonce",
+                "recovery"
             ):
                 setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
 
@@ -209,11 +252,10 @@ class RenameTorrent(_PluginBase):
                                 'props': {'cols': 6, 'md': 3},
                                 'content': [
                                     {
-                                        'component': 'VTextField',
+                                        'component': 'VSwitch',
                                         'props': {
-                                            'model': 'cron',
-                                            'label': '执行周期',
-                                            'placeholder': '0 8 * * *',
+                                            'model': 'onlyonce',
+                                            'label': '立即运行一次',
                                         }
                                     }
                                 ]
@@ -223,14 +265,10 @@ class RenameTorrent(_PluginBase):
                                 'props': {'cols': 6, 'md': 3},
                                 'content': [
                                     {
-                                        'component': 'VSelect',
+                                        'component': 'VSwitch',
                                         'props': {
-                                            'model': 'downloader',
-                                            'label': '定时任务下载器',
-                                            # 'chips': True,
-                                            'multiple': False,
-                                            'clearable': True,
-                                            'items': _downloaders,
+                                            'model': 'recovery',
+                                            'label': '恢复重命名',
                                         }
                                     }
                                 ]
@@ -242,11 +280,56 @@ class RenameTorrent(_PluginBase):
                         'content': [
                             {
                                 'component': 'VCol',
-                                'props': {'cols': 5,
+                                'props': {
+                                    'cols': 6,
+                                    'md': 3,
                                     'style': {
                                         'margin-top': '12px'    # 设置上边距, 确保`label`不被遮挡
-                                        },
+                                    }
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VSelect',
+                                        'props': {
+                                            'model': 'downloader',
+                                            'label': '启用下载器',
+                                            # 'chips': True,
+                                            'multiple': False,
+                                            'clearable': True,
+                                            'items': _downloaders,
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 6,
+                                    'md': 3,
+                                    'style': {
+                                        'margin-top': '12px'    # 设置上边距, 确保`label`不被遮挡
+                                    }
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'cron',
+                                            'label': '执行周期',
+                                            'placeholder': '0 8 * * *',
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 5,
+                                    'md': 3,
+                                    'style': {
+                                        'margin-top': '12px'    # 设置上边距, 确保`label`不被遮挡
                                     },
+                                },
                                 'content': [
                                     {
                                         'component': 'VTextField',
@@ -539,19 +622,19 @@ class RenameTorrent(_PluginBase):
             media_info = self.chain.recognize_media(meta=meta, mtype=MediaType(downloadhis.type),
                                                     tmdbid=downloadhis.tmdbid, doubanid=downloadhis.doubanid)
         if success and not meta:
-            logger.warn(f"未找到与之关联的下载种子 {torrent_info.name} 元数据识别可能不准确")
+            logger.warn(f"未找到与之关联的下载种子 hash: {torrent_info.hash} 种子名称：{torrent_info.name} 元数据识别可能不准确")
             meta = MetaInfo(torrent_info.name)
             if not meta:
-                logger.error(f"元数据获取失败，种子名称：{torrent_info.name}")
+                logger.error(f"元数据获取失败，hash: {torrent_info.hash} 种子名称：{torrent_info.name}")
                 success = False
         if success and not media_info:
             media_info = self.chain.recognize_media(meta=meta)
             if not media_info:
-                logger.error(f"识别媒体信息失败，种子名称：{torrent_info.name}")
+                logger.error(f"识别媒体信息失败，hash: {torrent_info.hash} 种子名称：{torrent_info.name}")
                 success = False
         if success:
             if self.format_torrent(torrent_info=torrent_info, meta=meta, media_info=media_info):
-                logger.info(f"种子 {torrent_info.name} 处理完成")
+                logger.info(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} 处理完成")
                 return True
         # 处理失败
         return False
@@ -584,27 +667,6 @@ class RenameTorrent(_PluginBase):
         else:
             self.save_data(key=key, value=value)
 
-    @staticmethod
-    def format_path(
-        template_string: str,
-        meta: MetaBase,
-        mediainfo: MediaInfo,
-        file_ext: str = None,
-    ) -> Path:
-        """
-        根据媒体信息，返回Format字典
-        :param template_string: Jinja2 模板字符串
-        :param meta: 文件元数据
-        :param mediainfo: 识别的媒体信息
-        :param file_ext: 文件扩展名
-        """
-        def format_dict(meta: MetaBase, mediainfo: MediaInfo, file_ext: str = None) -> Dict[str, Any]:
-            return FileManagerModule._FileManagerModule__get_naming_dict(
-                meta=meta, mediainfo=mediainfo, file_ext=file_ext)
-
-        rename_dict = format_dict(meta=meta, mediainfo=mediainfo, file_ext=file_ext)
-        return FileManagerModule.get_rename_path(template_string, rename_dict)
-
     def format_torrent(self, torrent_info: TorrentInfo, meta: MetaBase, media_info: MediaInfo) -> bool:
         _torrent_hash = torrent_info.hash
         _torrent_name = torrent_info.name
@@ -618,23 +680,30 @@ class RenameTorrent(_PluginBase):
         try:
             if str(new_name) != _torrent_name:
                 self.downloader.torrents_rename(torrent_hash=_torrent_hash, new_torrent_name=str(new_name))
-                logger.info(f"种子重命名成功：{_torrent_name} ==> {new_name}")
+                logger.info(f"种子重命名成功 hash: {_torrent_hash} {_torrent_name} ==> {new_name}")
                 self.update_data(_torrent_hash, _torrent_name);
                 # 更改记录写入数据库
         except Exception as e:
-            logger.error(f"种子重命名失败：{str(e)}")
+            logger.error(f"种子重命名失败 hash: {_torrent_hash} {str(e)}")
             success = False
         return success
-             
-    def fetch_data(self, torrent_hash: str) -> Optional[Tuple[Dict[int, dict], Dict[int, dict]]]:
+
+    def recoveryTorrent(self):
         """
-        使用哈希查询数据库中的下载记录和文件记录
+        恢复下载器中的种子名称
         """
-        # 查询下载历史记录
-        download_history: DownloadHistory = self.downloadhis.get_by_hash(download_hash=torrent_hash)
-        
-        his = {download_history.id: {"path": download_history.path}} if download_history else {}
-        # 查询文件下载记录
-        download_files: List[DownloadFiles] = self.downloadhis.get_files_by_hash(download_hash=torrent_hash)
-        downfiles = {file.id: {"fullpath": file.fullpath, "savepath": file.savepath, "filepath": file.filepath} for file in download_files} if download_files else {}
-        return his, downfiles
+        # 从下载器获取种子信息
+        for d in self._downloader:
+            self.set_downloader(d)
+            if self.downloader is None:
+                logger.warn(f"下载器: {d} 不存在或未启用")
+                continue
+            for torrent_info in self.downloader.torrents_info():
+                if torrent_info:
+                    torrent_hash = torrent_info.hash
+                    torrent_name = torrent_info.name
+                    torrent_oldName = self.get_data(torrent_hash)
+                    if torrent_oldName != None:
+                        self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(torrent_oldName))
+                        logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_oldName} ==> {torrent_name}")
+                        self.del_data(torrent_hash)
