@@ -119,9 +119,9 @@ class QbittorrentDownloader(Downloader):
 
 class RenameTorrent(_PluginBase):
     # 插件名称
-    plugin_name = "重命名种子(基于wikrin修改)"
+    plugin_name = "重命名种子"
     # 插件描述
-    plugin_desc = "根据自定义格式修改MP下载种子的种子名称"
+    plugin_desc = "根据自定义格式修改MP下载种子的种子名称(基于wikrin修改)"
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
