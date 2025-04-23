@@ -261,11 +261,12 @@
         "name": "重命名种子",
         "description": "根据自定义格式修改MP下载种子的种子名称",
         "labels": "重命名",
-        "version": "1.1.2",
+        "version": "1.1.3",
         "icon": "https://raw.githubusercontent.com/InfinityPacer/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "qiaoyun680",
         "level": 1,
         "history": {
+            "v1.1.3": "处理mp的历史记录种子名称",
             "v1.1.2": "修复种子标题处理的问题",
             "v1.1.1": "增加debug日志",
             "v1.1": "增加立即运行和恢复种子名称的功能"

@@ -125,7 +125,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.1.2"
+    plugin_version = "1.1.3"
     # 插件作者
     plugin_author = "qiaoyun680"
     # 作者主页
@@ -613,13 +613,35 @@ class RenameTorrent(_PluginBase):
             return True
         if success and downloadhis:
             # 使用历史记录的识别信息
-            # 因为mp默认RSS信息带有副标题，所以对舍弃副标题
+            
             logger.debug(f"识别到MP 下载历史:{downloadhis.torrent_name}")
             logger.debug(f"下载历史 种子名称:{downloadhis.torrent_name}")
-            left_index = downloadhis.torrent_name.find('[')
-            if left_index != -1 and left_index != 0:
-                downloadhis.torrent_name = downloadhis.torrent_name[:left_index].strip()
-                logger.debug(f"处理后下载历史 种子名称:{downloadhis.torrent_name}")
+            # 处理mp的历史记录种子名称
+            if downloadhis.torrent_name.endswith('.torrent'):
+                # mp搜索下载种子名是文件名
+                # 定义正则表达式模式 去除开始的[站点名称]
+                pattern = r'^\[.*?\]\s*'
+                # 使用 re.sub 方法替换匹配到的内容为空字符串
+                downloadhis.torrent_name = re.sub(pattern, '', downloadhis.torrent_name)
+            else:
+                # Rss下载
+                if "朋友" not in downloadhis.torrent_site:
+                    # 因为mp默认RSS信息带有副标题，所以对舍弃副标题
+                    # 定义正则表达式模式
+                    pattern = r'\[.*\]'
+                    # 使用 re.sub 方法将匹配到的内容替换为空字符串
+                    downloadhis.torrent_name = re.sub(pattern, '', downloadhis.torrent_name)
+                    # 去除首尾的空白字符
+                    downloadhis.torrent_name = downloadhis.torrent_name.strip()
+                else:
+                    # 月月 英文标题在[内]
+                    # 定义正则表达式模式
+                    pattern = r'\[(.*)\]'
+                    # 使用 re.findall 方法查找所有匹配的内容
+                    matches = re.findall(pattern, downloadhis.torrent_name)
+                    if len(matches) != 0:
+                        downloadhis.torrent_name = matches[0]
+            logger.debug(f"处理后下载历史 种子名称:{downloadhis.torrent_name}")
 
             
             meta = MetaInfo(title=downloadhis.torrent_name, subtitle=downloadhis.torrent_description)
