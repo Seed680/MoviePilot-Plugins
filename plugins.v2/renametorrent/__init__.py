@@ -658,7 +658,7 @@ class RenameTorrent(_PluginBase):
                 success = False
         if success and not media_info:
             media_info = self.chain.recognize_media(meta=meta)
-            meta = MetaInfo(media_info.en_title)
+            # meta = MetaInfo(media_info.en_title)
             if not media_info:
                 logger.error(f"识别媒体信息失败，hash: {torrent_info.hash} 种子名称：{torrent_info.name}")
                 success = False
