@@ -125,7 +125,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "2.0"
+    plugin_version = "2.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -767,8 +767,8 @@ class RenameTorrent(_PluginBase):
                         logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_name} ==> {torrent_oldName}")
                     self.del_data(torrent_hash)
                     # 恢复处理记录
-                    processed.pop(torrent_hash) 
-                    logger.debug(f"恢复处理记录: hash: {torrent_hash}")
+                    tmp = processed.pop(torrent_hash) 
+                    logger.debug(f"恢复处理记录: hash: {torrent_hash} name:{tmp}")
         # 保存已处理数据
         self.update_data(key="processed", value=processed)
                         
