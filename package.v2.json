@@ -34,7 +34,7 @@
         "name": "重命名种子",
         "description": "根据自定义格式修改MP下载种子的种子名称",
         "labels": "重命名",
-        "version": "1.1.3",
+        "version": "1.1.5",
         "icon": "https://raw.githubusercontent.com/qiaoyun680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "qiaoyun680",
         "level": 1,
