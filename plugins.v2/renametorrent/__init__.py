@@ -125,7 +125,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.1.1"
+    plugin_version = "1.1.2"
     # 插件作者
     plugin_author = "qiaoyun680"
     # 作者主页
@@ -617,7 +617,7 @@ class RenameTorrent(_PluginBase):
             logger.debug(f"识别到MP 下载历史:{downloadhis.torrent_name}")
             logger.debug(f"下载历史 种子名称:{downloadhis.torrent_name}")
             left_index = downloadhis.torrent_name.find('[')
-            if left_index != -1:
+            if left_index != -1 and left_index != 0:
                 downloadhis.torrent_name = downloadhis.torrent_name[:left_index].strip()
                 logger.debug(f"处理后下载历史 种子名称:{downloadhis.torrent_name}")
 
