@@ -125,11 +125,11 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.1.4"
+    plugin_version = "1.1.5"
     # 插件作者
-    plugin_author = "qiaoyun680"
+    plugin_author = "Seed680"
     # 作者主页
-    author_url = "https://github.com/qiaoyun680"
+    author_url = "https://github.com/Seed680"
     # 插件配置项ID前缀
     plugin_config_prefix = "renametorrent_"
     # 加载顺序
@@ -172,6 +172,8 @@ class RenameTorrent(_PluginBase):
             self.update_config(config=config)
 
             if self._recovery:
+                self._recovery = False
+                config.update({"recovery": False})
                 logger.info("立即恢复重命名下载器种子任务")
                 self._scheduler = BackgroundScheduler(timezone=settings.TZ)
                 self._scheduler.add_job(self.recoveryTorrent, 'date',
@@ -656,6 +658,7 @@ class RenameTorrent(_PluginBase):
                 success = False
         if success and not media_info:
             media_info = self.chain.recognize_media(meta=meta)
+            meta = MetaInfo(media_info.en_title)
             if not media_info:
                 logger.error(f"识别媒体信息失败，hash: {torrent_info.hash} 种子名称：{torrent_info.name}")
                 success = False
@@ -757,3 +760,10 @@ class RenameTorrent(_PluginBase):
                         self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(torrent_oldName))
                         logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_name} ==> {torrent_oldName}")
                         self.del_data(torrent_hash)
+                        # 恢复处理记录
+                        # 获取已处理数据
+                        processed: dict[str, str] = self.get_data(key="processed") or {}
+                        # 添加到已处理数据库
+                        processed.pop(hash) 
+                        # 保存已处理数据
+                        self.update_data(key="processed", value=processed)
