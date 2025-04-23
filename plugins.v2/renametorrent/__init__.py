@@ -761,8 +761,8 @@ class RenameTorrent(_PluginBase):
                 if torrent_info:
                     torrent_hash = torrent_info.hash
                     torrent_name = torrent_info.name
-                    if torrent_name != None:
-                        torrent_oldName = self.get_data(torrent_hash)
+                    torrent_oldName = self.get_data(torrent_hash)
+                    if torrent_name != None and torrent_oldName != None :
                         self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(torrent_oldName))
                         logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_name} ==> {torrent_oldName}")
                         self.del_data(torrent_hash)
