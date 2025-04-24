@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from datetime import datetime, timedelta
 import re
+import json
 from typing import Any, Dict, List, Optional, Tuple
 import pytz
 
@@ -125,7 +126,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "2.2"
+    plugin_version = "2.3"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -153,12 +154,18 @@ class RenameTorrent(_PluginBase):
     _downloader: list = []
     # 排除标签
     _exclude_tags: str = ""
+    # 包含标签
+    _include_tags: str = ""
     # 排除目录
     _exclude_dirs: str = ""
+    # 种子哈希白名单
+    _hash_white_list: str = ""
     # 立即运行一次
     _onlyonce = False
     # 恢复记录
     _recovery = False
+    # 尝试失败
+    _retry = False
 
     def init_plugin(self, config: dict = None):
         self.load_config(config)
@@ -206,10 +213,13 @@ class RenameTorrent(_PluginBase):
                 "event_enabled",
                 "downloader",
                 "exclude_dirs",
+                "hash_white_list",
                 "exclude_tags",
+                "include_tags",
                 "format_torrent_name",
                 "onlyonce",
-                "recovery"
+                "recovery",
+                "retry"
             ):
                 setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
 
@@ -281,13 +291,25 @@ class RenameTorrent(_PluginBase):
                         'content': [
                             {
                                 'component': 'VCol',
-                                'props': {
-                                    'cols': 6,
-                                    'md': 3,
-                                    'style': {
-                                        'margin-top': '12px'    # 设置上边距, 确保`label`不被遮挡
+                                'props': {'cols': 6, 'md': 3},
+                                'content': [
+                                    {
+                                        'component': 'VSwitch',
+                                        'props': {
+                                            'model': 'retry',
+                                            'label': '尝试失败',
+                                        }
                                     }
-                                },
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {'cols': 6, 'md': 3},
                                 'content': [
                                     {
                                         'component': 'VSelect',
@@ -304,13 +326,7 @@ class RenameTorrent(_PluginBase):
                             },
                             {
                                 'component': 'VCol',
-                                'props': {
-                                    'cols': 6,
-                                    'md': 3,
-                                    'style': {
-                                        'margin-top': '12px'    # 设置上边距, 确保`label`不被遮挡
-                                    }
-                                },
+                                'props': {'cols': 6, 'md': 3},
                                 'content': [
                                     {
                                         'component': 'VTextField',
@@ -324,13 +340,7 @@ class RenameTorrent(_PluginBase):
                             },
                             {
                                 'component': 'VCol',
-                                'props': {
-                                    'cols': 5,
-                                    'md': 3,
-                                    'style': {
-                                        'margin-top': '12px'    # 设置上边距, 确保`label`不被遮挡
-                                    },
-                                },
+                                'props': {'cols': 6, 'md': 3},
                                 'content': [
                                     {
                                         'component': 'VTextField',
@@ -338,7 +348,48 @@ class RenameTorrent(_PluginBase):
                                             'model': 'exclude_tags',
                                             'label': '排除标签',
                                             'placeholder': '注意: 空白字符会排除所有未设置标签的种子',
-                                            'hint': '多个标签用, 分割',
+                                            'hint': '多个标签用, 分割，空格表示没有标签',
+                                            'clearable': True,
+                                            'persistent-hint': True,
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {'cols': 6, 'md': 3},
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'include_tags',
+                                            'label': '包含标签',
+                                            'placeholder': '注意: 空白字符会包含所有未设置标签的种子',
+                                            'hint': '多个标签用, 分割，空格表示没有标签，排除标签优先级更高',
+                                            'clearable': True,
+                                            'persistent-hint': True,
+                                        }
+                                    }
+                                ]
+                            },
+                        ]
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {'cols': 12},
+                                'content': [
+                                    {
+                                        'component': 'VTextarea',
+                                        'props': {
+                                            'rows': 2,
+                                            'auto-grow': True,
+                                            'model': 'hash_white_list',
+                                            'label': '指定种子hash',
+                                            'hint': '指定种子hash, 一行一个,',
+                                            'placeholder': r' 例如:\n /mnt/download \n E:\download',
                                             'clearable': True,
                                             'persistent-hint': True,
                                         }
@@ -421,8 +472,11 @@ class RenameTorrent(_PluginBase):
             "cron_enabled": False,
             "downloader": [],
             "exclude_dirs": "",
+            "hash_white_list": "",
             "exclude_tags": "",
+            "include_tags": "",
             "cron": "",
+            "retry": False,
             "event_enabled": False,
             "rename_torrent": False,
             "format_torrent_name": "{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %}.{{original_name}}",
@@ -452,7 +506,7 @@ class RenameTorrent(_PluginBase):
                 self._scheduler.shutdown()
                 self._scheduler = None
         except Exception as e:
-            logger.error(f"退出插件失败：{str(e)}")
+            logger.error(f"退出插件失败：{str(e)}", exc_info=True)
 
     def get_api(self):
         pass
@@ -473,6 +527,9 @@ class RenameTorrent(_PluginBase):
         """
         if not self._event_enabled \
             and not event:
+            return
+        if len(self._downloader) == 0:
+            logger.info("下载器为空")
             return
         event_data = event.event_data or {}
         hash = event_data.get("hash")
@@ -497,6 +554,9 @@ class RenameTorrent(_PluginBase):
         """
         定时任务处理下载器中的种子
         """
+        if len(self._downloader) == 0:
+            logger.info("下载器为空")
+            return
         # 失败数据列表
         _failures: dict[str, str] = {}
         # 获取待处理数据
@@ -536,9 +596,19 @@ class RenameTorrent(_PluginBase):
         for d in self._downloader:
             self.set_downloader(d)
             if self.downloader is None:
-                logger.warn(f"下载器: {d} 不存在或未启用")
+                logger.info(f"下载器: {d} 不存在或未启用")
                 continue
-            torrents_info = [torrent_info for torrent_info in self.downloader.torrents_info() if torrent_info.hash not in processed or torrent_info.hash in pending]
+            # 判断是否尝试失败的种子
+            if self._retry:
+                logger.debug(f"尝试失败的种子")
+                torrents_info = [torrent_info for torrent_info in self.downloader.torrents_info() if torrent_info.hash not in processed or torrent_info.hash in pending]
+            else:
+                logger.debug(f"不尝试失败的种子")
+                torrents_info = [torrent_info for torrent_info in self.downloader.torrents_info() if torrent_info.hash not in processed or torrent_info.hash not in pending]
+             # 判断是否在白名单内
+            if self._hash_white_list:
+                torrents_info, error = self.downloader.get_torrents(ids=self._hash_white_list.strip().split("\n"))
+                logger.debug(f"白名单内的种子 torrents_info：{torrents_info}")
             if torrents_info:
                 # 先生成源种子hash表
                 assist_mapping = create_hash_mapping()
@@ -552,7 +622,8 @@ class RenameTorrent(_PluginBase):
                                 break
                     # 通过hash查询下载历史记录
                     downloadhis = DownloadHistoryOper().get_by_hash(_hash or torrent_info.hash)
-                    logger.debug(f"通过hash查询下载历史记录 hash:{_hash or torrent_info.hash} downloadhis: {downloadhis}")
+                    
+                    logger.debug(f"通过hash查询下载历史记录 hash:{_hash or torrent_info.hash} downloadhis: {json.dumps(downloadhis)}")
                     # 执行处理
                     if self.main(torrent_info=torrent_info, downloadhis=downloadhis ):
                         # 添加到已处理数据库
@@ -613,39 +684,15 @@ class RenameTorrent(_PluginBase):
             success = False
             logger.info(f"{torrent_info.tags} 命中排除标签：{common_tags}")
             return True
+        # 标签包含
+        if success and self._include_tags and \
+            not (common_tags := {tag.strip() for tag in self._include_tags.split(",") if tag} & set(torrent_info.tags)):
+            success = False
+            logger.info(f"{torrent_info.tags} 未命中包含标签：{common_tags}")
+            return True
         if success and downloadhis:
             # 使用历史记录的识别信息
-            
-            logger.debug(f"识别到MP 下载历史:{downloadhis.torrent_name}")
-            logger.debug(f"下载历史 种子名称:{downloadhis.torrent_name}")
-            # 处理mp的历史记录种子名称
-            if downloadhis.torrent_name.endswith('.torrent'):
-                # mp搜索下载种子名是文件名
-                # 定义正则表达式模式 去除开始的[站点名称]
-                pattern = r'^\[.*?\]\s*'
-                # 使用 re.sub 方法替换匹配到的内容为空字符串
-                downloadhis.torrent_name = re.sub(pattern, '', downloadhis.torrent_name)
-            else:
-                # Rss下载
-                if "朋友" not in downloadhis.torrent_site:
-                    # 因为mp默认RSS信息带有副标题，所以对舍弃副标题
-                    # 定义正则表达式模式
-                    pattern = r'\[.*\]'
-                    # 使用 re.sub 方法将匹配到的内容替换为空字符串
-                    downloadhis.torrent_name = re.sub(pattern, '', downloadhis.torrent_name)
-                    # 去除首尾的空白字符
-                    downloadhis.torrent_name = downloadhis.torrent_name.strip()
-                else:
-                    # 月月 英文标题在[内]
-                    # 定义正则表达式模式
-                    pattern = r'\[(.*)\]'
-                    # 使用 re.findall 方法查找所有匹配的内容
-                    matches = re.findall(pattern, downloadhis.torrent_name)
-                    if len(matches) != 0:
-                        downloadhis.torrent_name = matches[0]
-            logger.debug(f"处理后下载历史 种子名称:{downloadhis.torrent_name}")
-
-            
+            logger.debug(f"识别到MP 下载历史名称:{downloadhis.torrent_name}")
             meta = MetaInfo(title=downloadhis.torrent_name, subtitle=downloadhis.torrent_description)
             media_info = self.chain.recognize_media(meta=meta, mtype=MediaType(downloadhis.type),
                                                     tmdbid=downloadhis.tmdbid, doubanid=downloadhis.doubanid)
@@ -664,6 +711,7 @@ class RenameTorrent(_PluginBase):
                 success = False
         if success:
             logger.debug(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} 开始执行重命名")
+            logger.debug(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} torrent_info：{torrent_info} meta：{meta} media_info：{media_info}")
             if self.format_torrent(torrent_info=torrent_info, meta=meta, media_info=media_info):
                 logger.info(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} 处理完成")
                 return True
@@ -719,7 +767,7 @@ class RenameTorrent(_PluginBase):
                 logger.info(f"种子重命名失败 hash:: {_torrent_hash} {_torrent_name} ==> {new_name}")
                 success = False
         except Exception as e:
-            logger.error(f"种子重命名失败 hash: {_torrent_hash} {str(e)}")
+            logger.error(f"种子重命名失败 hash: {_torrent_hash} {str(e)}", exc_info=True)
             success = False
         return success
     
@@ -740,8 +788,26 @@ class RenameTorrent(_PluginBase):
         def format_dict(meta: MetaBase, mediainfo: MediaInfo, file_ext: str = None) -> Dict[str, Any]:
             return FileManagerModule._FileManagerModule__get_naming_dict(
                 meta=meta, mediainfo=mediainfo, file_ext=file_ext)
-
+        # 处理mp的历史记录种子名称
+        logger.debug(f"处理前的种子名称:{meta.title}")
+        if meta.title.endswith('.torrent'):
+            # mp搜索下载种子名是文件名
+            # 定义正则表达式模式 去除开始的[站点名称]
+            pattern = r'^\[.*?\]\s*'
+            # 使用 re.sub 方法替换匹配到的内容为空字符串
+            meta.title = re.sub(pattern, '', meta.title)
+        else:
+            # 因为mp默认RSS信息带有副标题，所以对舍弃副标题
+            # 定义正则表达式模式
+            pattern = r'\[.*\]'
+            # 使用 re.sub 方法将匹配到的内容替换为空字符串
+            meta.title = re.sub(pattern, '', meta.title)
+            # 去除首尾的空白字符
+            meta.title = meta.title.strip()
+        logger.debug(f"处理后的种子名称:{meta.title}")
         rename_dict = format_dict(meta=meta, mediainfo=mediainfo, file_ext=file_ext)
+        logger.debug(f"rename_dict： {rename_dict}")
+        
         return FileManagerModule.get_rename_path(template_string, rename_dict)
 
     def recoveryTorrent(self):
