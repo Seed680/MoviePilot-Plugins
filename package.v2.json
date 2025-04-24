@@ -36,7 +36,7 @@
         "labels": "重命名",
         "version": "2.6",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
-        "author": "qiaoyun680",
+        "author": "Seed680",
         "level": 1,
         "history": {
             "v2.6": "修复已知问题，最终版本！",
@@ -57,6 +57,18 @@
             "v1.1.2": "修复种子标题处理的问题",
             "v1.1.1": "增加debug日志",
             "v1.1": "增加立即运行和恢复种子名称的功能"
+        }
+    },
+    "BatchRename": {
+        "name": "批量重命名",
+        "description": "根据规则批量重命名QB种子名称",
+        "labels": "重命名",
+        "version": "1.0",
+        "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
+        "author": "Seed680",
+        "level": 1,
+        "history": {
+            "v1.0": "根据规则批量重命名QB种子名称"
         }
     }
 }
