@@ -837,7 +837,13 @@ class RenameTorrent(_PluginBase):
                 if self.downloader is None:
                     logger.warn(f"下载器: {d} 不存在或未启用")
                     continue
-                for torrent_info in self.downloader.torrents_info(torrent_hash=processed.keys()):
+                if self._hash_white_list:
+                    logger.debug(f"存在hash白名单")
+                    torrents_info_list = self.downloader.torrents_info(torrent_hash=self._hash_white_list.strip().split("\n"))
+                    logger.debug(f"白名单内的种子 torrents_info_list{torrents_info_list}")
+                else:
+                    torrents_info_list = self.downloader.torrents_info(torrent_hash=processed.keys())
+                for torrent_info in torrents_info_list:
                     if torrent_info:
                         torrent_hash = torrent_info.hash
                         torrent_name = torrent_info.name
