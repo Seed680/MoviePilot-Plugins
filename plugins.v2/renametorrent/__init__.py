@@ -1,31 +1,26 @@
 # 基础库
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
-from pathlib import Path
 from datetime import datetime, timedelta
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List,Optional, Union, List
 import pytz
-
 # 第三方库
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from sqlalchemy.orm import Session
 
 # 项目库
 from app.core.context import MediaInfo, TorrentInfo, Context
 from app.core.event import eventmanager, Event
 from app.core.meta.metabase import MetaBase
-from app.core.metainfo import MetaInfo, MetaInfoPath
-from app.db.downloadhistory_oper import DownloadHistoryOper, DownloadHistory, DownloadFiles
-from app.db import db_update
+from app.core.metainfo import MetaInfo
+from app.db.downloadhistory_oper import DownloadHistoryOper, DownloadHistory
 from app.db.models.plugindata import PluginData
 from app.db.systemconfig_oper import SystemConfigOper
 from app.helper.downloader import DownloaderHelper
 from app.log import logger
 from app.modules.filemanager import FileManagerModule
 from app.modules.qbittorrent import Qbittorrent
-from app.modules.transmission import Transmission
 from app.plugins import _PluginBase
 from app.schemas.types import EventType, MediaType
 from app.schemas.types import SystemConfigKey
@@ -77,12 +72,11 @@ class Downloader(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def torrents_info(self, torrent_hash: str = None) -> List[TorrentInfo]:
+    def torrents_info(self, torrent_hash: Optional[Union[str, list]] = None) -> List[TorrentInfo]:
         """
         获取种子信息
         """
         pass
-
 
 class QbittorrentDownloader(Downloader):
     def __init__(self, qbc: Qbittorrent):
@@ -90,7 +84,7 @@ class QbittorrentDownloader(Downloader):
     def torrents_rename(self, torrent_hash: str, new_torrent_name: str) -> None:
         self.qbc.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=new_torrent_name)
 
-    def torrents_info(self, torrent_hash: str = None) -> List[TorrentInfo]:
+    def torrents_info(self, torrent_hash: Optional[Union[str, list]] = None) -> List[TorrentInfo]:
         """
         获取种子信息
         """
@@ -125,7 +119,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "2.4"
+    plugin_version = "2.5"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -608,7 +602,7 @@ class RenameTorrent(_PluginBase):
                     # 判断是否在白名单内
                 if self._hash_white_list:
                     logger.debug(f"存在hash白名单")
-                    torrents_info = self.downloader.get_torrents(ids=self._hash_white_list.strip().split("\n"))
+                    torrents_info = self.downloader.torrents_info(torrent_hash=self._hash_white_list.strip().split("\n"))
                     logger.debug(f"白名单内的种子 torrents_info：{torrents_info}")
                 if torrents_info:
                     # 先生成源种子hash表
@@ -631,7 +625,7 @@ class RenameTorrent(_PluginBase):
                         if self.main(torrent_info=torrent_info, downloadhis=downloadhis ):
                             # 添加到已处理数据库
                             processed[torrent_info.hash] = d
-                            _failures.pop(torrent_info.hash)
+                            _failures.pop(torrent_info.hash, None)
                             # 本次处理成功计数
                             _processed_num += 1
                         else:
@@ -669,7 +663,7 @@ class RenameTorrent(_PluginBase):
             logger.warn(f"未连接下载器")
         if success and not torrent_info:
             if hash:
-                torrent_info = self.downloader.torrents_info(hash)
+                torrent_info = self.downloader.torrents_info(torrent_hash=hash)
                 # 种子被手动删除或转移
                 if not torrent_info:
                     success = False
@@ -770,7 +764,12 @@ class RenameTorrent(_PluginBase):
                 # 更改记录写入数据库
                 self.update_data(_torrent_hash, _torrent_name);
             else:
-                logger.info(f"种子重命名失败 hash:: {_torrent_hash} {_torrent_name} ==> {new_name}")
+                if None == _torrent_name:
+                    logger.debug(f"种子重命名失败 hash: {_torrent_hash} {_torrent_name} 原因：种子名字为None")
+                if None == new_name:
+                    logger.debug(f"种子重命名失败 hash: {_torrent_hash} {_torrent_name} 原因：新名字为None")
+                if str(new_name) == _torrent_name:
+                    logger.debug(f"种子重命名失败 hash: {_torrent_hash} {_torrent_name} 原因：新名字与原来的名字相同")
                 success = False
         except Exception as e:
             logger.error(f"种子重命名失败 hash: {_torrent_hash} {str(e)}", exc_info=True)
@@ -820,29 +819,35 @@ class RenameTorrent(_PluginBase):
         """
         恢复下载器中的种子名称
         """
-        # 获取已处理数据
-        processed: dict[str, str] = self.get_data(key="processed") or {}
-        # 从下载器获取种子信息
-        for d in self._downloader:
-            self.set_downloader(d)
-            if self.downloader is None:
-                logger.warn(f"下载器: {d} 不存在或未启用")
-                continue
-
-            for torrent_info in self.downloader.torrents_info():
-                if torrent_info:
-                    torrent_hash = torrent_info.hash
-                    torrent_name = torrent_info.name
-                    torrent_oldName = self.get_data(torrent_hash)
-                    if torrent_oldName != None :
-                        self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(torrent_oldName))
-                        logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_name} ==> {torrent_oldName}")
-                    else:
-                        logger.debug(f"恢复处理记录: hash: {torrent_hash} oldName为None:{torrent_oldName}")
-                    self.del_data(torrent_hash)
-                    # 恢复处理记录
-                    tmp = processed.pop(torrent_hash) 
-                    logger.debug(f"恢复处理记录: hash: {torrent_hash} name:{torrent_oldName}")
-        # 保存已处理数据
-        self.update_data(key="processed", value=processed)
-                        
+        try:
+            # 获取已处理数据
+            processed: dict[str, str] = self.get_data(key="processed") or {}
+            logger.debug(f"processed : {processed}")
+            if len(processed) == 0:
+                logger.debug(f"历史记录为空，跳过恢复")
+                return
+            logger.debug(f"获取已处理数据成功")
+            # 从下载器获取种子信息
+            for d in self._downloader:
+                self.set_downloader(d)
+                if self.downloader is None:
+                    logger.warn(f"下载器: {d} 不存在或未启用")
+                    continue
+                for torrent_info in self.downloader.torrents_info(torrent_hash=processed.keys()):
+                    if torrent_info:
+                        torrent_hash = torrent_info.hash
+                        torrent_name = torrent_info.name
+                        torrent_oldName = self.get_data(torrent_hash)
+                        if torrent_oldName != None :
+                            self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(torrent_oldName))
+                            logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_name} ==> {torrent_oldName}")
+                        else:
+                            logger.debug(f"恢复处理记录: hash: {torrent_hash} oldName为None,")
+                        self.del_data(torrent_hash)
+                        # 恢复处理记录
+                        processed.pop(torrent_hash, None) 
+                        logger.debug(f"恢复处理记录: hash: {torrent_hash} name:{torrent_oldName}")
+            # 保存已处理数据
+            self.update_data(key="processed", value=processed)
+        except Exception as e:
+            logger.error(f"恢复下载器中的种子名称失败 {str(e)}", exc_info=True)
