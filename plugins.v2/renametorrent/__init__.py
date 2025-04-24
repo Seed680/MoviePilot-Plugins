@@ -119,7 +119,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "2.5"
+    plugin_version = "2.5.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -586,6 +586,9 @@ class RenameTorrent(_PluginBase):
                             _mapping[seed_data.key] = hashes
                 return _mapping
 
+            # 先生成源种子hash表
+            logger.debug(f"先生成源种子hash表")
+            assist_mapping = create_hash_mapping()
             # 从下载器获取种子信息
             for d in self._downloader:
                 self.set_downloader(d)
@@ -605,15 +608,15 @@ class RenameTorrent(_PluginBase):
                     torrents_info = self.downloader.torrents_info(torrent_hash=self._hash_white_list.strip().split("\n"))
                     logger.debug(f"白名单内的种子 torrents_info：{torrents_info}")
                 if torrents_info:
-                    # 先生成源种子hash表
-                    logger.debug(f"先生成源种子hash表")
-                    assist_mapping = create_hash_mapping()
                     for torrent_info in torrents_info:
                         _hash = ""
                         if assist_mapping:
+                            logger.debug(f"存在IYUU辅种数据")
                             for source_hash, seeds in assist_mapping.items():
                                 if torrent_info.hash in seeds:
                                     # 使用源下载种子识别
+                                    logger.debug(f"查找到 {torrent_info.name} hash:{torrent_info.hash} 的IYUU辅种记录")
+                                    logger.debug(f"{torrent_info.name} hash:{torrent_info.hash} 源hash:{source_hash} ")
                                     _hash = source_hash
                                     break
                         # 通过hash查询下载历史记录
