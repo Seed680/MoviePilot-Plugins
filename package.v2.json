@@ -34,11 +34,12 @@
         "name": "重命名种子",
         "description": "根据自定义格式修改MP下载种子的种子名称",
         "labels": "重命名",
-        "version": "2.3",
+        "version": "2.4",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "qiaoyun680",
         "level": 1,
         "history": {
+            "v2.4": "终极版本V3修复了失败重试选项没有正确生效的问题",
             "v2.3": "终极版本V2增加了失败重试选项；增加包含标签选项；增加指定种子hash",
             "v2.2": "终极版本又增加一条debug信息",
             "v2.1": "终极版本增加一条debug信息",

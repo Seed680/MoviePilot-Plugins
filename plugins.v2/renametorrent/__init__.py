@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from datetime import datetime, timedelta
 import re
-import json
 from typing import Any, Dict, List, Optional, Tuple
 import pytz
 
@@ -126,7 +125,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "2.3"
+    plugin_version = "2.4"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -554,93 +553,100 @@ class RenameTorrent(_PluginBase):
         """
         定时任务处理下载器中的种子
         """
-        if len(self._downloader) == 0:
-            logger.info("下载器为空")
-            return
-        # 失败数据列表
-        _failures: dict[str, str] = {}
-        # 获取待处理数据
-        pending: dict[str, str] = self.get_data(key="pending") or {}
-        # 获取已处理数据
-        processed: dict[str, str] = self.get_data(key="processed") or {}
-        _processed_num = 0
+        try:
+            if len(self._downloader) == 0:
+                logger.info("下载器为空")
+                return
+            # 失败数据列表
+            _failures: dict[str, str] = {}
+            # 获取待处理数据
+            pending: dict[str, str] = self.get_data(key="pending") or {}
+            # 获取已处理数据
+            processed: dict[str, str] = self.get_data(key="processed") or {}
+            _processed_num = 0
 
-        def create_hash_mapping() -> Dict[str, List[str]]:
-            """
-            生成源种子hash表
-            """
-            # 辅种插件数据
-            assist: List[PluginData] = self.get_data(key=None, plugin_id="IYUUAutoSeed") or []
-            # 辅种数据映射表 key: 源种hash, value: 辅种hash列表
-            _mapping: dict[str, List[str]] = {}
+            def create_hash_mapping() -> Dict[str, List[str]]:
+                """
+                生成源种子hash表
+                """
+                # 辅种插件数据
+                assist: List[PluginData] = self.get_data(key=None, plugin_id="IYUUAutoSeed") or []
+                # 辅种数据映射表 key: 源种hash, value: 辅种hash列表
+                _mapping: dict[str, List[str]] = {}
 
-            if assist:
-                for seed_data in assist:
-                    hashes = []
-                    for a in seed_data.value:
-                        hashes.extend(a.get("torrents", []))
-                    if seed_data.key in _mapping:
-                        # 辅种插件中使用的源种子hash是下载的, 将辅种hash列表合并
-                        _mapping[seed_data.key].extend(hashes)
-                    else:
-                        # 辅种插件中使用的源种子hash不是字典的键, 需要再次判断是不是辅种产生的种子
-                        for _current_hash, _hashes in _mapping.items():
-                            if seed_data.key in _hashes:
-                                _mapping[_current_hash].extend(hashes)
-                                break
-                        # 不是辅种产生的种子, 作为源种子添加
-                        _mapping[seed_data.key] = hashes
-            return _mapping
+                if assist:
+                    for seed_data in assist:
+                        hashes = []
+                        for a in seed_data.value:
+                            hashes.extend(a.get("torrents", []))
+                        if seed_data.key in _mapping:
+                            # 辅种插件中使用的源种子hash是下载的, 将辅种hash列表合并
+                            _mapping[seed_data.key].extend(hashes)
+                        else:
+                            # 辅种插件中使用的源种子hash不是字典的键, 需要再次判断是不是辅种产生的种子
+                            for _current_hash, _hashes in _mapping.items():
+                                if seed_data.key in _hashes:
+                                    _mapping[_current_hash].extend(hashes)
+                                    break
+                            # 不是辅种产生的种子, 作为源种子添加
+                            _mapping[seed_data.key] = hashes
+                return _mapping
 
-        # 从下载器获取种子信息
-        for d in self._downloader:
-            self.set_downloader(d)
-            if self.downloader is None:
-                logger.info(f"下载器: {d} 不存在或未启用")
-                continue
-            # 判断是否尝试失败的种子
-            if self._retry:
-                logger.debug(f"尝试失败的种子")
-                torrents_info = [torrent_info for torrent_info in self.downloader.torrents_info() if torrent_info.hash not in processed or torrent_info.hash in pending]
-            else:
-                logger.debug(f"不尝试失败的种子")
-                torrents_info = [torrent_info for torrent_info in self.downloader.torrents_info() if torrent_info.hash not in processed or torrent_info.hash not in pending]
-             # 判断是否在白名单内
-            if self._hash_white_list:
-                torrents_info, error = self.downloader.get_torrents(ids=self._hash_white_list.strip().split("\n"))
-                logger.debug(f"白名单内的种子 torrents_info：{torrents_info}")
-            if torrents_info:
-                # 先生成源种子hash表
-                assist_mapping = create_hash_mapping()
-                for torrent_info in torrents_info:
-                    _hash = ""
-                    if assist_mapping:
-                        for source_hash, seeds in assist_mapping.items():
-                            if torrent_info.hash in seeds:
-                                # 使用源下载种子识别
-                                _hash = source_hash
-                                break
-                    # 通过hash查询下载历史记录
-                    downloadhis = DownloadHistoryOper().get_by_hash(_hash or torrent_info.hash)
-                    
-                    logger.debug(f"通过hash查询下载历史记录 hash:{_hash or torrent_info.hash} downloadhis: {json.dumps(downloadhis)}")
-                    # 执行处理
-                    if self.main(torrent_info=torrent_info, downloadhis=downloadhis ):
-                        # 添加到已处理数据库
-                        processed[torrent_info.hash] = d
-                        # 本次处理成功计数
-                        _processed_num += 1
-                    else:
-                        # 添加到失败数据库
-                        _failures[torrent_info.hash] = d
-        # 更新数据库
-        if _failures:
-            self.update_data("pending", _failures)
-            logger.info(f"失败 {len(_failures)} 个")
-        if processed:
-            self.update_data("processed", processed)
-            logger.info(f"成功 {_processed_num} 个, 合计 {len(processed)} 个种子已保存至历史")
-        # 保存已处理数据库
+            # 从下载器获取种子信息
+            for d in self._downloader:
+                self.set_downloader(d)
+                if self.downloader is None:
+                    logger.info(f"下载器: {d} 不存在或未启用")
+                    continue
+                # 判断是否尝试失败的种子
+                if self._retry:
+                    logger.debug(f"尝试失败的种子")
+                    torrents_info = [torrent_info for torrent_info in self.downloader.torrents_info() if torrent_info.hash not in processed]
+                else:
+                    logger.debug(f"不尝试失败的种子")
+                    torrents_info = [torrent_info for torrent_info in self.downloader.torrents_info() if torrent_info.hash not in processed and torrent_info.hash not in pending]
+                    # 判断是否在白名单内
+                if self._hash_white_list:
+                    logger.debug(f"存在hash白名单")
+                    torrents_info = self.downloader.get_torrents(ids=self._hash_white_list.strip().split("\n"))
+                    logger.debug(f"白名单内的种子 torrents_info：{torrents_info}")
+                if torrents_info:
+                    # 先生成源种子hash表
+                    logger.debug(f"先生成源种子hash表")
+                    assist_mapping = create_hash_mapping()
+                    for torrent_info in torrents_info:
+                        _hash = ""
+                        if assist_mapping:
+                            for source_hash, seeds in assist_mapping.items():
+                                if torrent_info.hash in seeds:
+                                    # 使用源下载种子识别
+                                    _hash = source_hash
+                                    break
+                        # 通过hash查询下载历史记录
+                        logger.debug(f"通过hash查询下载历史记录开始 hash：{_hash or torrent_info.hash}")
+                        downloadhis = DownloadHistoryOper().get_by_hash(_hash or torrent_info.hash)
+                        
+                        logger.debug(f"通过hash查询下载历史记录完成 hash:{_hash or torrent_info.hash}")
+                        # 执行处理
+                        if self.main(torrent_info=torrent_info, downloadhis=downloadhis ):
+                            # 添加到已处理数据库
+                            processed[torrent_info.hash] = d
+                            _failures.pop(torrent_info.hash)
+                            # 本次处理成功计数
+                            _processed_num += 1
+                        else:
+                            # 添加到失败数据库
+                            _failures[torrent_info.hash] = d
+            # 更新数据库
+            if _failures:
+                self.update_data("pending", _failures)
+                logger.info(f"失败 {len(_failures)} 个")
+            if processed:
+                # 保存已处理数据库
+                self.update_data("processed", processed)
+                logger.info(f"成功 {_processed_num} 个, 合计 {len(processed)} 个种子已保存至历史")
+        except Exception as e:
+            logger.error(f"种子重命名失败 {str(e)}", exc_info=True)
 
     def main(self, downloader: str = None, downloadhis: DownloadHistory = None,
              hash: str =None, torrent_info: TorrentInfo = None, 
