@@ -382,7 +382,6 @@ class RenameTorrent(_PluginBase):
                                             'model': 'hash_white_list',
                                             'label': '指定种子hash',
                                             'hint': '指定种子hash, 一行一个,',
-                                            'placeholder': r' 例如:\n /mnt/download \n E:\download',
                                             'clearable': True,
                                             'persistent-hint': True,
                                         }
@@ -623,8 +622,10 @@ class RenameTorrent(_PluginBase):
                         result_hash = _hash or torrent_info.hash
                         logger.debug(f"通过hash查询下载历史记录开始 hash：{result_hash}")
                         downloadhis = DownloadHistoryOper().get_by_hash(result_hash)
-                    
-                        logger.debug(f"通过hash查询下载历史记录完成 hash:{result_hash} his_id:{downloadhis.id} his_hash:{downloadhis.download_hash}")
+                        if downloadhis:
+                            logger.debug(f"通过hash查询下载历史记录完成 hash:{result_hash} his_id:{downloadhis.id} his_hash:{downloadhis.download_hash}")
+                        else:
+                            logger.debug(f"未查询到下载历史记录 hash:{result_hash}")
                         # 执行处理
                         if self.main(torrent_info=torrent_info, downloadhis=downloadhis ):
                             # 添加到已处理数据库
