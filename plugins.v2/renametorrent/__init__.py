@@ -119,7 +119,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "2.5.1"
+    plugin_version = "2.5.2"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -620,10 +620,11 @@ class RenameTorrent(_PluginBase):
                                     _hash = source_hash
                                     break
                         # 通过hash查询下载历史记录
-                        logger.debug(f"通过hash查询下载历史记录开始 hash：{_hash or torrent_info.hash}")
-                        downloadhis = DownloadHistoryOper().get_by_hash(_hash or torrent_info.hash)
-                        
-                        logger.debug(f"通过hash查询下载历史记录完成 hash:{_hash or torrent_info.hash}")
+                        result_hash = _hash or torrent_info.hash
+                        logger.debug(f"通过hash查询下载历史记录开始 hash：{result_hash}")
+                        downloadhis = DownloadHistoryOper().get_by_hash(result_hash)
+                    
+                        logger.debug(f"通过hash查询下载历史记录完成 hash:{result_hash} his_id:{downloadhis.id} his_hash:{downloadhis.download_hash}")
                         # 执行处理
                         if self.main(torrent_info=torrent_info, downloadhis=downloadhis ):
                             # 添加到已处理数据库
