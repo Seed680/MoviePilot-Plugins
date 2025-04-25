@@ -46,9 +46,9 @@ class SubscribeAssistant(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/InfinityPacer/MoviePilot-Plugins/main/icons/subscribeassistant.png"
     # 插件版本
-    plugin_version = "2.7.1"
+    plugin_version = "2.7.2"
     # 插件作者
-    plugin_author = "InfinityPacer"
+    plugin_author = "InfinityPacer,Seed680"
     # 作者主页
     author_url = "https://github.com/InfinityPacer"
     # 插件配置项ID前缀
@@ -1491,7 +1491,7 @@ class SubscribeAssistant(_PluginBase):
             logger.debug(f"接收到订阅删除事件，订阅 ID: {subscribe_id}，数据：{subscribe_dict}")
             self.clear_tasks(subscribe_id=subscribe_id, subscribe=subscribe_dict)
         except Exception as e:
-            logger.error(f"处理订阅删除事件时发生错误: {str(e)}")
+            logger.error(f"处理订阅删除事件时发生错误: {str(e)}", exc_info=True)
 
     @eventmanager.register(EventType.SubscribeAdded)
     def handle_subscribe_added_event(self, event: Event = None):
@@ -1531,7 +1531,7 @@ class SubscribeAssistant(_PluginBase):
 
             # 订阅或媒体信息获取失败
             if not subscribe or not mediainfo:
-                logger.error(f"订阅 ID {subscribe_id} 的订阅信息获取失败，媒体标题: {mediainfo_dict.get('title_year')}")
+                logger.error(f"订阅 ID {subscribe_id} 的订阅信息获取失败，媒体标题: {mediainfo_dict.get('title_year')}", exc_info=True)
                 return
 
             # 调用公共方法处理订阅
@@ -1539,7 +1539,7 @@ class SubscribeAssistant(_PluginBase):
             self.process_subscribe_pause(subscribe_id=subscribe_id)
             self.process_tv_pending(subscribe_id=subscribe_id)
         except Exception as e:
-            logger.error(f"处理订阅添加事件时发生错误: {str(e)}")
+            logger.error(f"处理订阅添加事件时发生错误: {str(e)}", exc_info=True)
 
     @eventmanager.register(EventType.SubscribeModified)
     def handle_subscribe_modified_event(self, event: Event = None):
@@ -1575,7 +1575,7 @@ class SubscribeAssistant(_PluginBase):
             self.__with_lock_and_update_subscribe_tasks(method=self.__reset_subscribe_task_state_when_updated,
                                                         subscribe=subscribe, different_keys=different_keys)
         except Exception as e:
-            logger.error(f"处理订阅更新事件时发生错误: {str(e)}")
+            logger.error(f"处理订阅更新事件时发生错误: {str(e)}", exc_info=True)
 
     @eventmanager.register(EventType.SubscribeComplete)
     def handle_subscribe_complete_event(self, event: Event = None):
@@ -1619,7 +1619,7 @@ class SubscribeAssistant(_PluginBase):
             # 调用公共方法处理订阅
             self.process_best_version(subscribe_dict=subscribe_dict, mediainfo=mediainfo)
         except Exception as e:
-            logger.error(f"处理订阅完成事件时发生错误: {str(e)}")
+            logger.error(f"处理订阅完成事件时发生错误: {str(e)}", exc_info=True)
 
     @eventmanager.register(EventType.DownloadAdded)
     def handle_download_added_event(self, event: Event = None):
@@ -1696,7 +1696,7 @@ class SubscribeAssistant(_PluginBase):
                 })
             )
         except Exception as e:
-            logger.error(f"处理下载添加事件时发生错误: {str(e)}")
+            logger.error(f"处理下载添加事件时发生错误: {str(e)}", exc_info=True)
 
     @eventmanager.register(ChainEventType.ResourceSelection)
     def handle_resource_selection_event(self, event: Event):
@@ -2121,7 +2121,7 @@ class SubscribeAssistant(_PluginBase):
 
             return list(set(tag.strip() for tag in tags if tag.strip()))
         except Exception as e:
-            logger.error(f"获取种子标签失败，错误: {e}")
+            logger.error(f"获取种子标签失败，错误: {e}", exc_info=True)
             return []
 
     @staticmethod
@@ -2348,7 +2348,7 @@ class SubscribeAssistant(_PluginBase):
         try:
             subscribe_dict = json.loads(json_data)
         except Exception as e:
-            logger.error(f"解析 source 数据失败，source: {json_data}, 错误: {e}")
+            logger.error(f"解析 source 数据失败，source: {json_data}, 错误: {e}", exc_info=True)
             return None, None
 
         subscribe_id = subscribe_dict.get("id")
@@ -2808,7 +2808,7 @@ class SubscribeAssistant(_PluginBase):
                 )
         except Exception as e:
             # 捕获异常并记录错误日志
-            logger.error(f"处理订阅 {self.__format_subscribe(subscribe=subscribe)} 时发生错误: {str(e)}")
+            logger.error(f"处理订阅 {self.__format_subscribe(subscribe=subscribe)} 时发生错误: {str(e)}", exc_info=True)
 
     def process_subscribe_pause(self, subscribe_id: Optional[int] = None):
         """
@@ -2890,7 +2890,7 @@ class SubscribeAssistant(_PluginBase):
                                                               mediainfo=mediainfo)
             except Exception as e:
                 # 捕获异常并记录错误日志
-                logger.error(f"处理订阅 {self.__format_subscribe(subscribe=subscribe)} 时发生错误: {str(e)}")
+                logger.error(f"处理订阅 {self.__format_subscribe(subscribe=subscribe)} 时发生错误: {str(e)}", exc_info=True)
 
     def __process_subscribe_pause_for_download(self, subscribe_task: dict, subscribe: Subscribe,
                                                mediainfo: Optional[MediaInfo]) -> bool:
@@ -3284,7 +3284,7 @@ class SubscribeAssistant(_PluginBase):
                                                      episode_count=episode_count)
             except Exception as e:
                 # 捕获异常并记录错误日志
-                logger.error(f"处理订阅 {self.__format_subscribe(subscribe=subscribe)} 时发生错误: {str(e)}")
+                logger.error(f"处理订阅 {self.__format_subscribe(subscribe=subscribe)} 时发生错误: {str(e)}", exc_info=True)
 
     def __update_tv_pending_episodes(self, subscribe: Subscribe, mediainfo: MediaInfo, tv_pending: bool) \
             -> Optional[int]:
@@ -3408,7 +3408,7 @@ class SubscribeAssistant(_PluginBase):
         try:
             meta.type = MediaType(subscribe.type)
         except ValueError:
-            logger.error(f"订阅 {subscribe.name} 类型错误：{subscribe.type}")
+            logger.error(f"订阅 {subscribe.name} 类型错误：{subscribe.type}", exc_info=True)
             return None
         try:
             # 识别媒体信息
@@ -3425,7 +3425,7 @@ class SubscribeAssistant(_PluginBase):
                 return None
             return mediainfo
         except Exception as e:
-            logger.error(f"识别媒体信息时发生错误，订阅 ID {subscribe.id}，标题：{subscribe.name}，错误信息：{str(e)}")
+            logger.error(f"识别媒体信息时发生错误，订阅 ID {subscribe.id}，标题：{subscribe.name}，错误信息：{str(e)}", exc_info=True)
             return None
 
     def __get_data(self, key: str) -> dict:
@@ -3918,7 +3918,7 @@ class SubscribeAssistant(_PluginBase):
                 "mediainfo": mediainfo.to_dict(),
             })
         else:
-            logger.error(f"{subscribe_desc} 添加洗版订阅失败，错误信息: {err_msg}")
+            logger.error(f"{subscribe_desc} 添加洗版订阅失败，错误信息: {err_msg}", exc_info=True)
 
         if not self._notify:
             return
@@ -3963,7 +3963,7 @@ class SubscribeAssistant(_PluginBase):
                 self.__save_data(key="subscribes", value=tasks)
             except Exception as e:
                 # 处理异常
-                logger.error(f"Error during {method.__name__}: {e}")
+                logger.error(f"Error during {method.__name__}: {e}", exc_info=True)
 
     def __with_lock_and_update_torrent_tasks(self, method: Callable[..., None], *args: Any, **kwargs: Any) -> None:
         """
@@ -3984,7 +3984,7 @@ class SubscribeAssistant(_PluginBase):
                 self.__save_data(key="torrents", value=tasks)
             except Exception as e:
                 # 处理异常
-                logger.error(f"Error during {method.__name__}: {e}")
+                logger.error(f"Error during {method.__name__}: {e}", exc_info=True)
 
     def __with_lock_and_update_delete_tasks(self, method: Callable[..., None], *args: Any, **kwargs: Any) -> None:
         """
@@ -4005,7 +4005,7 @@ class SubscribeAssistant(_PluginBase):
                 self.__save_data(key="deletes", value=tasks)
             except Exception as e:
                 # 处理异常
-                logger.error(f"Error during {method.__name__}: {e}")
+                logger.error(f"Error during {method.__name__}: {e}", exc_info=True)
 
     def __check_subscribe_status(self, subscribe: Subscribe) -> bool:
         """
@@ -4207,7 +4207,7 @@ class SubscribeAssistant(_PluginBase):
             date = datetime.strptime(day, f)
             return date, day
         except ValueError:
-            logger.error(f"day 格式错误：{day}")
+            logger.error(f"day 格式错误：{day}", exc_info=True)
             return None, None
 
     @staticmethod
@@ -4238,5 +4238,5 @@ torrent banned"""
             else:
                 return -1
         except Exception as e:
-            logger.error(f"Invalid version format: {e}")
+            logger.error(f"Invalid version format: {e}", exc_info=True)
             return 0
