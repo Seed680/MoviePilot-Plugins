@@ -96,7 +96,7 @@ class BatchRename(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.1"
+    plugin_version = "1.2"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -136,7 +136,8 @@ class BatchRename(_PluginBase):
                                         tz=pytz.timezone(settings.TZ)
                                     ) + timedelta(seconds=3),
                                     name="批量替换下载器种子")
-
+            self._scheduler.print_jobs()
+            self._scheduler.start()
 
     def load_config(self, config: dict):
         """加载配置"""
@@ -251,34 +252,52 @@ class BatchRename(_PluginBase):
     def get_state(self):
         return self._onlyonce
 
+    def set_downloader(self, downloader: str):
+        """
+        获取下载器
+        """
+        if service := self.downloader_helper.get_service(name=downloader):
+            is_qbittorrent = self.downloader_helper.is_downloader("qbittorrent", service.config)
+            if is_qbittorrent:
+                self.downloader = QbittorrentDownloader(qbc=service.instance)
+            else:
+                self.downloader: None
+                logger.info("只支持QB下载器")
+        else:
+            # 暂时设为None, 跳过
+            self.downloader = None
+
     def main(self):
         """
         处理下载器中的种子
         """
         try:
+            logger.info("开始处理下载器中的种子")
             name_dict: dict[str : str] = {}
             if len(self._downloader) == 0:
                 logger.info("下载器为空")
                 return
             if self._format_torrent_name:
+                logger.debug("获取到替换规则")
                 formate_rule_list = self._format_torrent_name.strip().split("\n")
                 if len(formate_rule_list) < 1:
-                     logger.info("替换规则为空")
+                     logger.error("替换规则为空")
+                     return
                 for rule in formate_rule_list:
                     if '|' not in rule:
-                        logger.info(f"{rule}未包含|")
+                        logger.error(f"{rule}未包含|")
                         return
                     name_list = rule.split("|")
                     if len(name_list) < 2 or len(name_list) > 2:
-                        logger.info(f"{name_list}不符合规则")
+                        logger.error(f"{name_list}不符合规则")
                         return
                     name_dict[name_list[0]] = name_list[1]
-                    
+                logger.debug(f"替换规则：{name_dict}")
                 # 从下载器获取种子信息
                 for d in self._downloader:
                     self.set_downloader(d)
                     if self.downloader is None:
-                        logger.info(f"下载器: {d} 不存在或未启用")
+                        logger.error(f"下载器: {d} 不存在或未启用")
                         continue
                     # 遍历所有种子
                     for torrent_info in self.downloader.torrents_info():
@@ -286,7 +305,9 @@ class BatchRename(_PluginBase):
                             torrent_hash = torrent_info.hash
                             torrent_name = torrent_info.name
                             for old_name in name_dict.keys():
+                                logger.debug(f"开始替换：{old_name} => {name_dict[old_name]}")
                                 torrent_name = torrent_name.replace(old_name, name_dict[old_name])
                             self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(torrent_name))
+            logger.info(f"替换完成")
         except Exception as e:
             logger.error(f"种子重命名失败 {str(e)}", exc_info=True)
