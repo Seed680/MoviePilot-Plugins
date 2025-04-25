@@ -63,11 +63,12 @@
         "name": "批量重命名",
         "description": "根据规则批量重命名QB种子名称",
         "labels": "重命名",
-        "version": "1.0",
+        "version": "1.1",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.1": "修复由于下班匆忙导致的BUG",
             "v1.0": "根据规则批量重命名QB种子名称"
         }
     }

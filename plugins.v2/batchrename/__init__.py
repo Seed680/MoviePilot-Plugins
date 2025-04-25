@@ -96,7 +96,7 @@ class BatchRename(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.0"
+    plugin_version = "1.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -249,7 +249,7 @@ class BatchRename(_PluginBase):
         pass
 
     def get_state(self):
-        return self._event_enabled or self._cron_enabled
+        return self._onlyonce
 
     def main(self):
         """
@@ -290,45 +290,3 @@ class BatchRename(_PluginBase):
                             self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(torrent_name))
         except Exception as e:
             logger.error(f"种子重命名失败 {str(e)}", exc_info=True)
-
-        """
-        恢复下载器中的种子名称
-        """
-        try:
-            # 获取已处理数据
-            processed: dict[str, str] = self.get_data(key="processed") or {}
-            logger.debug(f"processed : {processed}")
-            if len(processed) == 0:
-                logger.debug(f"历史记录为空，跳过恢复")
-                return
-            logger.debug(f"获取已处理数据成功")
-            # 从下载器获取种子信息
-            for d in self._downloader:
-                self.set_downloader(d)
-                if self.downloader is None:
-                    logger.warn(f"下载器: {d} 不存在或未启用")
-                    continue
-                if self._hash_white_list:
-                    logger.debug(f"存在hash白名单")
-                    torrents_info_list = self.downloader.torrents_info(torrent_hash=self._hash_white_list.strip().split("\n"))
-                    logger.debug(f"白名单内的种子 torrents_info_list{torrents_info_list}")
-                else:
-                    torrents_info_list = self.downloader.torrents_info(torrent_hash=processed.keys())
-                for torrent_info in torrents_info_list:
-                    if torrent_info:
-                        torrent_hash = torrent_info.hash
-                        torrent_name = torrent_info.name
-                        torrent_oldName = self.get_data(torrent_hash)
-                        if torrent_oldName != None :
-                            self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(torrent_oldName))
-                            logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_name} ==> {torrent_oldName}")
-                        else:
-                            logger.debug(f"恢复处理记录: hash: {torrent_hash} oldName为None,")
-                        self.del_data(torrent_hash)
-                        # 恢复处理记录
-                        processed.pop(torrent_hash, None) 
-                        logger.debug(f"恢复处理记录: hash: {torrent_hash} name:{torrent_oldName}")
-            # 保存已处理数据
-            self.update_data(key="processed", value=processed)
-        except Exception as e:
-            logger.error(f"恢复下载器中的种子名称失败 {str(e)}", exc_info=True)
