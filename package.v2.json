@@ -37,11 +37,12 @@
         "name": "重命名种子",
         "description": "根据自定义格式修改MP下载种子的种子名称",
         "labels": "重命名",
-        "version": "2.6",
+        "version": "2.6.2",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v2.6.2": "终极定版",
             "v2.6.1": "增加定时任务完成提示。",
             "v2.6": "修复已知问题，最终版本！",
             "v2.5.2": "增加一些debug信息",
