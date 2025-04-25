@@ -46,7 +46,7 @@ class SubscribeAssistant(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/InfinityPacer/MoviePilot-Plugins/main/icons/subscribeassistant.png"
     # 插件版本
-    plugin_version = "2.7.3.1"
+    plugin_version = "2.7.3.2"
     # 插件作者
     plugin_author = "InfinityPacer,Seed680"
     # 作者主页
@@ -1609,7 +1609,7 @@ class SubscribeAssistant(_PluginBase):
             if "tv_episode" == self._auto_best_type:
                 if self._tv_episode_exclude_type:
                     logger.debug(f"剧集分集类型排除已设置，跳过类别:{self._tv_episode_exclude_type}") 
-                    logger.debug(f"本剧集类别:{mediainfo_dict["genre_ids"]}") 
+                    logger.debug(f'本剧集类别:{mediainfo_dict["genre_ids"]}') 
                     for genre_id in mediainfo_dict["genre_ids"]:
                         if str(genre_id) in self._tv_episode_exclude_type:
                             logger.debug(f"剧集分集类型{str(genre_id)}被排除，跳过自动洗版处理")
