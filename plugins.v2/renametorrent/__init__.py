@@ -119,7 +119,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "2.6"
+    plugin_version = "2.6.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -644,6 +644,7 @@ class RenameTorrent(_PluginBase):
                 # 保存已处理数据库
                 self.update_data("processed", processed)
                 logger.info(f"成功 {_processed_num} 个, 合计 {len(processed)} 个种子已保存至历史")
+            logger.info(f"运行完成")
         except Exception as e:
             logger.error(f"种子重命名失败 {str(e)}", exc_info=True)
 
