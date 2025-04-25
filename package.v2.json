@@ -3,7 +3,7 @@
         "name": "订阅助手",
         "description": "多场景管理订阅，实现订阅种子删除以及自动待定/暂停/洗版。",
         "labels": "订阅",
-        "version": "2.7.3",
+        "version": "2.7.3.1",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/subscribeassistant.png",
         "author": "InfinityPacer,Seed680",
         "level": 1,
