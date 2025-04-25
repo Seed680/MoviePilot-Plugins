@@ -3,11 +3,12 @@
         "name": "订阅助手",
         "description": "多场景管理订阅，实现订阅种子删除以及自动待定/暂停/洗版。",
         "labels": "订阅",
-        "version": "2.7.2",
+        "version": "2.7.3",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/subscribeassistant.png",
         "author": "InfinityPacer,Seed680",
         "level": 1,
         "history": {
+            "v2.7.3": "修复分集订阅洗版增加排除内容类型引发的错误",
             "v2.7.2": "异常增加堆栈信息",
             "v2.7.1.1": "分集订阅洗版增加排除内容类型",
             "v2.7.1": "修复一些细节问题",
