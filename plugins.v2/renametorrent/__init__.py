@@ -63,22 +63,7 @@ class TorrentInfo:
 
 
 
-class Downloader(metaclass=ABCMeta):
-    @abstractmethod
-    def torrents_rename(self, torrent_hash: str, new_torrent_name: str) -> None:
-        """
-        重命名种子
-        """
-        pass
-
-    @abstractmethod
-    def torrents_info(self, torrent_hash: Optional[Union[str, list]] = None) -> List[TorrentInfo]:
-        """
-        获取种子信息
-        """
-        pass
-
-class QbittorrentDownloader(Downloader):
+class QbittorrentDownloader():
     def __init__(self, qbc: Qbittorrent):
         self.qbc = qbc.qbc
     def torrents_rename(self, torrent_hash: str, new_torrent_name: str) -> None:
@@ -110,6 +95,13 @@ class QbittorrentDownloader(Downloader):
                 ))
             return torrents
 
+    def torrents_add_tags(self, torrent_hash: Optional[Union[str, list]] = None, tags: Optional[list] = None) -> None:
+        """
+        添加标签
+        """
+        if torrent_hash:
+            self.qbc.torrents_add_tags(torrent_hashes=torrent_hash, tags=tags)
+
 
 class RenameTorrent(_PluginBase):
     # 插件名称
@@ -119,7 +111,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "2.6.2"
+    plugin_version = "2.6.3"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -159,6 +151,8 @@ class RenameTorrent(_PluginBase):
     _recovery = False
     # 尝试失败
     _retry = False
+    # 成功后添加标签
+    _add_tag_flag = False
 
     def init_plugin(self, config: dict = None):
         self.load_config(config)
@@ -212,7 +206,8 @@ class RenameTorrent(_PluginBase):
                 "format_torrent_name",
                 "onlyonce",
                 "recovery",
-                "retry"
+                "retry",
+                "add_tag_flag"
             ):
                 setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
 
@@ -291,6 +286,19 @@ class RenameTorrent(_PluginBase):
                                         'props': {
                                             'model': 'retry',
                                             'label': '尝试失败',
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {'cols': 6, 'md': 3},
+                                'content': [
+                                    {
+                                        'component': 'VSwitch',
+                                        'props': {
+                                            'model': 'add_tag_flag',
+                                            'label': '成功后添加标签',
                                         }
                                     }
                                 ]
@@ -465,10 +473,11 @@ class RenameTorrent(_PluginBase):
             "downloader": [],
             "exclude_dirs": "",
             "hash_white_list": "",
-            "exclude_tags": "",
+            "exclude_tags": "已重命名",
             "include_tags": "",
             "cron": "",
             "retry": False,
+            "add_tag_flag": False,
             "event_enabled": False,
             "rename_torrent": False,
             "format_torrent_name": "{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %}.{{original_name}}",
@@ -720,6 +729,9 @@ class RenameTorrent(_PluginBase):
             logger.debug(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} torrent_info：{torrent_info} meta：{meta} media_info：{media_info}")
             if self.format_torrent(torrent_info=torrent_info, meta=meta, media_info=media_info):
                 logger.info(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} 处理完成")
+                # 添加已重命名标签
+                if self._add_tag_flag:
+                    self.downloader.torrents_add_tags(torrent_info.hash,["已重命名"])
                 return True
         # 处理失败
         return False
@@ -731,7 +743,7 @@ class RenameTorrent(_PluginBase):
         if service := self.downloader_helper.get_service(name=downloader):
             is_qbittorrent = self.downloader_helper.is_downloader("qbittorrent", service.config)
             if is_qbittorrent:
-                self.downloader: Downloader = QbittorrentDownloader(qbc=service.instance)
+                self.downloader = QbittorrentDownloader(qbc=service.instance)
             else:
                 self.downloader: None
                 logger.info("只支持QB下载器")
