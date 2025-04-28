@@ -47,7 +47,7 @@ class SubscribeAssistant(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/InfinityPacer/MoviePilot-Plugins/main/icons/subscribeassistant.png"
     # 插件版本
-    plugin_version = "2.7.4"
+    plugin_version = "2.7.4.1"
     # 插件作者
     plugin_author = "InfinityPacer,Seed680"
     # 作者主页
@@ -270,7 +270,7 @@ class SubscribeAssistant(_PluginBase):
         """
         拼装插件配置页面，需要返回两块数据：1、页面配置；2、数据结构
         """
-        _all_cat = [{"title": d, "value": d} for d in self._all_cat]
+        _all_cat = [{"title": d, "value": d} for d in [*self.category.tv_categorys, *self.category.movie_categorys]]
         return [
             {
                 'component': 'VForm',
@@ -1628,7 +1628,7 @@ class SubscribeAssistant(_PluginBase):
                         else:
                             cat = self.category.get_movie_category(info)
                     else:
-                        logger.warn(f"{mediainfo_dict["title"]} 未获取到tmdb信息")
+                        logger.warn(f'{mediainfo_dict["title"]} 未获取到tmdb信息')
 
                     if cat:
                         logger.debug(f'本剧集类别:{cat}')
@@ -1636,7 +1636,7 @@ class SubscribeAssistant(_PluginBase):
                             logger.debug(f"剧集分集类型{str(cat)}被排除，跳过自动洗版处理")
                             return
                     else:
-                        logger.warn(f"{mediainfo_dict["title"]} 未获取到二级分类信息")
+                        logger.warn(f'{mediainfo_dict["title"]} 未获取到二级分类信息')
             mediainfo = MediaInfo()
             mediainfo.from_dict(mediainfo_dict)
 
