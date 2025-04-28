@@ -22,19 +22,20 @@ from app.core.event import eventmanager, Event
 from app.core.metainfo import MetaInfo
 from app.db.downloadhistory_oper import DownloadHistoryOper
 from app.db.models import Subscribe, DownloadHistory, TransferHistory
-from app.db.subscribe_oper import SubscribeOper
+
 from app.db.transferhistory_oper import TransferHistoryOper
 from app.helper.downloader import DownloaderHelper
 from app.log import logger
 from app.modules.qbittorrent import Qbittorrent
 from app.modules.transmission import Transmission
+from app.modules.themoviedb import CategoryHelper,TmdbApi
 from app.plugins import _PluginBase
 from app.schemas import ServiceInfo, TmdbEpisode, TransferInfo
 from app.schemas.event import ResourceDownloadEventData, ResourceSelectionEventData, TransferInterceptEventData
 from app.schemas.subscribe import Subscribe as SchemaSubscribe
 from app.schemas.types import EventType, ChainEventType, MediaType, NotificationType
 from app.utils.string import StringUtils
-
+from app.db.subscribe_oper import SubscribeOper
 lock = threading.RLock()
 
 
@@ -46,7 +47,7 @@ class SubscribeAssistant(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/InfinityPacer/MoviePilot-Plugins/main/icons/subscribeassistant.png"
     # 插件版本
-    plugin_version = "2.7.3.2"
+    plugin_version = "2.7.4"
     # 插件作者
     plugin_author = "InfinityPacer,Seed680"
     # 作者主页
@@ -64,6 +65,10 @@ class SubscribeAssistant(_PluginBase):
     downloadhistory_oper = None
     transferhistory_oper = None
     subscribe_oper = None
+    # 二级分类
+    category: CategoryHelper = None
+    # TMDB
+    tmdb: TmdbApi = None
     # 是否开启
     _enabled = False
     # 是否发送通知
@@ -140,8 +145,9 @@ class SubscribeAssistant(_PluginBase):
     _scheduler = None
     # 退出事件
     _event = threading.Event()
-    #分集洗版排除内容类型
+    # 分集洗版排除内容类型
     _tv_episode_exclude_type = []
+    _all_cat = None
 
     # endregion
 
@@ -151,6 +157,8 @@ class SubscribeAssistant(_PluginBase):
         self.downloadhistory_oper = DownloadHistoryOper()
         self.transferhistory_oper = TransferHistoryOper()
         self.subscribe_oper = SubscribeOper()
+        self.category = CategoryHelper()
+        self.tmdb = TmdbApi()
         if not config:
             return
 
@@ -207,6 +215,7 @@ class SubscribeAssistant(_PluginBase):
         self._auto_pause_tv_no_download_days = self.__get_float_config(config, "auto_pause_tv_no_download_days",
                                                                        0) or None
         self._tv_episode_exclude_type = config.get("tv_episode_exclude_type", [])
+        self._all_cat = [*self.category.tv_categorys, *self.category.movie_categorys]
 
         # 停止现有任务
         self.stop_service()
@@ -261,6 +270,7 @@ class SubscribeAssistant(_PluginBase):
         """
         拼装插件配置页面，需要返回两块数据：1、页面配置；2、数据结构
         """
+        _all_cat = [{"title": d, "value": d} for d in self._all_cat]
         return [
             {
                 'component': 'VForm',
@@ -1062,7 +1072,7 @@ class SubscribeAssistant(_PluginBase):
                                         'props': {
                                             'style': {
                                                 'margin-top': '0px',
-                                                
+
                                             }
                                         },
                                         'content': [
@@ -1080,9 +1090,7 @@ class SubscribeAssistant(_PluginBase):
                                                             'multiple': True,
                                                             'model': 'tv_episode_exclude_type',
                                                             'label': '分集排除内容类型',
-                                                            'items': [
-                                                                {'title': '动漫', 'value': '16'},
-                                                            ],
+                                                            'items': _all_cat,
                                                             'hint': '选择分集需要排除自动洗版的内容类型',
                                                             'persistent-hint': True,
                                                         }
@@ -1509,9 +1517,9 @@ class SubscribeAssistant(_PluginBase):
                 return
 
             subscribe_id = event.event_data.get("subscribe_id")
+
             username = event.event_data.get("username")
             mediainfo_dict = event.event_data.get("mediainfo")
-
             logger.debug(f"接收到订阅添加事件，来自用户: {username}, 订阅 ID: {subscribe_id}, 数据: {mediainfo_dict}")
 
             # 缺少订阅信息或媒体信息
@@ -1531,7 +1539,8 @@ class SubscribeAssistant(_PluginBase):
 
             # 订阅或媒体信息获取失败
             if not subscribe or not mediainfo:
-                logger.error(f"订阅 ID {subscribe_id} 的订阅信息获取失败，媒体标题: {mediainfo_dict.get('title_year')}", exc_info=True)
+                logger.error(f"订阅 ID {subscribe_id} 的订阅信息获取失败，媒体标题: {mediainfo_dict.get('title_year')}",
+                             exc_info=True)
                 return
 
             # 调用公共方法处理订阅
@@ -1604,18 +1613,30 @@ class SubscribeAssistant(_PluginBase):
             if not subscribe_dict or not mediainfo_dict:
                 logger.warning(f"订阅事件数据缺失，跳过处理。订阅数据: {subscribe_dict}, 媒体信息: {mediainfo_dict}")
                 return
-            
-            #判断剧集分集类型是否排除
+
+            # 判断剧集分集类型是否排除
             if "tv_episode" == self._auto_best_type:
                 if self._tv_episode_exclude_type:
-                    logger.debug(f"剧集分集类型排除已设置，跳过类别:{self._tv_episode_exclude_type}") 
-                    logger.debug(f'本剧集类别:{mediainfo_dict["genre_ids"]}') 
-                    for genre_id in mediainfo_dict["genre_ids"]:
-                        if str(genre_id) in self._tv_episode_exclude_type:
-                            logger.debug(f"剧集分集类型{str(genre_id)}被排除，跳过自动洗版处理")
-                            return 
-                
-            # 获取订阅信息和媒体信息
+                    logger.debug(f"剧集分集类型排除已设置，跳过类别:{self._tv_episode_exclude_type}")
+                    info = self.tmdb.get_info(mtype=mediainfo_dict["type"],
+                                              tmdbid=mediainfo_dict["tmdb_id"])
+                    cat = None
+                    if info:
+                        # 确定二级分类
+                        if info.get('media_type') == MediaType.TV:
+                            cat = self.category.get_tv_category(info)
+                        else:
+                            cat = self.category.get_movie_category(info)
+                    else:
+                        logger.warn(f"{mediainfo_dict["title"]} 未获取到tmdb信息")
+
+                    if cat:
+                        logger.debug(f'本剧集类别:{cat}')
+                        if str(cat) in self._tv_episode_exclude_type:
+                            logger.debug(f"剧集分集类型{str(cat)}被排除，跳过自动洗版处理")
+                            return
+                    else:
+                        logger.warn(f"{mediainfo_dict["title"]} 未获取到二级分类信息")
             mediainfo = MediaInfo()
             mediainfo.from_dict(mediainfo_dict)
 
@@ -2518,7 +2539,6 @@ class SubscribeAssistant(_PluginBase):
                 logger.debug(f"种子任务 {torrent_desc} 尚未完成，下载时长 {download_time / 3600 :.2f}")
 
                 deletion_reason = None
-
                 # 1. 判断 Tracker 响应关键字是否满足删除条件
                 if self._tracker_response_listen and self._tracker_responses:
                     tracker_responses = torrent_info.get("tracker_responses") or []
@@ -2893,7 +2913,8 @@ class SubscribeAssistant(_PluginBase):
                                                               mediainfo=mediainfo)
             except Exception as e:
                 # 捕获异常并记录错误日志
-                logger.error(f"处理订阅 {self.__format_subscribe(subscribe=subscribe)} 时发生错误: {str(e)}", exc_info=True)
+                logger.error(f"处理订阅 {self.__format_subscribe(subscribe=subscribe)} 时发生错误: {str(e)}",
+                             exc_info=True)
 
     def __process_subscribe_pause_for_download(self, subscribe_task: dict, subscribe: Subscribe,
                                                mediainfo: Optional[MediaInfo]) -> bool:
@@ -3287,7 +3308,8 @@ class SubscribeAssistant(_PluginBase):
                                                      episode_count=episode_count)
             except Exception as e:
                 # 捕获异常并记录错误日志
-                logger.error(f"处理订阅 {self.__format_subscribe(subscribe=subscribe)} 时发生错误: {str(e)}", exc_info=True)
+                logger.error(f"处理订阅 {self.__format_subscribe(subscribe=subscribe)} 时发生错误: {str(e)}",
+                             exc_info=True)
 
     def __update_tv_pending_episodes(self, subscribe: Subscribe, mediainfo: MediaInfo, tv_pending: bool) \
             -> Optional[int]:
@@ -3428,7 +3450,8 @@ class SubscribeAssistant(_PluginBase):
                 return None
             return mediainfo
         except Exception as e:
-            logger.error(f"识别媒体信息时发生错误，订阅 ID {subscribe.id}，标题：{subscribe.name}，错误信息：{str(e)}", exc_info=True)
+            logger.error(f"识别媒体信息时发生错误，订阅 ID {subscribe.id}，标题：{subscribe.name}，错误信息：{str(e)}",
+                         exc_info=True)
             return None
 
     def __get_data(self, key: str) -> dict:
