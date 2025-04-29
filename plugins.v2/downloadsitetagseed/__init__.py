@@ -29,7 +29,7 @@ class DownloadSiteTagSeed(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "2.3"
+    plugin_version = "2.3.1"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -293,17 +293,14 @@ class DownloadSiteTagSeed(_PluginBase):
                     # 按设置生成需要写入的标签与分类
                     _tags = []
                     _cat = None
-                    logger.debug(f'test1')
                     # 站点标签, 如果勾选开关的话 因允许torrent_site为空时运行到此, 因此需要判断torrent_site不为空
                     if self._enabled_tag and history.torrent_site:
                         _tags.append(history.torrent_site)
-                    logger.debug(f'test2')
                     # 媒体标题标签, 如果勾选开关的话 因允许title为空时运行到此, 因此需要判断title不为空
                     if self._enabled_media_tag and history.title:
                         _tags.append(history.title)
                     # 分类, 如果勾选开关的话 <tr暂不支持> 因允许mtype为空时运行到此, 因此需要判断mtype不为空。为防止不必要的识别, 种子已经存在分类torrent_cat时 也不执行
                     if service.type == "qbittorrent" and self._enabled_category and not torrent_cat and history.type:
-                        logger.debug(f'test')
                         # 因允许tmdbid为空时运行到此, 因此需要判断tmdbid不为空
                         history_type = MediaType(history.type) if history.type else None
                         if history.tmdbid and history_type == MediaType.TV:
@@ -553,7 +550,22 @@ class DownloadSiteTagSeed(_PluginBase):
                 _tags.append(_media.title)
             # 分类, 如果勾选开关的话 <tr暂不支持>
             if self._enabled_category and _media.type:
-                _cat = self._genre_ids_get_cat(_media.type, _media.genre_ids)
+                # tmdb_id获取tmdb信息
+                tmdb_info = self.chain.tmdb_info(mtype=_media.type, tmdbid=_media.tmdb_id)
+                if tmdb_info:
+                    # 确定二级分类
+                    if tmdb_info.get('media_type') == MediaType.TV:
+                        cat = self.category_helper.get_tv_category(tmdb_info)
+                    else:
+                        cat = self.category_helper.get_movie_category(tmdb_info)
+                else:
+                    logger.warn(f'{_media.title} 未获取到tmdb信息')
+
+                if cat:
+                    logger.debug(f'本剧集类别:{cat}')
+                    _cat = self._cat_rename_dict[str(cat)]
+                else:
+                    logger.debug(f'本剧集类别未找到')
             if _hash and (_tags or _cat):
                 # 执行通用方法, 设置种子标签与分类
                 self._set_torrent_info(service=service, _hash=_hash, _tags=_tags, _cat=_cat)
