@@ -29,7 +29,7 @@ class DownloadSiteTagSeed(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "2.3.1.3"
+    plugin_version = "2.3.1.4"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -255,6 +255,7 @@ class DownloadSiteTagSeed(_PluginBase):
                     # 获取种子当前标签
                     torrent_tags = self._get_label(torrent=torrent, dl_type=service.type)
                     torrent_cat = self._get_category(torrent=torrent, dl_type=service.type)
+
                     # 提取种子hash对应的下载历史
                     history: DownloadHistory = self.downloadhistory_oper.get_by_hash(_hash)
                     if not history:
@@ -269,6 +270,7 @@ class DownloadSiteTagSeed(_PluginBase):
                         # 加入历史记录
                         if _key:
                             dispose_history[_key] = history
+                    logger.debug(f"history.title:{history.title} torrent_cat:{torrent_cat} history.type:{history.type}")
                     # 如果标签已经存在任意站点, 则不再添加站点标签
                     if indexers.intersection(set(torrent_tags)):
                         history.torrent_site = None
