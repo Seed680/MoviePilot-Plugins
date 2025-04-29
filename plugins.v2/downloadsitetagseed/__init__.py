@@ -12,6 +12,7 @@ from app.core.context import Context
 from app.core.event import eventmanager, Event
 from app.db.downloadhistory_oper import DownloadHistoryOper
 from app.db.models.downloadhistory import DownloadHistory
+from app.modules.themoviedb import CategoryHelper
 from app.helper.downloader import DownloaderHelper
 from app.log import logger
 from app.plugins import _PluginBase
@@ -20,7 +21,7 @@ from app.schemas.types import EventType, MediaType
 from app.utils.string import StringUtils
 
 
-class DownloadSiteTag(_PluginBase):
+class DownloadSiteTagSeed(_PluginBase):
     # 插件名称
     plugin_name = "下载任务分类与标签"
     # 插件描述
@@ -28,19 +29,19 @@ class DownloadSiteTag(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "2.2"
+    plugin_version = "2.3"
     # 插件作者
-    plugin_author = "叮叮当"
+    plugin_author = "叮叮当,Seed680"
     # 作者主页
     author_url = "https://github.com/cikezhu"
     # 插件配置项ID前缀
-    plugin_config_prefix = "DownloadSiteTag_"
+    plugin_config_prefix = "DownloadSiteTagSeed_"
     # 加载顺序
     plugin_order = 2
     # 可使用的用户级别
     auth_level = 1
     # 日志前缀
-    LOG_TAG = "[DownloadSiteTag] "
+    LOG_TAG = "[DownloadSiteTagSeed] "
 
     # 退出事件
     _event = threading.Event()
@@ -48,6 +49,7 @@ class DownloadSiteTag(_PluginBase):
     downloadhistory_oper = None
     sites_helper = None
     downloader_helper = None
+    category_helper: CategoryHelper = None
     _scheduler = None
     _enabled = False
     _onlyonce = False
@@ -62,12 +64,17 @@ class DownloadSiteTag(_PluginBase):
     _category_tv = None
     _category_anime = None
     _downloaders = None
+    _all_cat = []
+    _cat_rename_dict = {}
 
     def init_plugin(self, config: dict = None):
         self.downloadhistory_oper = DownloadHistoryOper()
         self.downloader_helper = DownloaderHelper()
         self.sites_helper = SitesHelper()
+        self.category_helper = CategoryHelper()
+        self._all_cat = [*self.category_helper.tv_categorys, *self.category_helper.movie_categorys]
         # 读取配置
+        logger.debug(f"读取配置")
         if config:
             self._enabled = config.get("enabled")
             self._onlyonce = config.get("onlyonce")
@@ -82,7 +89,10 @@ class DownloadSiteTag(_PluginBase):
             self._category_tv = config.get("category_tv") or "电视"
             self._category_anime = config.get("category_anime") or "动漫"
             self._downloaders = config.get("downloaders")
-
+            for index, item in enumerate(self._all_cat):
+                if config.get("category"+str(index)):
+                    self._cat_rename_dict[str(item)] = config.get("category"+str(index))
+            logger.debug(f"cat_rename_dict:{self._cat_rename_dict}")
         # 停止现有任务
         self.stop_service()
 
@@ -283,29 +293,43 @@ class DownloadSiteTag(_PluginBase):
                     # 按设置生成需要写入的标签与分类
                     _tags = []
                     _cat = None
+                    logger.debug(f'test1')
                     # 站点标签, 如果勾选开关的话 因允许torrent_site为空时运行到此, 因此需要判断torrent_site不为空
                     if self._enabled_tag and history.torrent_site:
                         _tags.append(history.torrent_site)
+                    logger.debug(f'test2')
                     # 媒体标题标签, 如果勾选开关的话 因允许title为空时运行到此, 因此需要判断title不为空
                     if self._enabled_media_tag and history.title:
                         _tags.append(history.title)
                     # 分类, 如果勾选开关的话 <tr暂不支持> 因允许mtype为空时运行到此, 因此需要判断mtype不为空。为防止不必要的识别, 种子已经存在分类torrent_cat时 也不执行
                     if service.type == "qbittorrent" and self._enabled_category and not torrent_cat and history.type:
-                        # 如果是电视剧 需要区分是否动漫
-                        genre_ids = None
+                        logger.debug(f'test')
                         # 因允许tmdbid为空时运行到此, 因此需要判断tmdbid不为空
                         history_type = MediaType(history.type) if history.type else None
                         if history.tmdbid and history_type == MediaType.TV:
                             # tmdb_id获取tmdb信息
                             tmdb_info = self.chain.tmdb_info(mtype=history_type, tmdbid=history.tmdbid)
                             if tmdb_info:
-                                genre_ids = tmdb_info.get("genre_ids")
-                        _cat = self._genre_ids_get_cat(history.type, genre_ids)
+                                # 确定二级分类
+                                if tmdb_info.get('media_type') == MediaType.TV:
+                                    cat = self.category_helper.get_tv_category(tmdb_info)
+                                else:
+                                    cat = self.category_helper.get_movie_category(tmdb_info)
+                            else:
+                                logger.warn(f'{history.title} 未获取到tmdb信息')
+
+                            if cat:
+                                logger.debug(f'本剧集类别:{cat}')
+                                _cat = self._cat_rename_dict[str(cat)]
+                            else:
+                                logger.warn(f'{history.title} 未获取到二级分类信息')
+                        
 
                     # 去除种子已经存在的标签
                     if _tags and torrent_tags:
                         _tags = list(set(_tags) - set(torrent_tags))
                     # 如果分类一样, 那么不需要修改
+                    logger.debug(f"_cat:{_cat}")
                     if _cat == torrent_cat:
                         _cat = None
                     # 判断当前种子是否不需要修改
@@ -541,8 +565,63 @@ class DownloadSiteTag(_PluginBase):
         """
         拼装插件配置页面，需要返回两块数据：1、页面配置；2、数据结构
         """
-        return [
-            {
+        vrow_data:dict = {}
+        def generate_vrow_components(items, model_prefix="category", cols=6, md=3, items_per_row=4) -> list:
+            """
+            遍历数组生成VRow组件结构，每4个元素放在一个VRow的VCol中
+            
+            参数:
+            items (list): 需要遍历的数组
+            model_prefix (str): model属性的前缀
+            cols (int): VCol组件的cols属性值
+            md (int): VCol组件的md属性值
+            items_per_row (int): 每个VRow中放置的VCol数量
+            
+            返回:
+            dict: 生成的VRow组件结构
+            """
+            vrows = []
+            
+            # 每4个元素一组进行处理
+            for i in range(0, len(items), items_per_row):
+                group = items[i:i+items_per_row]
+                vcol_component = []
+                
+                # 为每个元素创建VTextField并添加到VCol的content中
+                for index, item in enumerate(group):
+                    vtextfield = {
+                        'component': 'VTextField',
+                        'props': {
+                            'model': f"{model_prefix}{i+index}",
+                            'label': f'{item}分类名称(默认: {item})',
+                            'placeholder': item
+                        }
+                    }
+                    vrow_data[model_prefix+str(i+index)] = item
+                    # 创建VCol组件，将一组VTextField放入其中
+                    vcol_content = {
+                        'component': 'VCol',
+                        'props': {'cols': cols , 'md': md },  # 调整列宽
+                        'content': [vtextfield]
+                    }
+                    vcol_component.append(vcol_content)
+                
+
+                
+                # 创建VRow组件，将VCol放入其中
+                vrow_component = {
+                    'component': 'VRow',
+                    'content': vcol_component
+                }
+                
+                vrows.append(vrow_component)
+            
+            return vrows
+        
+
+        cat_list =  self._all_cat
+        vrow_list = generate_vrow_components(cat_list)
+        form: dict = {
                 'component': 'VForm',
                 'content': [
                     {
@@ -739,77 +818,59 @@ class DownloadSiteTag(_PluginBase):
                             }
                         ]
                     },
+                    # {
+                    #     'component': 'VRow',
+                    #     'content': [
+                    #         {
+                    #             'component': 'VCol',
+                    #             'props': {'cols': 6, 'md': 3},
+                    #             'content': [
+                    #                 {
+                    #                     'component': 'VTextField',
+                    #                     'props': {
+                    #                         'model': 'category[0]',
+                    #                         'label': '电影分类名称(默认: 电影)',
+                    #                         'placeholder': '电影'
+                    #                     }
+                    #                 }
+                    #             ]
+                    #         },
+                    #         {
+                    #             'component': 'VCol',
+                    #             'props': {'cols': 6, 'md': 3},
+                    #             'content': [
+                    #                 {
+                    #                     'component': 'VTextField',
+                    #                     'props': {
+                    #                         'model': 'category[1]',
+                    #                         'label': '电视分类名称(默认: 电视)',
+                    #                         'placeholder': '电视'
+                    #                     }
+                    #                 }
+                    #             ]
+                    #         },
+                    #         {
+                    #             'component': 'VCol',
+                    #             'props': {'cols': 6, 'md': 3},
+                    #             'content': [
+                    #                 {
+                    #                     'component': 'VTextField',
+                    #                     'props': {
+                    #                         'model': 'category_anime',
+                    #                         'label': '动漫分类名称(默认: 动漫)',
+                    #                         'placeholder': '动漫'
+                    #                     }
+                    #                 }
+                    #             ]
+                    #         }
+                    #     ]
+                    # },
                     {
                         'component': 'VRow',
                         'content': [
                             {
                                 'component': 'VCol',
-                                'props': {
-                                    'cols': 12,
-                                },
-                                'content': [
-                                    {
-                                        'component': 'VTextField',
-                                        'props': {
-                                            'model': 'category_movie',
-                                            'label': '电影分类名称(默认: 电影)',
-                                            'placeholder': '电影'
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        'component': 'VRow',
-                        'content': [
-                            {
-                                'component': 'VCol',
-                                'props': {
-                                    'cols': 12,
-                                },
-                                'content': [
-                                    {
-                                        'component': 'VTextField',
-                                        'props': {
-                                            'model': 'category_tv',
-                                            'label': '电视分类名称(默认: 电视)',
-                                            'placeholder': '电视'
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        'component': 'VRow',
-                        'content': [
-                            {
-                                'component': 'VCol',
-                                'props': {
-                                    'cols': 12,
-                                },
-                                'content': [
-                                    {
-                                        'component': 'VTextField',
-                                        'props': {
-                                            'model': 'category_anime',
-                                            'label': '动漫分类名称(默认: 动漫)',
-                                            'placeholder': '动漫'
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        'component': 'VRow',
-                        'content': [
-                            {
-                                'component': 'VCol',
-                                'props': {
-                                    'cols': 12,
-                                },
+                                'props': {'cols': 6, 'md': 3},
                                 'content': [
                                     {
                                         'component': 'VAlert',
@@ -825,7 +886,10 @@ class DownloadSiteTag(_PluginBase):
                     }
                 ]
             }
-        ], {
+        for  index, item in enumerate(vrow_list):
+            form["content"].insert( 4+index, item)
+
+        data:Dict[str, Any] = {
             "enabled": False,
             "onlyonce": False,
             "enabled_tag": True,
@@ -839,6 +903,10 @@ class DownloadSiteTag(_PluginBase):
             "interval_time": "6",
             "interval_unit": "小时"
         }
+
+        return [
+            form
+         ], {**data, **vrow_data}
 
     def get_page(self) -> List[dict]:
         pass
