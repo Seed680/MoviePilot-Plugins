@@ -29,7 +29,7 @@ class DownloadSiteTagSeed(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "2.3.1"
+    plugin_version = "2.3.1.1"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
