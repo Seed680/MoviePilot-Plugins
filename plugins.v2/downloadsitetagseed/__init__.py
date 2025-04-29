@@ -29,7 +29,7 @@ class DownloadSiteTagSeed(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "2.3.1.1"
+    plugin_version = "2.3.1.2"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -316,7 +316,7 @@ class DownloadSiteTagSeed(_PluginBase):
                                 logger.warn(f'{history.title} 未获取到tmdb信息')
 
                             if cat:
-                                logger.debug(f'本剧集类别:{cat}')
+                                logger.debug(f'{history.title} 本剧集类别:{cat}')
                                 _cat = self._cat_rename_dict[str(cat)]
                             else:
                                 logger.warn(f'{history.title} 未获取到二级分类信息')
@@ -326,8 +326,8 @@ class DownloadSiteTagSeed(_PluginBase):
                     if _tags and torrent_tags:
                         _tags = list(set(_tags) - set(torrent_tags))
                     # 如果分类一样, 那么不需要修改
-                    logger.debug(f"_cat:{_cat}")
                     if _cat == torrent_cat:
+                        logger.debug(f"分类一样跳过处理")
                         _cat = None
                     # 判断当前种子是否不需要修改
                     if not _cat and not _tags:
@@ -549,6 +549,7 @@ class DownloadSiteTagSeed(_PluginBase):
             if self._enabled_media_tag and _media.title:
                 _tags.append(_media.title)
             # 分类, 如果勾选开关的话 <tr暂不支持>
+            logger.debug(f'_media.type:{_media.type}')
             if self._enabled_category and _media.type:
                 # tmdb_id获取tmdb信息
                 tmdb_info = self.chain.tmdb_info(mtype=_media.type, tmdbid=_media.tmdb_id)
@@ -562,8 +563,9 @@ class DownloadSiteTagSeed(_PluginBase):
                     logger.warn(f'{_media.title} 未获取到tmdb信息')
 
                 if cat:
-                    logger.debug(f'本剧集类别:{cat}')
+                    logger.debug(f'{_media.title}本剧集类别:{cat}')
                     _cat = self._cat_rename_dict[str(cat)]
+                    logger.debug(f'{_media.title}本剧集映射后的类别:{cat}')
                 else:
                     logger.debug(f'本剧集类别未找到')
             if _hash and (_tags or _cat):
