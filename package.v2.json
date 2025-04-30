@@ -84,8 +84,8 @@
         }
     },
     "DownloadSiteTagSeed": {
-        "name": "下载任务分类与标签",
-        "description": "自动给下载任务分类与打站点标签、剧集名称标签",
+        "name": "下载任务分类与标签魔改版",
+        "description": "(基于叮叮当原版修改，增加按二级分类)自动给下载任务分类与打站点标签、剧集名称标签",
         "labels": "下载管理",
         "version": "2.3.1.4",
         "icon": "Youtube-dl_B.png",
