@@ -21,7 +21,7 @@ from app.schemas.types import EventType, MediaType
 from app.utils.string import StringUtils
 
 
-class DownloadSiteTagSeed(_PluginBase):
+class DownloadSiteTagMod(_PluginBase):
     # 插件名称
     plugin_name = "下载任务分类与标签魔改版"
     # 插件描述
@@ -35,7 +35,7 @@ class DownloadSiteTagSeed(_PluginBase):
     # 作者主页
     author_url = "https://github.com/cikezhu"
     # 插件配置项ID前缀
-    plugin_config_prefix = "DownloadSiteTagSeed_"
+    plugin_config_prefix = "DownloadSiteTagMod_"
     # 加载顺序
     plugin_order = 2
     # 可使用的用户级别
