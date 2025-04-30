@@ -1,13 +1,14 @@
 {
-    "SubscribeAssistant": {
-        "name": "订阅助手",
-        "description": "多场景管理订阅，实现订阅种子删除以及自动待定/暂停/洗版。",
+    "SubscribeAssistantMod": {
+        "name": "订阅助手魔改版",
+        "description": "(基于InfinityPacer原版魔改，增加排除分集类型)多场景管理订阅，实现订阅种子删除以及自动待定/暂停/洗版。",
         "labels": "订阅",
-        "version": "2.7.4.1",
+        "version": "2.7.4.2",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/subscribeassistant.png",
         "author": "InfinityPacer,Seed680",
         "level": 1,
         "history": {
+            "v2.7.4.2": "修复洗版类型全部时，排除分集类型未生效的问题",
             "v2.7.4.1": "修复日志报错",
             "v2.7.4": "分集订阅洗版排除内容类型引用二级分类",
             "v2.7.3.2": "修复分集订阅洗版排除内容类型未生效的问题",

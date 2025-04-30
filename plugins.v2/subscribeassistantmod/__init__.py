@@ -39,11 +39,11 @@ from app.db.subscribe_oper import SubscribeOper
 lock = threading.RLock()
 
 
-class SubscribeAssistant(_PluginBase):
+class SubscribeAssistantMod(_PluginBase):
     # 插件名称
-    plugin_name = "订阅助手"
+    plugin_name = "订阅助手魔改版"
     # 插件描述
-    plugin_desc = "多场景管理订阅，实现订阅种子删除以及自动待定/暂停/洗版。"
+    plugin_desc = "(基于InfinityPacer原版魔改，增加排除分集类型)多场景管理订阅，实现订阅种子删除以及自动待定/暂停/洗版。"
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/InfinityPacer/MoviePilot-Plugins/main/icons/subscribeassistant.png"
     # 插件版本
@@ -53,7 +53,7 @@ class SubscribeAssistant(_PluginBase):
     # 作者主页
     author_url = "https://github.com/InfinityPacer"
     # 插件配置项ID前缀
-    plugin_config_prefix = "subscribeassistant_"
+    plugin_config_prefix = "subscribeassistantmod_"
     # 加载顺序
     plugin_order = 10
     # 可使用的用户级别
@@ -1081,7 +1081,7 @@ class SubscribeAssistant(_PluginBase):
                                                 'props': {
                                                     'cols': 12,
                                                     'md': 4,
-                                                    'show': '{{auto_best_type == `tv_episode`}}'
+                                                    'show': '{{auto_best_type == `tv_episode` || auto_best_type == `all`}}'
                                                 },
                                                 'content': [
                                                     {
@@ -1615,7 +1615,7 @@ class SubscribeAssistant(_PluginBase):
                 return
 
             # 判断剧集分集类型是否排除
-            if "tv_episode" == self._auto_best_type:
+            if "tv_episode" == self._auto_best_type or "all" == self._auto_best_type:
                 if self._tv_episode_exclude_type:
                     logger.debug(f"剧集分集类型排除已设置，跳过类别:{self._tv_episode_exclude_type}")
                     info = self.tmdb.get_info(mtype=mediainfo_dict["type"],
