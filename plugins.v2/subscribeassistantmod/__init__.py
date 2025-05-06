@@ -47,7 +47,7 @@ class SubscribeAssistantMod(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/InfinityPacer/MoviePilot-Plugins/main/icons/subscribeassistant.png"
     # 插件版本
-    plugin_version = "2.7.4.2"
+    plugin_version = "2.7.5"
     # 插件作者
     plugin_author = "InfinityPacer,Seed680"
     # 作者主页
@@ -1618,7 +1618,11 @@ class SubscribeAssistantMod(_PluginBase):
             if "tv_episode" == self._auto_best_type or "all" == self._auto_best_type:
                 if self._tv_episode_exclude_type:
                     logger.debug(f"剧集分集类型排除已设置，跳过类别:{self._tv_episode_exclude_type}")
-                    info = self.tmdb.get_info(mtype=mediainfo_dict["type"],
+                    if "电视剧" == mediainfo_dict["type"]:
+                        mtype = MediaType.TV
+                    else:
+                        mtype = MediaType.MOVIE
+                    info = self.tmdb.get_info(mtype=mtype,
                                               tmdbid=mediainfo_dict["tmdb_id"])
                     cat = None
                     if info:
