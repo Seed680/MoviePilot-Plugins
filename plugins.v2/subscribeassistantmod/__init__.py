@@ -47,7 +47,7 @@ class SubscribeAssistantMod(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/InfinityPacer/MoviePilot-Plugins/main/icons/subscribeassistant.png"
     # 插件版本
-    plugin_version = "2.7.5"
+    plugin_version = "2.7.5.1"
     # 插件作者
     plugin_author = "InfinityPacer,Seed680"
     # 作者主页
@@ -1080,8 +1080,8 @@ class SubscribeAssistantMod(_PluginBase):
                                                 'component': 'VCol',
                                                 'props': {
                                                     'cols': 12,
-                                                    'md': 4,
-                                                    'show': '{{auto_best_type == `tv_episode` || auto_best_type == `all`}}'
+                                                    'md': 4
+                                                    #'show': '{{auto_best_type == `tv_episode` || auto_best_type == `all`}}'
                                                 },
                                                 'content': [
                                                     {
@@ -1615,32 +1615,31 @@ class SubscribeAssistantMod(_PluginBase):
                 return
 
             # 判断剧集分集类型是否排除
-            if "tv_episode" == self._auto_best_type or "all" == self._auto_best_type:
-                if self._tv_episode_exclude_type:
-                    logger.debug(f"剧集分集类型排除已设置，跳过类别:{self._tv_episode_exclude_type}")
-                    if "电视剧" == mediainfo_dict["type"]:
-                        mtype = MediaType.TV
+            if self._tv_episode_exclude_type:
+                logger.debug(f"剧集分集类型排除已设置，跳过类别:{self._tv_episode_exclude_type}")
+                if "电视剧" == mediainfo_dict["type"]:
+                    mtype = MediaType.TV
+                else:
+                    mtype = MediaType.MOVIE
+                info = self.tmdb.get_info(mtype=mtype,
+                                            tmdbid=mediainfo_dict["tmdb_id"])
+                cat = None
+                if info:
+                    # 确定二级分类
+                    if info.get('media_type') == MediaType.TV:
+                        cat = self.category.get_tv_category(info)
                     else:
-                        mtype = MediaType.MOVIE
-                    info = self.tmdb.get_info(mtype=mtype,
-                                              tmdbid=mediainfo_dict["tmdb_id"])
-                    cat = None
-                    if info:
-                        # 确定二级分类
-                        if info.get('media_type') == MediaType.TV:
-                            cat = self.category.get_tv_category(info)
-                        else:
-                            cat = self.category.get_movie_category(info)
-                    else:
-                        logger.warn(f'{mediainfo_dict["title"]} 未获取到tmdb信息')
+                        cat = self.category.get_movie_category(info)
+                else:
+                    logger.warn(f'{mediainfo_dict["title"]} 未获取到tmdb信息')
 
-                    if cat:
-                        logger.debug(f'本剧集类别:{cat}')
-                        if str(cat) in self._tv_episode_exclude_type:
-                            logger.debug(f"剧集分集类型{str(cat)}被排除，跳过自动洗版处理")
-                            return
-                    else:
-                        logger.warn(f'{mediainfo_dict["title"]} 未获取到二级分类信息')
+                if cat:
+                    logger.debug(f'本剧集类别:{cat}')
+                    if str(cat) in self._tv_episode_exclude_type:
+                        logger.debug(f"剧集分集类型{str(cat)}被排除，跳过自动洗版处理")
+                        return
+                else:
+                    logger.warn(f'{mediainfo_dict["title"]} 未获取到二级分类信息')
             mediainfo = MediaInfo()
             mediainfo.from_dict(mediainfo_dict)
 
