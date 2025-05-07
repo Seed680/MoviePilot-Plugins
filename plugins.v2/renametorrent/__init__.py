@@ -111,7 +111,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "2.6.3"
+    plugin_version = "2.6.4"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -822,7 +822,7 @@ class RenameTorrent(_PluginBase):
         else:
             # 因为mp默认RSS信息带有副标题，所以对舍弃副标题
             # 定义正则表达式模式
-            pattern = r'\[.*\]'
+            pattern = r'(?<!^)\[.*\]$'
             # 使用 re.sub 方法将匹配到的内容替换为空字符串
             meta.title = re.sub(pattern, '', meta.title)
             # 去除首尾的空白字符
