@@ -64,7 +64,7 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "0.0.3"
+    plugin_version = "0.0.4"
     # 插件作者
     plugin_author = "thsrite"
     # 作者主页
@@ -343,10 +343,23 @@ class ShortPlayMonitorMod(_PluginBase):
                                                                  season=file_meta.begin_season or 1)
                     mediainfo.category = ""
                     # 转移
-                    transferinfo: TransferInfo = self.chain.transfer(mediainfo=mediainfo,
-                                                                     path=Path(event_path),
-                                                                     target=Path(dest_dir),
-                                                                     meta=file_meta,
+                    file_path = Path(event_path)
+                    item = FileItem(
+                        storage="local",
+                        path=event_path.replace("\\", "/"),
+                        type="dir" if not file_path.is_file() else "file",
+                        name=file_path.name,
+                        size=file_path.stat().st_size,
+                        extension=file_path.suffix.lstrip('.'),
+                    )
+
+                    transferinfo: TransferInfo = self.chain.transfer(fileitem=item,meta=file_meta,
+                                                                    mediainfo=mediainfo,
+                                                                     target_directory=target_dir,
+                                                                     target_storage=store_conf,
+                                                                     target_path=Path(dest_dir),
+                                                                     transfer_type="copy",
+                                                                     scrape=True,
                                                                      episodes_info=episodes_info)
                     if not transferinfo:
                         logger.error("文件转移模块运行失败")
