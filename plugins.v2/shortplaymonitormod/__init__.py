@@ -64,9 +64,9 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "0.0.6"
+    plugin_version = "0.0.7"
     # 插件作者
-    plugin_author = "thsrite，Seed680"
+    plugin_author = "thsrite,Seed680"
     # 作者主页
     author_url = "https://github.com/thsrite"
     # 插件配置项ID前缀
@@ -227,7 +227,6 @@ class ShortPlayMonitorMod(_PluginBase):
                 self.__handle_file(is_directory=Path(file_path).is_dir(),
                                    event_path=str(file_path),
                                    source_dir=mon_path)
-        Path("/tmp/shortplaymonitormod" ).unlink()
         logger.info("全量同步短剧监控目录完成！")
 
     def __handle_image(self):
@@ -507,13 +506,13 @@ class ShortPlayMonitorMod(_PluginBase):
                         if (store_conf != "local"
                                 and None == self.filemanager.get_file_item(store_conf,(target_path.parent /
                         "tvshow.nfo"))):
-                            if not ("/tmp/shortplaymonitormod" / target_path.parent / "tvshow.nfo").exists():
-                                os.makedirs(Path("/tmp/shortplaymonitormod" /target_path.parent))
-                                self.__gen_tv_nfo_file(dir_path=("/tmp/shortplaymonitormod" / target_path.parent),
+                            if not ("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/")) / "tvshow.nfo").exists():
+                                os.makedirs(Path("/tmp/shortplaymonitormod" /target_path.parent.relative_to(Path("/"))))
+                                self.__gen_tv_nfo_file(dir_path=("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/"))),
                                                        title=title)
                                 file_item = FileItem()
                                 file_item.storage = "local"
-                                file_item.path = str("/tmp/shortplaymonitormod" / target_path.parent / "tvshow.nfo")
+                                file_item.path = str("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/")) / "tvshow.nfo")
                                 # 源操作对象
                                 source_oper = self.filemanager._FileManagerModule__get_storage_oper("local")
                                 # 目的操作对象
@@ -528,7 +527,7 @@ class ShortPlayMonitorMod(_PluginBase):
                                     transfer_type=self._transfer_type,
                                     source_oper=source_oper,target_oper=target_oper)
                                 if new_item:
-                                    Path("/tmp/shortplaymonitormod" / target_path.parent).unlink()
+                                    Path("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/"))).unlink()
                                     logger.debug(f"文件 {Path(target_path.parent / 'tvshow.nfo')} 整理完成")
                                 else:
                                     logger.debug((f"文件 {Path(target_path.parent / 'tvshow.nfo')} 整理失败:{errmsg}"))
@@ -567,12 +566,12 @@ class ShortPlayMonitorMod(_PluginBase):
                                                                  file_path=Path(event_path))
                                 if thumb_path and Path(thumb_path).exists():
                                     self.__save_poster(input_path=thumb_path,
-                                                       poster_path="/tmp/shortplaymonitormod" / target_path.parent / "poster.jpg",
+                                                       poster_path="/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/")) / "poster.jpg",
                                                        cover_conf=cover_conf)
-                                    if ("/tmp/shortplaymonitormod" / target_path.parent / "poster.jpg").exists():
+                                    if ("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/")) / "poster.jpg").exists():
                                         file_item = FileItem()
                                         file_item.storage = "local"
-                                        file_item.path = str("/tmp/shortplaymonitormod" / target_path.parent / "poster.jpg")
+                                        file_item.path = str("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/")) / "poster.jpg")
                                         # 源操作对象
                                         source_oper = self.filemanager._FileManagerModule__get_storage_oper("local")
                                         # 目的操作对象
