@@ -26,13 +26,14 @@ from app.db.site_oper import SiteOper
 from app.helper.directory import DirectoryHelper
 from app.log import logger
 from app.plugins import _PluginBase
-from app.schemas import MediaInfo, TransferInfo, TransferDirectoryConf
+from app.schemas import MediaInfo
 from app.schemas.types import NotificationType
 from app.utils.common import retry
 from app.utils.dom import DomUtils
 from app.utils.http import RequestUtils
 from app.utils.system import SystemUtils
-from app.modules.filemanager import FileManager
+from app.modules.filemanager import FileManagerModule
+from app.schemas import TransferInfo, TransferDirectoryConf, FileItem
 
 ffmpeg_lock = threading.Lock()
 lock = Lock()
@@ -63,9 +64,9 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "0.0.1"
+    plugin_version = "0.0.2"
     # 插件作者
-    plugin_author = "thsrite,Seed"
+    plugin_author = "thsrite,Seed680"
     # 作者主页
     author_url = "https://github.com/thsrite"
     # 插件配置项ID前缀
@@ -103,7 +104,8 @@ class ShortPlayMonitorMod(_PluginBase):
         self._coverconf = {}
         self._storeconf = {}
         self.tmdbchain = TmdbChain()
-        self.filemanager = FileManager()
+        self.filemanager = FileManagerModule()
+        self.filemanager.init_module()
 
         if config:
             self._enabled = config.get("enabled")
@@ -127,13 +129,14 @@ class ShortPlayMonitorMod(_PluginBase):
 
             # 读取目录配置
             monitor_confs = self._monitor_confs.split("\n")
+            logger.debug(f"monitor_confs: {len(monitor_confs)}")
             if not monitor_confs:
                 return
             for monitor_conf in monitor_confs:
                 # 格式 监控方式#监控目录#目的目录#是否重命名#封面比例
                 if not monitor_conf:
                     continue
-                if str(monitor_conf).count("#") != 4 or str(monitor_conf).count("#") != 5:
+                if str(monitor_conf).count("#") != 4 and str(monitor_conf).count("#") != 5:
                     logger.error(f"{monitor_conf} 格式错误")
                     continue
                 mode = str(monitor_conf).split("#")[0]
@@ -145,12 +148,12 @@ class ShortPlayMonitorMod(_PluginBase):
                     store_conf = str(monitor_conf).split("#")[5]
                 else:
                     store_conf = "local"
-
                 # 存储目录监控配置
                 self._dirconf[source_dir] = target_dir
                 self._renameconf[source_dir] = rename_conf
                 self._coverconf[source_dir] = cover_conf
                 self._storeconf[source_dir] = store_conf
+
                 # 启用目录监控
                 if self._enabled:
                     # 检查媒体库目录是不是下载目录的子目录
@@ -186,7 +189,7 @@ class ShortPlayMonitorMod(_PluginBase):
                                      sudo sysctl -p
                                      """)
                         else:
-                            logger.error(f"{source_dir} 启动目录监控失败：{err_msg}", exc_info=True)
+                            logger.error(f"{source_dir} 启动目录监控失败：{err_msg}")
                         self.systemmessage.put(f"{source_dir} 启动目录监控失败：{err_msg}")
 
             # 运行一次定时服务
@@ -301,10 +304,11 @@ class ShortPlayMonitorMod(_PluginBase):
             rename_conf = self._renameconf.get(source_dir)
             # 封面比例
             cover_conf = self._coverconf.get(source_dir)
-            # 存储类型
-            store_conf = self._storeconf.get(source_dir)
             # 元数据
             file_meta = MetaInfoPath(Path(event_path))
+            # 存储类型
+            store_conf = self._storeconf.get(source_dir)
+
             if not file_meta.name:
                 logger.error(f"{Path(event_path).name} 无法识别有效信息")
                 return
@@ -367,51 +371,58 @@ class ShortPlayMonitorMod(_PluginBase):
                 logger.debug(f"dest_dir:{dest_dir}")
                 target_path = event_path.replace(source_dir, dest_dir)
                 logger.debug(f"target_path:{target_path}")
+
                 # 目录重命名
                 if str(rename_conf) == "true" or str(rename_conf) == "false":
                     rename_conf = bool(rename_conf)
                     logger.debug(f"rename_conf:{rename_conf}")
                     target = target_path.replace(dest_dir, "")
                     logger.debug(f"target:{target}")
-                    #dest_dir todo
+                    # dest_dir todo
                     parent = Path(Path(target).parents[0])
                     logger.debug(f"parent:{parent}")
-                    last = target.replace(str(parent), "")
+                    last = target.replace(str(parent), "").replace("/", "")
                     logger.debug(f"last:{last}")
                     if rename_conf:
                         # 自定义识别次
-                        title, _ = WordsMatcher().prepare(str(parent))
+                        title, _ = WordsMatcher().prepare(str(parent.name))
                         logger.debug(f"title:{title}")
                         # 如果目的目录中没有title，
-                        target_path = Path(dest_dir).joinpath(title + last)
-                        # if title in dest_dir:
-                        #     target_path = Path(dest_dir).joinpath(title + last)
-                        # else:
-                        #     target_path = Path(dest_dir/title).joinpath(title + last)
+                        logger.debug(f"dest_dir:{dest_dir}")
+                        target_path = Path(dest_dir).joinpath(title).joinpath(last)
+                        logger.debug(f"target_path:{target_path}")
                     else:
-                        title = parent
+                        title = parent.name
                 else:
                     if str(rename_conf) == "smart":
                         logger.debug(f"rename_conf:smart")
+                        # 文件的绝对目录
                         target = target_path.replace(dest_dir, "")
                         logger.debug(f"target:{target}")
+                        # 文件父目录的绝对路径
                         parent = Path(Path(target).parents[0])
                         logger.debug(f"parent:{parent}")
-                        last = target.replace(str(parent), "")
+                        # 文件名
+                        last = target.replace(str(parent), "").replace("/", "")
                         logger.debug(f"last:{last}")
                         # 取.第一个
-                        title = Path(parent).name.split(".")[0]
+                        if parent.parent == parent:
+                            # 如果是根目录 就是没有套文件夹
+                            title = last.split(".")[0]
+                        else:
+                            title = parent.name.split(".")[0]
                         logger.debug(f"title:{title}")
                         # 如果目的目录中没有title，
-                        target_path = Path(dest_dir).joinpath(title + last)
-                        # if title in dest_dir:
+                        target_path = Path(dest_dir).joinpath(title).joinpath(last)
+                        logger.debug(f"target_path:{target_path}")
+                        # if title in target_path.name:
                         #     target_path = Path(dest_dir).joinpath(title + last)
                         # else:
-                        #     target_path = Path(dest_dir / title).joinpath(title + last)
+                        #     target_path = Path(dest_dir).joinpath(title).joinpath(title + last)
+                        # logger.debug(f"target_path:{target_path}")
                     else:
                         logger.error(f"{target_path} 智能重命名失败")
                         return
-
                 # 文件夹同步创建
                 if is_directory:
                     # 目标文件夹不存在则创建
@@ -426,35 +437,73 @@ class ShortPlayMonitorMod(_PluginBase):
                         if matches:
                             target_path = Path(
                                 target_path).parent / f"{matches.group()}{Path(Path(target_path).name).suffix}"
+                            logger.debug(f"target_path:{target_path}")
                         else:
                             print("未找到匹配的季数和集数")
                     except Exception as e:
-                        print(e)
+                        logger.error(f"媒体重命名 error: {e}", exc_info=True)
 
                     # 目标文件夹不存在则创建
-                    if not Path(target_path).parent.exists():
+                    if store_conf == "local" and not Path(target_path).parent.exists():
                         logger.info(f"创建目标文件夹 {Path(target_path).parent}")
-                        os.makedirs(Path(target_path).parent,exist_ok=True)
-                    
+                        os.makedirs(Path(target_path).parent)
 
                     # 文件：nfo、图片、视频文件
-                    if Path(target_path).exists():
+                    if store_conf == "local" and Path(target_path).exists():
                         logger.debug(f"目标文件 {target_path} 已存在")
                         return
 
-                    # 硬链接
-                    retcode = self.__transfer_command(file_item=Path(event_path),
-                                                      target_file=target_path,
-                                                      transfer_type=self._transfer_type)
+                    if store_conf == "local":
+                        # 硬链接
+                        retcode = self.__transfer_command(file_item=Path(event_path),
+                                                          target_file=target_path,
+                                                          transfer_type=self._transfer_type)
+                    else:
+                        file_item = FileItem()
+                        file_item.storage = "local"
+                        file_item.path = event_path
+                        new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(fileitem=file_item,
+                                                                                                 target_storage=store_conf,
+                                                                                                 target_file=Path(
+                                                                                                     target_path),
+                                                                                                 transfer_type="copy")
+                        logger.debug(f"new_item: {new_item} ")
+                        logger.debug(f"文件整理错误 {errmsg} ")
+                        if new_item:
+                            retcode = 0
+                            logger.debug(f"new_item: {new_item} ")
+                        else:
+                            retcode = 1
+                            logger.debug(f"文件整理错误 {errmsg} ")
                     if retcode == 0:
                         logger.info(f"文件 {event_path} 硬链接完成")
                         # 生成 tvshow.nfo
-                        if not (target_path.parent / "tvshow.nfo").exists():
+                        if store_conf == "local" and not (target_path.parent / "tvshow.nfo").exists():
                             self.__gen_tv_nfo_file(dir_path=target_path.parent,
                                                    title=title)
-
+                        # 内存生成nfo
+                        if (store_conf != "local"
+                                and None == self.filemanager.get_file_item(store_conf, (target_path.parent /
+                                                                                        "tvshow.nfo"))):
+                            if not ("/tmp/shortplaymonitormod" / target_path.parent / "tvshow.nfo").exists():
+                                os.makedirs(Path("/tmp/shortplaymonitormod" / target_path.parent))
+                                self.__gen_tv_nfo_file(dir_path=("/tmp/shortplaymonitormod" / target_path.parent),
+                                                       title=title)
+                                file_item = FileItem()
+                                file_item.storage = "local"
+                                file_item.path = str("/tmp/shortplaymonitormod" / target_path.parent / "tvshow.nfo")
+                                new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(
+                                    fileitem=file_item,
+                                    target_storage=store_conf,
+                                    target_file=Path(target_path.parent / "tvshow.nfo"),
+                                    transfer_type="copy")
+                                if new_item:
+                                    Path("/tmp/shortplaymonitormod" / target_path.parent).unlink()
+                                    logger.debug(f"文件 {Path(target_path.parent / 'tvshow.nfo')} 整理完成")
+                                else:
+                                    logger.debug((f"文件 {Path(target_path.parent / 'tvshow.nfo')} 整理失败:{errmsg}"))
                         # 生成缩略图
-                        if not (target_path.parent / "poster.jpg").exists():
+                        if (store_conf == "local" and not (target_path.parent / "poster.jpg").exists()):
                             thumb_path = self.gen_file_thumb(title=title,
                                                              rename_conf=rename_conf,
                                                              file_path=target_path)
@@ -479,6 +528,29 @@ class ShortPlayMonitorMod(_PluginBase):
                                     # 删除多余jpg
                                     for thumb in thumb_files:
                                         Path(thumb).unlink()
+                            if (store_conf != "local"
+                                    and None == self.filemanager.get_file_item(store_conf,
+                                                                               (target_path.parent / "poster.jpg"))):
+                                # 没有缩略图 则本地生成
+                                thumb_path = self.gen_file_thumb(title=title,
+                                                                 rename_conf=rename_conf,
+                                                                 file_path=Path(event_path))
+                                if thumb_path and Path(thumb_path).exists():
+                                    self.__save_poster(input_path=thumb_path,
+                                                       poster_path="/tmp/shortplaymonitormod" / target_path.parent / "poster.jpg",
+                                                       cover_conf=cover_conf)
+                                    if ("/tmp/shortplaymonitormod" / target_path.parent / "poster.jpg").exists():
+                                        file_item = FileItem()
+                                        file_item.storage = "local"
+                                        file_item.path = str(
+                                            "/tmp/shortplaymonitormod" / target_path.parent / "poster.jpg")
+                                        new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(
+                                            fileitem=file_item,
+                                            target_storage=store_conf,
+                                            target_file=Path(target_path.parent / "poster.jpg"),
+                                            transfer_type="copy")
+                                        logger.info(f"{target_path.parent / 'poster.jpg'} 缩略图已生成")
+                                    # thumb_path.unlink()
                     else:
                         logger.error(f"文件 {event_path} 硬链接失败，错误码：{retcode}")
             if self._notify:
