@@ -58,15 +58,15 @@ class FileMonitorHandler(FileSystemEventHandler):
 
 class ShortPlayMonitorMod(_PluginBase):
     # 插件名称
-    plugin_name = "短剧刮削魔改版"
+    plugin_name = "短剧刮削"
     # 插件描述
     plugin_desc = "监控视频短剧创建，刮削。"
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "0.0.2"
+    plugin_version = "0.0.3"
     # 插件作者
-    plugin_author = "thsrite,Seed680"
+    plugin_author = "thsrite"
     # 作者主页
     author_url = "https://github.com/thsrite"
     # 插件配置项ID前缀
@@ -462,10 +462,13 @@ class ShortPlayMonitorMod(_PluginBase):
                         file_item = FileItem()
                         file_item.storage = "local"
                         file_item.path = event_path
+                        logger.debug(f"file_item: {file_item} ")
+                        logger.debug(f"target_storage: {store_conf} ")
+                        logger.debug(f"target_file: {Path(target_path)} ")
+                        logger.debug(f"transfer_type: copy ")
                         new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(fileitem=file_item,
                                                                                                  target_storage=store_conf,
-                                                                                                 target_file=Path(
-                                                                                                     target_path),
+                                                                                                 target_file=Path(target_path),
                                                                                                  transfer_type="copy")
                         logger.debug(f"new_item: {new_item} ")
                         logger.debug(f"文件整理错误 {errmsg} ")

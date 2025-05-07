@@ -110,11 +110,12 @@
         "name": "短剧刮削魔改版",
         "description": "监控视频短剧创建，刮削。",
         "labels": "短剧",
-        "version": "0.0.2",
+        "version": "0.0.3",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "thsrite,Seed",
         "level": 1,
         "history": {
+            "v0.0.3": "打印一些日志",
             "v0.0.2": "测试",
             "v0.0.1": "打印一些日志"
         }
