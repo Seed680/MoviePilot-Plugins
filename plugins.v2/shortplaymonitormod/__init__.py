@@ -60,11 +60,11 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件名称
     plugin_name = "短剧刮削魔改版"
     # 插件描述
-    plugin_desc = "监控视频短剧创建，刮削。"
+    plugin_desc = "(基于thsrite大佬原版修改)监控视频短剧创建，刮削，支持目的目录为网盘。"
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "0.0.7"
+    plugin_version = "1.0"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -1073,7 +1073,7 @@ class ShortPlayMonitorMod(_PluginBase):
                                             'model': 'monitor_confs',
                                             'label': '监控目录',
                                             'rows': 5,
-                                            'placeholder': '监控方式#监控目录#目的目录#是否重命名#封面比例'
+                                            'placeholder': '监控方式#监控目录#目的目录#是否重命名#封面比例(#u115\#alist\#rclone..)'
                                         }
                                     }
                                 ]
