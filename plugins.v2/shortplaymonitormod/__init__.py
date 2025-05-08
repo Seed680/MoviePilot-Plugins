@@ -59,7 +59,7 @@ class FileMonitorHandler(FileSystemEventHandler):
         self.file_change.event_handler(event=event, source_dir=self._watch_path, event_path=event.dest_path)
 
 
-class ShortPlayMonitorMod(_PluginBase):
+class ShortPlayMonitor(_PluginBase):
     # 插件名称
     plugin_name = "短剧刮削魔改版"
     # 插件描述
@@ -67,7 +67,7 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "1.2"
+    plugin_version = "1.3"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -301,6 +301,7 @@ class ShortPlayMonitorMod(_PluginBase):
         :param event_path: 事件文件路径
         :param source_dir: 监控目录
         """
+        logger.info(f"文件 {event_path} 开始处理")
         try:
             # 转移路径
             dest_dir = self._dirconf.get(source_dir)
@@ -647,6 +648,7 @@ class ShortPlayMonitorMod(_PluginBase):
         except Exception as e:
             logger.error(f"event_handler_created error: {e}", exc_info=True)
         shutil.rmtree('/tmp/shortplaymonitormod')
+        logger.info(f"文件 {event_path} 处理完成")
 
     def send_msg(self):
         """
