@@ -67,7 +67,7 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "1.4"
+    plugin_version = "1.5"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -647,7 +647,8 @@ class ShortPlayMonitorMod(_PluginBase):
                 self._medias[mediainfo.title_year if mediainfo else title] = media_list
         except Exception as e:
             logger.error(f"event_handler_created error: {e}", exc_info=True)
-        shutil.rmtree('/tmp/shortplaymonitormod')
+        if Path('/tmp/shortplaymonitormod/').exists():
+            shutil.rmtree('/tmp/shortplaymonitormod/')
         logger.info(f"文件 {event_path} 处理完成")
 
     def send_msg(self):
