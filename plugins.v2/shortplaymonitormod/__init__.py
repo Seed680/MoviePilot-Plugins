@@ -7,7 +7,9 @@ from threading import Lock
 from typing import Any, List, Dict, Tuple, Optional
 from xml.dom import minidom
 
+
 import chardet
+import shutil
 import pytz
 from PIL import Image
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -71,7 +73,7 @@ class ShortPlayMonitorMod(_PluginBase):
     # 作者主页
     author_url = "https://github.com/thsrite"
     # 插件配置项ID前缀
-    plugin_config_prefix = "shortplaymonitor_"
+    plugin_config_prefix = "shortplaymonitormod_"
     # 加载顺序
     plugin_order = 26
     # 可使用的用户级别
@@ -644,7 +646,7 @@ class ShortPlayMonitorMod(_PluginBase):
                 self._medias[mediainfo.title_year if mediainfo else title] = media_list
         except Exception as e:
             logger.error(f"event_handler_created error: {e}", exc_info=True)
-            print(str(e))
+        shutil.rmtree('/tmp/shortplaymonitormod')
 
     def send_msg(self):
         """
