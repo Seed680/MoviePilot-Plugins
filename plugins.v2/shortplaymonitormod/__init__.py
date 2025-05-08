@@ -59,7 +59,7 @@ class FileMonitorHandler(FileSystemEventHandler):
         self.file_change.event_handler(event=event, source_dir=self._watch_path, event_path=event.dest_path)
 
 
-class ShortPlayMonitor(_PluginBase):
+class ShortPlayMonitorMod(_PluginBase):
     # 插件名称
     plugin_name = "短剧刮削魔改版"
     # 插件描述
@@ -67,7 +67,7 @@ class ShortPlayMonitor(_PluginBase):
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "1.3"
+    plugin_version = "1.4"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
