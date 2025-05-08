@@ -65,7 +65,7 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "1.1"
+    plugin_version = "1.2"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -544,8 +544,6 @@ class ShortPlayMonitorMod(_PluginBase):
                                     transfer_type=self._transfer_type,
                                     source_oper=source_oper, target_oper=target_oper)
                                 if new_item:
-                                    Path(
-                                        "/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/"))).unlink()
                                     logger.debug(f"文件 {Path(target_path.parent / 'tvshow.nfo')} 整理完成")
                                 else:
                                     logger.debug((f"文件 {Path(target_path.parent / 'tvshow.nfo')} 整理失败:{errmsg}"))
