@@ -35,6 +35,7 @@ from app.utils.http import RequestUtils
 from app.utils.system import SystemUtils
 from app.modules.filemanager import FileManagerModule
 from app.schemas import TransferInfo, TransferDirectoryConf, FileItem
+
 ffmpeg_lock = threading.Lock()
 lock = Lock()
 
@@ -60,17 +61,17 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件名称
     plugin_name = "短剧刮削魔改版"
     # 插件描述
-    plugin_desc = "(基于thsrite大佬原版修改)监控视频短剧创建，刮削，支持目的目录为网盘。"
+    plugin_desc = "(基于thsrite大佬原版修改支持网盘)监控视频短剧创建，刮削，支持目的目录为网盘。"
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "1.0"
+    plugin_version = "1.1"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
     author_url = "https://github.com/thsrite"
     # 插件配置项ID前缀
-    plugin_config_prefix = "shortplaymonitormod_"
+    plugin_config_prefix = "shortplaymonitor_"
     # 加载顺序
     plugin_order = 26
     # 可使用的用户级别
@@ -367,8 +368,8 @@ class ShortPlayMonitorMod(_PluginBase):
                         transfer_flag = False
                     else:
                         self.mediachain.scrape_metadata(fileitem=transferinfo.target_diritem,
-                                                   meta=file_meta,
-                                                   mediainfo=mediainfo)
+                                                        meta=file_meta,
+                                                        mediainfo=mediainfo)
                         transfer_flag = True
                 except Exception as e:
                     print(str(e))
@@ -421,7 +422,7 @@ class ShortPlayMonitorMod(_PluginBase):
                         logger.debug(f"last:{last}")
                         # 取.第一个
                         if parent.parent == parent:
-                            #如果是根目录 就是没有套文件夹
+                            # 如果是根目录 就是没有套文件夹
                             title = last.split(".")[0]
                         else:
                             title = parent.name.split(".")[0]
@@ -481,15 +482,15 @@ class ShortPlayMonitorMod(_PluginBase):
                             return None, f"不支持的存储类型：{store_conf}"
                         file_item = FileItem()
                         file_item.storage = "local"
-                        file_item.path =event_path
+                        file_item.path = event_path
                         new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(fileitem=file_item,
-                                                                             target_storage=store_conf,
-                                                                             target_file=Path(target_path),
-                                                                            transfer_type=self._transfer_type,
-                                                                             source_oper=source_oper,
-                                                                            target_oper=target_oper)
+                                                                                                 target_storage=store_conf,
+                                                                                                 target_file=Path(
+                                                                                                     target_path),
+                                                                                                 transfer_type=self._transfer_type,
+                                                                                                 source_oper=source_oper,
+                                                                                                 target_oper=target_oper)
                         logger.debug(f"new_item: {new_item} ")
-                        logger.debug(f"文件整理错误 {errmsg} ")
                         if new_item:
                             retcode = 0
                             logger.debug(f"new_item: {new_item} ")
@@ -497,22 +498,38 @@ class ShortPlayMonitorMod(_PluginBase):
                             retcode = 1
                             logger.debug(f"文件整理错误 {errmsg} ")
                     if retcode == 0:
-                        logger.info(f"文件 {event_path} 硬链接完成")
+                        if store_conf == "local":
+                            logger.info(f"文件 {event_path} 硬链接完成")
+                        else:
+                            logger.info(f"文件 {event_path} 上传完成")
                         # 生成 tvshow.nfo
+                        logger.debug(f"文件 {event_path} 生成 tvshow.nfo开始")
+                        logger.debug(f"store_conf: {store_conf}")
+                        if store_conf == "local":
+                            logger.debug(f"tvshow.nfo exists: {(target_path.parent / 'tvshow.nfo').exists()}")
+                        else:
+                            logger.debug(
+                                f"tvshow.nfo exists: "
+                                f"{self.filemanager.get_file_item(store_conf, (target_path.parent / 'tvshow.nfo'))}")
+
                         if store_conf == "local" and not (target_path.parent / "tvshow.nfo").exists():
                             self.__gen_tv_nfo_file(dir_path=target_path.parent,
                                                    title=title)
                         # 内存生成nfo
                         if (store_conf != "local"
-                                and None == self.filemanager.get_file_item(store_conf,(target_path.parent /
-                        "tvshow.nfo"))):
-                            if not ("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/")) / "tvshow.nfo").exists():
-                                os.makedirs(Path("/tmp/shortplaymonitormod" /target_path.parent.relative_to(Path("/"))))
-                                self.__gen_tv_nfo_file(dir_path=("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/"))),
-                                                       title=title)
+                                and None == self.filemanager.get_file_item(store_conf, (target_path.parent /
+                                                                                        "tvshow.nfo"))):
+                            if not ("/tmp/shortplaymonitormod" / target_path.parent.relative_to(
+                                    Path("/")) / "tvshow.nfo").exists():
+                                os.makedirs(
+                                    Path("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/"))))
+                                self.__gen_tv_nfo_file(
+                                    dir_path=("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/"))),
+                                    title=title)
                                 file_item = FileItem()
                                 file_item.storage = "local"
-                                file_item.path = str("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/")) / "tvshow.nfo")
+                                file_item.path = str("/tmp/shortplaymonitormod" / target_path.parent.relative_to(
+                                    Path("/")) / "tvshow.nfo")
                                 # 源操作对象
                                 source_oper = self.filemanager._FileManagerModule__get_storage_oper("local")
                                 # 目的操作对象
@@ -525,12 +542,21 @@ class ShortPlayMonitorMod(_PluginBase):
                                     target_storage=store_conf,
                                     target_file=Path(target_path.parent / "tvshow.nfo"),
                                     transfer_type=self._transfer_type,
-                                    source_oper=source_oper,target_oper=target_oper)
+                                    source_oper=source_oper, target_oper=target_oper)
                                 if new_item:
-                                    Path("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/"))).unlink()
+                                    Path(
+                                        "/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/"))).unlink()
                                     logger.debug(f"文件 {Path(target_path.parent / 'tvshow.nfo')} 整理完成")
                                 else:
                                     logger.debug((f"文件 {Path(target_path.parent / 'tvshow.nfo')} 整理失败:{errmsg}"))
+                        logger.debug(f"文件 {event_path} 生成 tvshow.nfo结束")
+                        logger.debug(f"文件 {event_path} 生成缩略图开始")
+                        if store_conf == "local":
+                            logger.debug(f"tvshow.nfo exists: {(target_path.parent / 'poster.jpg').exists()}")
+                        else:
+                            logger.debug(
+                                f"tvshow.nfo exists: "
+                                f"{self.filemanager.get_file_item(store_conf, (target_path.parent / 'poster.jpg'))}")
                         # 生成缩略图
                         if (store_conf == "local" and not (target_path.parent / "poster.jpg").exists()):
                             thumb_path = self.gen_file_thumb(title=title,
@@ -557,36 +583,45 @@ class ShortPlayMonitorMod(_PluginBase):
                                     # 删除多余jpg
                                     for thumb in thumb_files:
                                         Path(thumb).unlink()
-                            if (store_conf != "local"
-                                    and None == self.filemanager.get_file_item(store_conf,
-                                                                       (target_path.parent / "poster.jpg"))):
-                                # 没有缩略图 则本地生成
-                                thumb_path = self.gen_file_thumb(title=title,
-                                                                 rename_conf=rename_conf,
-                                                                 file_path=Path(event_path))
-                                if thumb_path and Path(thumb_path).exists():
-                                    self.__save_poster(input_path=thumb_path,
-                                                       poster_path="/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/")) / "poster.jpg",
-                                                       cover_conf=cover_conf)
-                                    if ("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/")) / "poster.jpg").exists():
-                                        file_item = FileItem()
-                                        file_item.storage = "local"
-                                        file_item.path = str("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/")) / "poster.jpg")
-                                        # 源操作对象
-                                        source_oper = self.filemanager._FileManagerModule__get_storage_oper("local")
-                                        # 目的操作对象
-                                        target_oper = self.filemanager._FileManagerModule__get_storage_oper(store_conf)
-                                        if not source_oper or not target_oper:
-                                            return None, f"不支持的存储类型：{store_conf}"
-                                        new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(
-                                            fileitem=file_item,
-                                            target_storage=store_conf,
-                                            target_file=Path(target_path.parent / "poster.jpg"),
-                                            transfer_type=self._transfer_type,source_oper=source_oper,target_oper=target_oper)
-                                        if new_item:
-                                            logger.debug(f"{target_path.parent / 'poster.jpg'} 缩略图已整理")
-                                        logger.info(f"{target_path.parent / 'poster.jpg'} 缩略图已生成")
-                                    # thumb_path.unlink()
+                        if (store_conf != "local"
+                                and None == self.filemanager.get_file_item(store_conf,
+                                                                           (target_path.parent / "poster.jpg"))):
+                            # 没有缩略图 则本地生成
+                            thumb_path = self.gen_file_thumb(title=title,
+                                                             rename_conf=rename_conf,
+                                                             file_path=Path(event_path),
+                                                             to_thumb_path="/tmp/shortplaymonitormod" /
+                                                                           target_path.parent.relative_to(
+                                                                 Path("/")))
+                            if thumb_path and Path(thumb_path).exists():
+                                self.__save_poster(input_path=thumb_path,
+                                                   poster_path="/tmp/shortplaymonitormod" /
+                                                               target_path.parent.relative_to(
+                                                       Path("/")) / "poster.jpg",
+                                                   cover_conf=cover_conf)
+                                if ("/tmp/shortplaymonitormod" / target_path.parent.relative_to(
+                                        Path("/")) / "poster.jpg").exists():
+                                    file_item = FileItem()
+                                    file_item.storage = "local"
+                                    file_item.path = str(
+                                        "/tmp/shortplaymonitormod" / target_path.parent.relative_to(
+                                            Path("/")) / "poster.jpg")
+                                    # 源操作对象
+                                    source_oper = self.filemanager._FileManagerModule__get_storage_oper("local")
+                                    # 目的操作对象
+                                    target_oper = self.filemanager._FileManagerModule__get_storage_oper(store_conf)
+                                    if not source_oper or not target_oper:
+                                        return None, f"不支持的存储类型：{store_conf}"
+                                    new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(
+                                        fileitem=file_item,
+                                        target_storage=store_conf,
+                                        target_file=Path(target_path.parent / "poster.jpg"),
+                                        transfer_type=self._transfer_type, source_oper=source_oper,
+                                        target_oper=target_oper)
+                                    if new_item:
+                                        logger.debug(f"{target_path.parent / 'poster.jpg'} 缩略图已整理")
+                                    logger.info(f"{target_path.parent / 'poster.jpg'} 缩略图已生成")
+                                    thumb_path.unlink()
                     else:
                         logger.error(f"文件 {event_path} 硬链接失败，错误码：{retcode}")
             if self._notify:
@@ -710,8 +745,9 @@ class ShortPlayMonitorMod(_PluginBase):
 
             # 保存截取后的图片
             cropped_image.save(poster_path)
+            logger.debug(f"__save_poster: {poster_path}")
         except Exception as e:
-            print(str(e))
+            logger.error(f"__save_poster error: {e}", exc_info=True)
 
     def __gen_tv_nfo_file(self, dir_path: Path, title: str):
         """
@@ -750,7 +786,8 @@ class ShortPlayMonitorMod(_PluginBase):
             site = SiteOper().get_by_domain(domain)
             index = SitesHelper().get_indexer(domain)
             if site:
-                req_url = f"https://www.agsvpt.com/torrents.php?search_mode=0&search_area=0&page=0&notnewword=1&cat=419&search={title}"
+                req_url = (f"https://www.agsvpt.com/torrents.php?search_mode=0&search_area=0&page=0&notnewword=1&cat"
+                           f"=419&search={title}")
                 image_xpath = "//*[@id='kdescr']/img[1]/@src"
                 # 查询站点资源
                 logger.info(f"开始检索 {site.name} {title}")
@@ -760,7 +797,8 @@ class ShortPlayMonitorMod(_PluginBase):
                 site = SiteOper().get_by_domain(domain)
                 index = SitesHelper().get_indexer(domain)
                 if site:
-                    req_url = f"https://share.ilolicon.com/torrents.php?search_mode=0&search_area=0&page=0&notnewword=1&cat=402&search={title}"
+                    req_url = (f"https://share.ilolicon.com/torrents.php?search_mode=0&search_area=0&page=0&notnewword"
+                               f"=1&cat=402&search={title}")
 
                     image_xpath = "//*[@id='kdescr']/img[1]/@src"
                     # 查询站点资源
@@ -863,13 +901,16 @@ class ShortPlayMonitorMod(_PluginBase):
 
         return page_source
 
-    def gen_file_thumb(self, title: str, file_path: Path, rename_conf: str):
+    def gen_file_thumb(self, title: str, file_path: Path, rename_conf: str, to_thumb_path: Path = None):
         """
         处理一个文件
         """
         # 智能重命名时从站点检索
         if str(rename_conf) == "smart":
-            thumb_path = file_path.with_name(file_path.stem + "-site.jpg")
+            if not to_thumb_path:
+                thumb_path = file_path.with_name(file_path.stem + "-site.jpg")
+            else:
+                thumb_path = to_thumb_path.joinpath(file_path.stem + "-site.jpg")
             if thumb_path.exists():
                 logger.info(f"缩略图已存在：{thumb_path}")
                 return
@@ -880,7 +921,10 @@ class ShortPlayMonitorMod(_PluginBase):
         # 单线程处理
         with ffmpeg_lock:
             try:
-                thumb_path = file_path.with_name(file_path.stem + "-thumb.jpg")
+                if not to_thumb_path:
+                    thumb_path = file_path.with_name(file_path.stem + "-thumb.jpg")
+                else:
+                    thumb_path = to_thumb_path.joinpath(file_path.stem + "-thumb.jpg")
                 if thumb_path.exists():
                     logger.info(f"缩略图已存在：{thumb_path}")
                     return
@@ -1073,7 +1117,7 @@ class ShortPlayMonitorMod(_PluginBase):
                                             'model': 'monitor_confs',
                                             'label': '监控目录',
                                             'rows': 5,
-                                            'placeholder': '监控方式#监控目录#目的目录#是否重命名#封面比例(#u115\#alist\#rclone..)'
+                                            'placeholder': '监控方式#监控目录#目的目录#是否重命名#封面比例'
                                         }
                                     }
                                 ]
@@ -1138,7 +1182,8 @@ class ShortPlayMonitorMod(_PluginBase):
                                         'props': {
                                             'type': 'info',
                                             'variant': 'tonal',
-                                            'text': '默认从tmdb刮削，刮削失败则从pt站刮削。当重命名方式为smart时，如站点管理已配置AGSV、ilolicon，则优先从站点获取短剧封面。'
+                                            'text':
+                                                '默认从tmdb刮削，刮削失败则从pt站刮削。当重命名方式为smart时，如站点管理已配置AGSV、ilolicon，则优先从站点获取短剧封面。'
                                         }
                                     }
                                 ]
