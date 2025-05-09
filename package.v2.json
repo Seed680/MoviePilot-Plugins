@@ -134,12 +134,12 @@
         "name": "下载任务分类与标签联邦魔改版",
         "description": "(基于叮叮当原版修改，增加按二级分类)自动给下载任务分类与打站点标签、剧集名称标签",
         "labels": "下载管理",
-        "version": "0.0.1",
+        "version": "0.0.2",
         "icon": "Youtube-dl_B.png",
         "author": "叮叮当,Seed680",
         "level": 1,
         "history": {
-            "v0.0.1": "new"
+            "v0.0.2": "new"
         }
     }
 }
