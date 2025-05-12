@@ -160,5 +160,9 @@ cython_debug/
 .idea/
 .vscode/
 node_modules/
+<<<<<<< HEAD
 plugins.v2/*/src/
+=======
+src/
+>>>>>>> b428a4a (update)
 package.json
