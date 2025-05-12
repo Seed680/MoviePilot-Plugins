@@ -35,7 +35,7 @@ const saving = ref(false);
 ref(false);
 
 const scheduleTypes = ['禁用','计划任务','固定间隔'];
-
+const intervalUnits = ['分钟','小时'];
 
 // 配置数据，使用默认值和初始配置合并
 const defaultConfig = {
@@ -46,13 +46,10 @@ const defaultConfig = {
 // 合并默认配置和初始配置
 const config = reactive({ ...defaultConfig, ...props.initialConfig});
 
-async function loadInitialData() {
 
-  
-}
 // 初始化配置
-onMounted(async () => {
-  loadInitialData();
+onMounted(() => {
+
 });
 
 // 自定义事件，用于保存配置
@@ -84,9 +81,12 @@ async function saveConfig() {
 
 // 重置表单
 function resetForm() {
-  Object.keys(defaultConfig).forEach(key => {
-    config[key] = defaultConfig[key];
+
+  Object.keys(props.initialConfig).forEach(key => {
+    console.log(key);
+    config[key] = props.initialConfig[key];
   });
+
 
   if (form.value) {
     form.value.resetValidation();
@@ -111,6 +111,7 @@ return (_ctx, _cache) => {
   const _component_v_divider = _resolveComponent("v-divider");
   const _component_v_select = _resolveComponent("v-select");
   const _component_v_text_field = _resolveComponent("v-text-field");
+  const _component_v_textarea = _resolveComponent("v-textarea");
   const _component_v_form = _resolveComponent("v-form");
   const _component_v_card_text = _resolveComponent("v-card-text");
   const _component_v_spacer = _resolveComponent("v-spacer");
@@ -130,7 +131,7 @@ return (_ctx, _cache) => {
             }, {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, { left: "" }, {
-                  default: _withCtx(() => _cache[12] || (_cache[12] = [
+                  default: _withCtx(() => _cache[13] || (_cache[13] = [
                     _createTextVNode("mdi-close")
                   ])),
                   _: 1
@@ -167,11 +168,11 @@ return (_ctx, _cache) => {
               ref_key: "form",
               ref: form,
               modelValue: isFormValid.value,
-              "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((isFormValid).value = $event)),
+              "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((isFormValid).value = $event)),
               onSubmit: _withModifiers(saveConfig, ["prevent"])
             }, {
               default: _withCtx(() => [
-                _cache[13] || (_cache[13] = _createElementVNode("div", { class: "text-subtitle-1 font-weight-bold mt-4 mb-2" }, "基本设置", -1)),
+                _cache[14] || (_cache[14] = _createElementVNode("div", { class: "text-subtitle-1 font-weight-bold mt-4 mb-2" }, "基本设置", -1)),
                 _createVNode(_component_v_row, null, {
                   default: _withCtx(() => [
                     _createVNode(_component_v_col, {
@@ -234,7 +235,7 @@ return (_ctx, _cache) => {
                     }),
                     _createVNode(_component_v_col, {
                       cols: "6",
-                      md: "3"
+                      md: "6"
                     }, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_checkbox, {
@@ -295,7 +296,7 @@ return (_ctx, _cache) => {
                       ]),
                       _: 1
                     }),
-                    (config.scheduleType === 'cron')
+                    (config.interval === '计划任务')
                       ? (_openBlock(), _createBlock(_component_v_col, {
                           key: 0,
                           cols: "6",
@@ -303,8 +304,8 @@ return (_ctx, _cache) => {
                         }, {
                           default: _withCtx(() => [
                             _createVNode(_component_v_text_field, {
-                              modelValue: config.cronExpression,
-                              "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.cronExpression) = $event)),
+                              modelValue: config.interval_cron,
+                              "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.interval_cron) = $event)),
                               label: "计划任务设置",
                               placeholder: "例如：5 4 * * *",
                               hint: "Cron表达式格式",
@@ -314,7 +315,7 @@ return (_ctx, _cache) => {
                           _: 1
                         }))
                       : _createCommentVNode("", true),
-                    (config.scheduleType === 'interval')
+                    (config.interval === '固定间隔')
                       ? (_openBlock(), _createBlock(_component_v_col, {
                           key: 1,
                           cols: "6",
@@ -322,8 +323,8 @@ return (_ctx, _cache) => {
                         }, {
                           default: _withCtx(() => [
                             _createVNode(_component_v_text_field, {
-                              modelValue: config.interval,
-                              "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.interval) = $event)),
+                              modelValue: config._interval_time,
+                              "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config._interval_time) = $event)),
                               modelModifiers: { number: true },
                               label: "固定间隔",
                               type: "number",
@@ -333,7 +334,7 @@ return (_ctx, _cache) => {
                           _: 1
                         }))
                       : _createCommentVNode("", true),
-                    (config.scheduleType === 'interval')
+                    (config.interval === '固定间隔')
                       ? (_openBlock(), _createBlock(_component_v_col, {
                           key: 2,
                           cols: "6",
@@ -341,14 +342,12 @@ return (_ctx, _cache) => {
                         }, {
                           default: _withCtx(() => [
                             _createVNode(_component_v_select, {
-                              modelValue: config.intervalUnit,
-                              "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.intervalUnit) = $event)),
-                              items: _ctx.intervalUnits,
+                              modelValue: config.interval_unit,
+                              "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.interval_unit) = $event)),
+                              items: intervalUnits,
                               label: "单位",
-                              "item-text": "name",
-                              "item-value": "id",
                               dense: ""
-                            }, null, 8, ["modelValue", "items"])
+                            }, null, 8, ["modelValue"])
                           ]),
                           _: 1
                         }))
@@ -357,38 +356,61 @@ return (_ctx, _cache) => {
                   _: 1
                 }),
                 _createVNode(_component_v_divider, { class: "my-4" }),
-                _createVNode(_component_v_row, null, {
-                  default: _withCtx(() => [
-                    _createVNode(_component_v_col, { cols: "12" }, {
+                (!config.rename_type)
+                  ? (_openBlock(), _createBlock(_component_v_row, { key: 0 }, {
                       default: _withCtx(() => [
-                        _createVNode(_component_v_row, null, {
+                        _createVNode(_component_v_col, { cols: "12" }, {
                           default: _withCtx(() => [
-                            (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(config.all_cat, (category, index) => {
-                              return (_openBlock(), _createBlock(_component_v_col, {
-                                cols: "12",
-                                md: "3",
-                                key: index
-                              }, {
-                                default: _withCtx(() => [
-                                  _createVNode(_component_v_text_field, {
-                                    modelValue: config.all_cat[index],
-                                    "onUpdate:modelValue": $event => ((config.all_cat[index]) = $event),
-                                    label: category,
-                                    placeholder: category
-                                  }, null, 8, ["modelValue", "onUpdate:modelValue", "label", "placeholder"])
-                                ]),
-                                _: 2
-                              }, 1024))
-                            }), 128))
+                            _createVNode(_component_v_row, null, {
+                              default: _withCtx(() => [
+                                (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(config.all_cat, (category, index) => {
+                                  return (_openBlock(), _createBlock(_component_v_col, {
+                                    cols: "12",
+                                    md: "3",
+                                    key: index
+                                  }, {
+                                    default: _withCtx(() => [
+                                      _createVNode(_component_v_text_field, {
+                                        modelValue: config.all_cat_rename[index],
+                                        "onUpdate:modelValue": $event => ((config.all_cat_rename[index]) = $event),
+                                        label: category,
+                                        placeholder: category
+                                      }, null, 8, ["modelValue", "onUpdate:modelValue", "label", "placeholder"])
+                                    ]),
+                                    _: 2
+                                  }, 1024))
+                                }), 128))
+                              ]),
+                              _: 1
+                            })
                           ]),
                           _: 1
                         })
                       ]),
                       _: 1
-                    })
-                  ]),
-                  _: 1
-                }),
+                    }))
+                  : _createCommentVNode("", true),
+                (config.rename_type)
+                  ? (_openBlock(), _createBlock(_component_v_row, { key: 1 }, {
+                      default: _withCtx(() => [
+                        _createVNode(_component_v_col, { cols: "12" }, {
+                          default: _withCtx(() => [
+                            _createVNode(_component_v_textarea, {
+                              label: "按路径自定义分类",
+                              hint: "每一行一个配置，中间以#分隔\r\n                 路径#分类名称",
+                              "persistent-hint": "",
+                              modelValue: config.path_rename,
+                              "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.path_rename) = $event)),
+                              variant: "filled",
+                              "auto-grow": ""
+                            }, null, 8, ["modelValue"])
+                          ]),
+                          _: 1
+                        })
+                      ]),
+                      _: 1
+                    }))
+                  : _createCommentVNode("", true),
                 _createVNode(_component_v_divider, { class: "my-4" })
               ]),
               _: 1
@@ -402,7 +424,7 @@ return (_ctx, _cache) => {
               color: "secondary",
               onClick: resetForm
             }, {
-              default: _withCtx(() => _cache[14] || (_cache[14] = [
+              default: _withCtx(() => _cache[15] || (_cache[15] = [
                 _createTextVNode("重置")
               ])),
               _: 1
@@ -414,7 +436,7 @@ return (_ctx, _cache) => {
               onClick: saveConfig,
               loading: saving.value
             }, {
-              default: _withCtx(() => _cache[15] || (_cache[15] = [
+              default: _withCtx(() => _cache[16] || (_cache[16] = [
                 _createTextVNode("保存配置")
               ])),
               _: 1

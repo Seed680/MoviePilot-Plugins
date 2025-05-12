@@ -50,7 +50,7 @@
               ></v-checkbox>
             </v-col>
             
-            <v-col cols="6" md="3">
+            <v-col cols="6" md="6">
               <v-checkbox
                 v-model="config.onlyonce"
                 label="补全下载历史的标签与分类(一次性任务)"
@@ -92,9 +92,9 @@
               ></v-select>
             </v-col>
             
-            <v-col cols="6" md="3" v-if="config.scheduleType === 'cron'">
+            <v-col cols="6" md="3" v-if="config.interval === '计划任务'">
               <v-text-field
-                v-model="config.cronExpression"
+                v-model="config.interval_cron"
                 label="计划任务设置"
                 placeholder="例如：5 4 * * *"
                 hint="Cron表达式格式"
@@ -102,28 +102,26 @@
               ></v-text-field>
             </v-col>
             
-            <v-col cols="6" md="3" v-if="config.scheduleType === 'interval'">
+            <v-col cols="6" md="3" v-if="config.interval === '固定间隔'">
               <v-text-field
-                v-model.number="config.interval"
+                v-model.number="config._interval_time"
                 label="固定间隔"
                 type="number"
                 placeholder="输入间隔时间"
               ></v-text-field>
             </v-col>
             
-            <v-col cols="6" md="3" v-if="config.scheduleType === 'interval'">
+            <v-col cols="6" md="3" v-if="config.interval === '固定间隔'">
               <v-select
-                v-model="config.intervalUnit"
+                v-model="config.interval_unit"
                 :items="intervalUnits"
                 label="单位"
-                item-text="name"
-                item-value="id"
                 dense
               ></v-select>
             </v-col>
           </v-row>
           <v-divider class="my-4"></v-divider>
-          <v-row>
+          <v-row  v-if="!config.rename_type">
             <v-col cols="12">
               <!-- 循环生成输入框，每行4个 -->
               <v-row>
@@ -134,7 +132,7 @@
                   :key="index"
                 >
                   <v-text-field
-                    v-model="config.all_cat[index]"
+                    v-model="config.all_cat_rename[index]"
                     :label="category"
                     :placeholder="category"
                   ></v-text-field>
@@ -142,6 +140,20 @@
               </v-row>
             </v-col>
           </v-row>
+          <v-row v-if="config.rename_type">
+            <v-col cols="12">
+              <v-textarea
+                label="按路径自定义分类"
+                hint="每一行一个配置，中间以#分隔
+                 路径#分类名称"
+                persistent-hint
+                v-model="config.path_rename"
+                variant="filled"
+                auto-grow
+              ></v-textarea>
+            </v-col>
+          </v-row>
+
           <v-divider class="my-4"></v-divider>
         </v-form>
       </v-card-text>
@@ -177,7 +189,7 @@ const saving = ref(false)
 const showApiKey = ref(false)
 
 const scheduleTypes = ['禁用','计划任务','固定间隔']
-
+const intervalUnits = ['分钟','小时']
 
 // 配置数据，使用默认值和初始配置合并
 const defaultConfig = {
@@ -188,13 +200,10 @@ const defaultConfig = {
 // 合并默认配置和初始配置
 const config = reactive({ ...defaultConfig, ...props.initialConfig})
 
-async function loadInitialData() {
 
-  
-}
 // 初始化配置
-onMounted(async () => {
-  loadInitialData()
+onMounted(() => {
+
 })
 
 // 自定义事件，用于保存配置
@@ -226,9 +235,12 @@ async function saveConfig() {
 
 // 重置表单
 function resetForm() {
-  Object.keys(defaultConfig).forEach(key => {
-    config[key] = defaultConfig[key]
+
+  Object.keys(props.initialConfig).forEach(key => {
+    console.log(key)
+    config[key] = props.initialConfig[key]
   })
+
 
   if (form.value) {
     form.value.resetValidation()
