@@ -31,7 +31,7 @@ class DownloadSiteTagModNew(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "0.0.3"
+    plugin_version = "0.0.4"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -86,7 +86,7 @@ class DownloadSiteTagModNew(_PluginBase):
         self._all_cat = [*self.category_helper.tv_categorys, *self.category_helper.movie_categorys]
         self._all_cat_rename = self._all_cat
         # 读取配置
-        logger.debug(f"读取配置1")
+        logger.debug(f"读取配置")
         if config:
             self._enable = config.get("enable", False)
             self._onlyonce = config.get("onlyonce", False)
@@ -428,7 +428,7 @@ class DownloadSiteTagModNew(_PluginBase):
                             logger.debug(f"sites_helper.get_indexer domain:{domain} site_info:{site_info}")
                             if site_info:
                                 history.torrent_site = site_info.get("name")
-                                logger.debug(f"torrent_site:{site_info.get("name")}")
+                                logger.debug(f"torrent_site:{site_info.get('name')}")
                                 break
                         # 如果通过tracker还是无法获取站点名称, 且tmdbid, type, title都是空的, 那么跳过当前种子
                         if not history.torrent_site and not history.tmdbid and not history.type and not history.title:
