@@ -161,8 +161,12 @@ cython_debug/
 .vscode/
 node_modules/
 <<<<<<< HEAD
+<<<<<<< HEAD
 plugins.v2/*/src/
 =======
 src/
 >>>>>>> b428a4a (update)
+=======
+src/
+>>>>>>> 6344788 (update)
 package.json
