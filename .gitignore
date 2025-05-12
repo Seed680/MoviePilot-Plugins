@@ -160,5 +160,5 @@ cython_debug/
 .idea/
 .vscode/
 node_modules/
-src/
+plugins.v2/*/src/
 package.json
