@@ -162,6 +162,7 @@ cython_debug/
 node_modules/
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 plugins.v2/*/src/
 =======
 src/
@@ -169,4 +170,7 @@ src/
 =======
 src/
 >>>>>>> 6344788 (update)
+=======
+src/
+>>>>>>> 76b07f4 (update)
 package.json
