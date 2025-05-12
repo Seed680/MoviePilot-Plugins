@@ -2,7 +2,7 @@
   <div class="plugin-config">
     <v-card>
       <v-card-item>
-        <v-card-title>插件配置</v-card-title>
+        <v-card-title>{{ config.name }}</v-card-title>
         <template #append>
           <v-btn icon color="primary" variant="text" @click="notifyClose">
             <v-icon left>mdi-close</v-icon>
@@ -16,97 +16,133 @@
           <!-- 基本设置区域 -->
           <div class="text-subtitle-1 font-weight-bold mt-4 mb-2">基本设置</div>
           <v-row>
-            <v-col cols="12">
+            <v-col cols="6" md="3">
               <v-switch
                 v-model="config.enable"
                 label="启用插件"
                 color="primary"
-                inset
-                hint="启用插件后，插件将开始工作"
                 persistent-hint
+                inset
               ></v-switch>
             </v-col>
-            <v-col cols="12">
-              <v-text-field
-                v-model="config.name"
-                label="插件名称"
-                variant="outlined"
-                :rules="[v => !!v || '名称不能为空']"
-                hint="显示在插件列表中的名称"
-              ></v-text-field>
+                
+            <v-col cols="6" md="3">
+              <v-checkbox
+                v-model="config.enable_tag"
+                label="自动站点标签"
+                color="primary"
+              ></v-checkbox>
             </v-col>
-            <v-col cols="12">
-              <v-textarea
-                v-model="config.description"
-                label="插件描述"
-                variant="outlined"
-                rows="3"
-                hint="简要说明插件的功能和用途"
-              ></v-textarea>
+            
+            <v-col cols="6" md="3">
+              <v-checkbox
+                v-model="config.enable_media_tag"
+                label="自动剧名标签"
+                color="primary"
+              ></v-checkbox>
+            </v-col>
+            
+            <v-col cols="6" md="3">
+              <v-checkbox
+                v-model="config.enable_category"
+                label="自动设置分类"
+                color="primary"
+              ></v-checkbox>
+            </v-col>
+            
+            <v-col cols="6" md="3">
+              <v-checkbox
+                v-model="config.onlyonce"
+                label="补全下载历史的标签与分类(一次性任务)"
+                color="primary"
+                inset
+              ></v-checkbox>
+            </v-col>
+            <v-col>
+            <v-switch
+                v-model="config.rename_type"
+                label="自定义"
+                color="primary"
+                persistent-hint
+                inset
+              ></v-switch>
             </v-col>
           </v-row>
-          <!-- 功能配置区域 -->
-          <div class="text-subtitle-1 font-weight-bold mt-4 mb-2">功能配置</div>
+              
+          <v-divider></v-divider>
+              
           <v-row>
             <v-col cols="12">
               <v-select
-                v-model="config.update_interval"
-                label="更新频率"
-                :items="updateIntervalOptions"
-                variant="outlined"
-                item-title="text"
+                v-model="config.downloader"
+                :items="config.all_downloaders"
+                label="下载器"
+                placeholder="请选择下载器"
+                item-text="title"
                 item-value="value"
+                return-object
+              ></v-select>
+            </v-col>
+            
+            <v-col cols="6" md="3">
+              <v-select
+                v-model="config.interval"
+                :items="scheduleTypes"
+                label="定时任务类型"
+              ></v-select>
+            </v-col>
+            
+            <v-col cols="6" md="3" v-if="config.scheduleType === 'cron'">
+              <v-text-field
+                v-model="config.cronExpression"
+                label="计划任务设置"
+                placeholder="例如：5 4 * * *"
+                hint="Cron表达式格式"
+                persistent-hint
+              ></v-text-field>
+            </v-col>
+            
+            <v-col cols="6" md="3" v-if="config.scheduleType === 'interval'">
+              <v-text-field
+                v-model.number="config.interval"
+                label="固定间隔"
+                type="number"
+                placeholder="输入间隔时间"
+              ></v-text-field>
+            </v-col>
+            
+            <v-col cols="6" md="3" v-if="config.scheduleType === 'interval'">
+              <v-select
+                v-model="config.intervalUnit"
+                :items="intervalUnits"
+                label="单位"
+                item-text="name"
+                item-value="id"
+                dense
               ></v-select>
             </v-col>
           </v-row>
-          <!-- API配置区域 -->
-          <div class="text-subtitle-1 font-weight-bold mt-4 mb-2">API设置</div>
+          <v-divider class="my-4"></v-divider>
           <v-row>
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="config.api_url"
-                label="API地址"
-                variant="outlined"
-                hint="外部服务API地址"
-                :rules="[v => !v || v.startsWith('http') || '请输入有效的URL']"
-              ></v-text-field>
-            </v-col>
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="config.api_key"
-                label="API密钥"
-                variant="outlined"
-                :append-inner-icon="showApiKey ? 'mdi-eye-off' : 'mdi-eye'"
-                :type="showApiKey ? 'text' : 'password'"
-                @click:append-inner="showApiKey = !showApiKey"
-              ></v-text-field>
+            <v-col cols="12">
+              <!-- 循环生成输入框，每行4个 -->
+              <v-row>
+                <v-col 
+                  cols="12" 
+                  md="3" 
+                  v-for="(category, index) in config.all_cat" 
+                  :key="index"
+                >
+                  <v-text-field
+                    v-model="config.all_cat[index]"
+                    :label="category"
+                    :placeholder="category"
+                  ></v-text-field>
+                </v-col>
+              </v-row>
             </v-col>
           </v-row>
-          <!-- 高级选项区域 -->
-          <v-expansion-panels variant="accordion">
-            <v-expansion-panel>
-              <v-expansion-panel-title>高级选项</v-expansion-panel-title>
-              <v-expansion-panel-text>
-                <v-slider
-                  v-model="config.concurrent_tasks"
-                  label="并发任务数"
-                  min="1"
-                  max="10"
-                  step="1"
-                  thumb-label
-                ></v-slider>
-
-                <v-combobox
-                  v-model="config.tags"
-                  label="标签"
-                  variant="outlined"
-                  chips
-                  multiple
-                  closable-chips
-                ></v-combobox>
-              </v-expansion-panel-text>
-            </v-expansion-panel>
-          </v-expansion-panels>
+          <v-divider class="my-4"></v-divider>
         </v-form>
       </v-card-text>
       <v-card-actions>
@@ -123,14 +159,14 @@ import { ref, reactive, onMounted } from 'vue'
 
 // 接收初始配置
 const props = defineProps({
+  api: { 
+    type: [Object, Function],
+    required: true,
+  },
   initialConfig: {
     type: Object,
     default: () => ({}),
-  },
-  api: {
-    type: Object,
-    default: () => {},
-  },
+  }
 })
 
 // 表单状态
@@ -140,43 +176,25 @@ const error = ref(null)
 const saving = ref(false)
 const showApiKey = ref(false)
 
-// 更新频率选项
-const updateIntervalOptions = [
-  { text: '5分钟', value: 5 },
-  { text: '15分钟', value: 15 },
-  { text: '30分钟', value: 30 },
-  { text: '1小时', value: 60 },
-  { text: '2小时', value: 120 },
-  { text: '6小时', value: 360 },
-  { text: '12小时', value: 720 },
-  { text: '1天', value: 1440 },
-]
+const scheduleTypes = ['禁用','计划任务','固定间隔']
+
 
 // 配置数据，使用默认值和初始配置合并
 const defaultConfig = {
-  name: '我的插件',
-  description: '',
-  enable: true,
-  update_interval: 60,
-  api_url: '',
-  api_key: '',
-  concurrent_tasks: 3,
-  tags: [],
+  id: 'DownloadSiteTagModNew',
+  name: '下载任务分类与标签联邦魔改版',
 }
 
 // 合并默认配置和初始配置
-const config = reactive({ ...defaultConfig })
+const config = reactive({ ...defaultConfig, ...props.initialConfig})
 
+async function loadInitialData() {
+
+  
+}
 // 初始化配置
-onMounted(() => {
-  // 加载初始配置
-  if (props.initialConfig) {
-    Object.keys(props.initialConfig).forEach(key => {
-      if (key in config) {
-        config[key] = props.initialConfig[key]
-      }
-    })
-  }
+onMounted(async () => {
+  loadInitialData()
 })
 
 // 自定义事件，用于保存配置

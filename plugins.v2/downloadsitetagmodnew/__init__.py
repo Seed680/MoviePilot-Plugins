@@ -19,17 +19,19 @@ from app.plugins import _PluginBase
 from app.schemas import ServiceInfo
 from app.schemas.types import EventType, MediaType
 from app.utils.string import StringUtils
+from app.db.systemconfig_oper import SystemConfigOper
+from app.schemas.types import SystemConfigKey
 
 
 class DownloadSiteTagModNew(_PluginBase):
     # 插件名称
-    plugin_name = "下载任务分类与标签联邦魔改版"
+    plugin_name = "下载任务分类与标签魔改VUE版"
     # 插件描述
-    plugin_desc = "(基于叮叮当原版修改，增加按二级分类)自动给下载任务分类与打站点标签、剧集名称标签"
+    plugin_desc = "(基于叮叮当原版修改)自动给下载任务分类与打站点标签、剧集名称标签"
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "0.0.2"
+    plugin_version = "0.0.3"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -41,7 +43,7 @@ class DownloadSiteTagModNew(_PluginBase):
     # 可使用的用户级别
     auth_level = 1
     # 日志前缀
-    LOG_TAG = "[DownloadSiteTagSeed] "
+    LOG_TAG = "[DownloadSiteTagModNew] "
 
     # 退出事件
     _event = threading.Event()
@@ -51,48 +53,83 @@ class DownloadSiteTagModNew(_PluginBase):
     downloader_helper = None
     category_helper: CategoryHelper = None
     _scheduler = None
-    _enabled = False
+    _enable = False
     _onlyonce = False
     _interval = "计划任务"
     _interval_cron = "5 4 * * *"
     _interval_time = 6
     _interval_unit = "小时"
-    _enabled_media_tag = False
-    _enabled_tag = True
-    _enabled_category = False
+    _enable_media_tag = False
+    _enable_tag = True
+    _enable_category = False
     _category_movie = None
     _category_tv = None
     _category_anime = None
     _downloaders = None
+    _all_downloaders = []
     _all_cat = []
+    _all_cat_rename = []
     _cat_rename_dict = {}
+    _rename_type = False
+    _path_rename = None
 
     def init_plugin(self, config: dict = None):
         self.downloadhistory_oper = DownloadHistoryOper()
         self.downloader_helper = DownloaderHelper()
         self.sites_helper = SitesHelper()
+        sys_downloader = SystemConfigOper().get(SystemConfigKey.Downloaders)
         self.category_helper = CategoryHelper()
+        if sys_downloader:
+            self._all_downloaders = [{"title": d.get("name"), "value": [d.get("name")]} for d in sys_downloader if d.get("enabled")]
+        else:
+            self._all_downloaders = []
         self._all_cat = [*self.category_helper.tv_categorys, *self.category_helper.movie_categorys]
+        self._all_cat_rename = self._all_cat
         # 读取配置
-        logger.debug(f"读取配置")
+        logger.debug(f"读取配置1")
         if config:
-            self._enabled = config.get("enabled")
-            self._onlyonce = config.get("onlyonce")
-            self._interval = config.get("interval") or "计划任务"
-            self._interval_cron = config.get("interval_cron") or "5 4 * * *"
+            self._enable = config.get("enable", False)
+            self._onlyonce = config.get("onlyonce", False)
+            self._interval = config.get("interval","计划任务")
+            self._interval_cron = config.get("interval_cron", "5 4 * * *")
             self._interval_time = self.str_to_number(config.get("interval_time"), 6)
-            self._interval_unit = config.get("interval_unit") or "小时"
-            self._enabled_media_tag = config.get("enabled_media_tag")
-            self._enabled_tag = config.get("enabled_tag")
-            self._enabled_category = config.get("enabled_category")
-            self._category_movie = config.get("category_movie") or "电影"
-            self._category_tv = config.get("category_tv") or "电视"
-            self._category_anime = config.get("category_anime") or "动漫"
+            self._interval_unit = config.get("interval_unit", "小时")
+            self._enable_media_tag = config.get("enable_media_tag", False)
+            self._enable_tag = config.get("enable_tag")
+            self._enable_category = config.get("enable_category")
             self._downloaders = config.get("downloaders")
-            for index, item in enumerate(self._all_cat):
-                if config.get("category"+str(index)):
-                    self._cat_rename_dict[str(item)] = config.get("category"+str(index))
-            logger.debug(f"cat_rename_dict:{self._cat_rename_dict}")
+            logger.debug(f"all_cat:{self._all_cat}")
+            if None == config.get("all_cat_rename") or len(config.get("all_cat_rename")) == 0 :
+                self._all_cat_rename = self._all_cat
+            else :
+                self._all_cat_rename  = config.get("all_cat_rename")
+            logger.debug(f"all_cat_rename:{self._all_cat_rename}")
+            self._rename_type = config.get("rename_type", False) #False按二级分类 True按路径分类
+            self._path_rename = config.get("path_rename", None)
+
+            if not self._rename_type:
+                for index, item in enumerate(self._all_cat):
+                    self._cat_rename_dict[str(item)] = self._all_cat_rename[index]
+                logger.debug(f"按二级分类设置分类")
+                logger.debug(f"cat_rename_dict:{self._cat_rename_dict}")
+
+            if self._rename_type and self._path_rename is not None:
+                logger.debug(f"按目录关键字设置分类")
+                formate_rule_list = self._path_rename.strip().split("\n")
+                if len(formate_rule_list) < 1:
+                    logger.error("分类规则为空")
+                    return
+                for rule in formate_rule_list:
+                    if '#' not in rule:
+                        logger.error(f"{rule}未包含#")
+                        return
+                    name_list = rule.split("#")
+                    if len(name_list) < 2 or len(name_list) > 2:
+                        logger.error(f"{name_list}不符合规则")
+                        return
+                    self._cat_rename_dict[name_list[0]] = name_list[1]
+
+                logger.debug(f"cat_rename_dict:{self._cat_rename_dict}")
         # 停止现有任务
         self.stop_service()
 
@@ -114,6 +151,93 @@ class DownloadSiteTagModNew(_PluginBase):
                 self._scheduler.print_jobs()
                 self._scheduler.start()
 
+    def get_form(self) -> Tuple[Optional[List[dict]], Dict[str, Any]]:
+         # This dict is passed as initialConfig to Config.vue by the host
+         # return None, self._get_config()
+        # logger.debug(f"all_cat_rename:{self._all_cat_rename}")
+        return None, {
+            "enable": self._enable,
+            "interval": self._interval,
+            "interval_cron": self._interval_cron,
+            "interval_time": self._interval_time,
+            "interval_unit": self._interval_unit,
+            "enable_media_tag": self._enable_media_tag,
+            "enable_tag": self._enable_tag,
+            "enable_category": self._enable_category,
+            "downloaders": self._downloaders,
+            "all_cat_rename": self._all_cat_rename,
+            "all_downloaders": self._all_downloaders,
+            "all_cat": self._all_cat,
+            "onlyonce": False,  # 始终返回False
+            "rename_type": self._rename_type,
+            "path_rename": self._path_rename
+        }
+
+    def load_config(self, config: dict):
+        """加载配置"""
+        if config:
+            # 遍历配置中的键并设置相应的属性
+            for key in (
+                "enable",
+                "interval",
+                "interval_cron",
+                "interval_time",
+                "interval_unit",
+                "enable_media_tag",
+                "enable_tag",
+                "enable_category",
+                "downloaders",
+                "onlyonce",
+                "all_cat_rename",
+                "rename_type",
+                "path_rename"
+            ):
+                setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
+
+    @staticmethod
+    def get_render_mode() -> Tuple[str, str]:
+        """
+        获取插件渲染模式
+        :return: 1、渲染模式，支持：vue/vuetify，默认vuetify
+        :return: 2、组件路径，默认 dist/assets
+        """
+        return "vue", "dist/assets"
+
+    # --- Instance methods for API endpoints ---
+    def _get_config(self) -> Dict[str, Any]:
+        """API Endpoint: Returns current plugin configuration."""
+
+        return {
+            "enable": self._enable,
+            "interval": self._interval,
+            "interval_cron": self._interval_cron ,
+            "interval_time": self._interval_time,
+            "enable_media_tag": self._enable_media_tag,
+            "enable_tag": self._enable_tag ,
+            "enable_category": self._enable_category,
+            "downloaders": self._downloaders,
+        }
+
+    def _save_config(self, config_payload: dict) -> Dict[str, Any]:
+        # Update instance variables directly from payload, defaulting to current values if key is missing
+            self.load_config(config_payload)
+            # 忽略onlyonce参数
+            config_payload.onlyonce = False
+
+            # Prepare config to save
+            # config_to_save = self._get_config()
+
+            # 保存配置
+            self.update_config(config_payload)
+
+            # 重新初始化插件
+            self.stop_service()
+            self.init_plugin(self.get_config())
+
+            logger.info(f"{self.plugin_name}: 配置已保存并通过 init_plugin 重新初始化。当前内存状态: enable={self._enable}")
+
+            # 返回最终状态
+            return {"message": "配置已成功保存", "saved_config": self._get_config()}
     @property
     def service_infos(self) -> Optional[Dict[str, ServiceInfo]]:
         """
@@ -142,14 +266,29 @@ class DownloadSiteTagModNew(_PluginBase):
         return active_services
 
     def get_state(self) -> bool:
-        return self._enabled
+        return self._enable
 
     @staticmethod
     def get_command() -> List[Dict[str, Any]]:
         pass
 
     def get_api(self) -> List[Dict[str, Any]]:
-        pass
+        return [
+            {
+                "path": "/config",
+                "endpoint": self._get_config,
+                "methods": ["GET"],
+                "auth": "bear",
+                "summary": "获取当前配置"
+            },
+            {
+                "path": "/save_config",
+                "endpoint": self._save_config,
+                "methods": ["POST"],
+                "auth": "bear",
+                "summary": "保存配置"
+            }
+        ]
 
     def get_service(self) -> List[Dict[str, Any]]:
         """
@@ -162,7 +301,7 @@ class DownloadSiteTagModNew(_PluginBase):
             "kwargs": {} # 定时器参数
         }]
         """
-        if self._enabled:
+        if self._enable:
             if self._interval == "计划任务" or self._interval == "固定间隔":
                 if self._interval == "固定间隔":
                     if self._interval_unit == "小时":
@@ -286,23 +425,26 @@ class DownloadSiteTagModNew(_PluginBase):
                             else:
                                 domain = StringUtils.get_url_domain(tracker)
                             site_info = self.sites_helper.get_indexer(domain)
+                            logger.debug(f"sites_helper.get_indexer domain:{domain} site_info:{site_info}")
                             if site_info:
                                 history.torrent_site = site_info.get("name")
+                                logger.debug(f"torrent_site:{site_info.get("name")}")
                                 break
                         # 如果通过tracker还是无法获取站点名称, 且tmdbid, type, title都是空的, 那么跳过当前种子
                         if not history.torrent_site and not history.tmdbid and not history.type and not history.title:
+                            logger.debug(f"跳过 history.title:{history.title} torrent_cat:{torrent_cat} history.type:{history.type}")
                             continue
                     # 按设置生成需要写入的标签与分类
                     _tags = []
                     _cat = None
                     # 站点标签, 如果勾选开关的话 因允许torrent_site为空时运行到此, 因此需要判断torrent_site不为空
-                    if self._enabled_tag and history.torrent_site:
+                    if self._enable_tag and history.torrent_site:
                         _tags.append(history.torrent_site)
                     # 媒体标题标签, 如果勾选开关的话 因允许title为空时运行到此, 因此需要判断title不为空
-                    if self._enabled_media_tag and history.title:
+                    if self._enable_media_tag and history.title:
                         _tags.append(history.title)
                     # 分类, 如果勾选开关的话 <tr暂不支持> 因允许mtype为空时运行到此, 因此需要判断mtype不为空。为防止不必要的识别, 种子已经存在分类torrent_cat时 也不执行
-                    if service.type == "qbittorrent" and self._enabled_category and not torrent_cat and history.type:
+                    if service.type == "qbittorrent" and self._enable_category and not torrent_cat and history.type and not self._rename_type:
                         # 因允许tmdbid为空时运行到此, 因此需要判断tmdbid不为空
                         history_type = MediaType(history.type) if history.type else None
                         if history.tmdbid and history_type:
@@ -322,8 +464,14 @@ class DownloadSiteTagModNew(_PluginBase):
                                 _cat = self._cat_rename_dict[str(cat)]
                             else:
                                 logger.warn(f'{history.title} 未获取到二级分类信息')
-                        
-
+                    # 按路径分类
+                    if (service.type == "qbittorrent" and self._enable_category and not torrent_cat and history.path and
+                            self._rename_type):
+                        for key in self._cat_rename_dict:
+                            if history.path in key:
+                                print(f"{history.path} 命中路径关键字 {key}' 分类: '{self._cat_rename_dict[key]}'")
+                                _cat = self._cat_rename_dict[key]
+                                break
                     # 去除种子已经存在的标签
                     if _tags and torrent_tags:
                         _tags = list(set(_tags) - set(torrent_tags))
@@ -333,6 +481,7 @@ class DownloadSiteTagModNew(_PluginBase):
                         _cat = None
                     # 判断当前种子是否不需要修改
                     if not _cat and not _tags:
+                        logger.debug(f"判断当前种子是否不需要修改跳过 history.title:{history.title} torrent_cat:{torrent_cat} history.type:{history.type}")
                         continue
                     # 执行通用方法, 设置种子标签与分类
                     self._set_torrent_info(service=service, _hash=_hash, _torrent=torrent, _tags=_tags, _cat=_cat,
@@ -545,14 +694,14 @@ class DownloadSiteTagModNew(_PluginBase):
             _tags = []
             _cat = None
             # 站点标签, 如果勾选开关的话
-            if self._enabled_tag and _torrent.site_name:
+            if self._enable_tag and _torrent.site_name:
                 _tags.append(_torrent.site_name)
             # 媒体标题标签, 如果勾选开关的话
-            if self._enabled_media_tag and _media.title:
+            if self._enable_media_tag and _media.title:
                 _tags.append(_media.title)
             # 分类, 如果勾选开关的话 <tr暂不支持>
             logger.debug(f'_media.type:{_media.type}')
-            if self._enabled_category and _media.type:
+            if self._enable_category and _media.type:
                 # tmdb_id获取tmdb信息
                 tmdb_info = self.chain.tmdb_info(mtype=_media.type, tmdbid=_media.tmdb_id)
                 if tmdb_info:
@@ -577,7 +726,7 @@ class DownloadSiteTagModNew(_PluginBase):
             logger.error(
                 f"{self.LOG_TAG}分析下载事件时发生了错误: {str(e)}")
 
-    # def get_form(self) -> Tuple[List[dict], Dict[str, Any]]:
+
     #     """
     #     拼装插件配置页面，需要返回两块数据：1、页面配置；2、数据结构
     #     """
@@ -585,24 +734,24 @@ class DownloadSiteTagModNew(_PluginBase):
     #     def generate_vrow_components(items, model_prefix="category", cols=6, md=3, items_per_row=4) -> list:
     #         """
     #         遍历数组生成VRow组件结构，每4个元素放在一个VRow的VCol中
-            
+
     #         参数:
     #         items (list): 需要遍历的数组
     #         model_prefix (str): model属性的前缀
     #         cols (int): VCol组件的cols属性值
     #         md (int): VCol组件的md属性值
     #         items_per_row (int): 每个VRow中放置的VCol数量
-            
+
     #         返回:
     #         dict: 生成的VRow组件结构
     #         """
     #         vrows = []
-            
+
     #         # 每4个元素一组进行处理
     #         for i in range(0, len(items), items_per_row):
     #             group = items[i:i+items_per_row]
     #             vcol_component = []
-                
+
     #             # 为每个元素创建VTextField并添加到VCol的content中
     #             for index, item in enumerate(group):
     #                 vtextfield = {
@@ -621,19 +770,19 @@ class DownloadSiteTagModNew(_PluginBase):
     #                     'content': [vtextfield]
     #                 }
     #                 vcol_component.append(vcol_content)
-                
 
-                
+
+
     #             # 创建VRow组件，将VCol放入其中
     #             vrow_component = {
     #                 'component': 'VRow',
     #                 'content': vcol_component
     #             }
-                
+
     #             vrows.append(vrow_component)
-            
+
     #         return vrows
-        
+
 
     #     cat_list =  self._all_cat
     #     vrow_list = generate_vrow_components(cat_list)
@@ -653,7 +802,7 @@ class DownloadSiteTagModNew(_PluginBase):
     #                                 {
     #                                     'component': 'VSwitch',
     #                                     'props': {
-    #                                         'model': 'enabled',
+    #                                         'model': 'enable',
     #                                         'label': '启用插件',
     #                                     }
     #                                 }
@@ -669,7 +818,7 @@ class DownloadSiteTagModNew(_PluginBase):
     #                                 {
     #                                     'component': 'VCheckboxBtn',
     #                                     'props': {
-    #                                         'model': 'enabled_tag',
+    #                                         'model': 'enable_tag',
     #                                         'label': '自动站点标签',
     #                                     }
     #                                 }
@@ -685,7 +834,7 @@ class DownloadSiteTagModNew(_PluginBase):
     #                                 {
     #                                     'component': 'VCheckboxBtn',
     #                                     'props': {
-    #                                         'model': 'enabled_media_tag',
+    #                                         'model': 'enable_media_tag',
     #                                         'label': '自动剧名标签',
     #                                     }
     #                                 }
@@ -701,7 +850,7 @@ class DownloadSiteTagModNew(_PluginBase):
     #                                 {
     #                                     'component': 'VCheckboxBtn',
     #                                     'props': {
-    #                                         'model': 'enabled_category',
+    #                                         'model': 'enable_category',
     #                                         'label': '自动设置分类',
     #                                     }
     #                                 }
@@ -906,11 +1055,11 @@ class DownloadSiteTagModNew(_PluginBase):
     #         form["content"].insert( 4+index, item)
 
     #     data:Dict[str, Any] = {
-    #         "enabled": False,
+    #         "enable": False,
     #         "onlyonce": False,
-    #         "enabled_tag": True,
-    #         "enabled_media_tag": False,
-    #         "enabled_category": False,
+    #         "enable_tag": True,
+    #         "enable_media_tag": False,
+    #         "enable_category": False,
     #         "category_movie": "电影",
     #         "category_tv": "电视",
     #         "category_anime": "动漫",
@@ -941,11 +1090,3 @@ class DownloadSiteTagModNew(_PluginBase):
                 self._scheduler = None
         except Exception as e:
             print(str(e))
-    
-    def get_render_mode() -> Tuple[str, str]:
-        """
-        获取插件渲染模式
-        :return: 1、渲染模式，支持：vue/vuetify，默认vuetify
-        :return: 2、组件路径，默认 dist/assets
-        """
-        return "vuetify", "dist/assets"

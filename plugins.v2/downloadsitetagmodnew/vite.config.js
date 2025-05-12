@@ -37,40 +37,40 @@ export default defineConfig({
     minify: false,      // 开发阶段建议关闭混淆
     cssCodeSplit: true, // 改为true以便能分离样式文件
   },
-  css: {
-    preprocessorOptions: {
-      scss: {
-        additionalData: '/* 覆盖vuetify样式 */',
-      }
-    },
-    postcss: {
-      plugins: [
-        {
-          postcssPlugin: 'internal:charset-removal',
-          AtRule: {
-            charset: (atRule) => {
-              if (atRule.name === 'charset') {
-                atRule.remove();
-              }
-            }
-          }
-        },
-        {
-          postcssPlugin: 'vuetify-filter',
-          Root(root) {
-            // 过滤掉所有vuetify相关的CSS
-            root.walkRules(rule => {
-              if (rule.selector && (
-                  rule.selector.includes('.v-') || 
-                  rule.selector.includes('.mdi-'))) {
-                rule.remove();
-              }
-            });
-          }
-        }
-      ]
-    }
-  },
+  // css: {
+  //   preprocessorOptions: {
+  //     scss: {
+  //       additionalData: '/* 覆盖vuetify样式 */',
+  //     }
+  //   },
+  //   postcss: {
+  //     plugins: [
+  //       {
+  //         postcssPlugin: 'internal:charset-removal',
+  //         AtRule: {
+  //           charset: (atRule) => {
+  //             if (atRule.name === 'charset') {
+  //               atRule.remove();
+  //             }
+  //           }
+  //         }
+  //       },
+  //       {
+  //         postcssPlugin: 'vuetify-filter',
+  //         Root(root) {
+  //           // 过滤掉所有vuetify相关的CSS
+  //           root.walkRules(rule => {
+  //             if (rule.selector && (
+  //                 rule.selector.includes('.v-') || 
+  //                 rule.selector.includes('.mdi-'))) {
+  //               rule.remove();
+  //             }
+  //           });
+  //         }
+  //       }
+  //     ]
+  //   }
+  // },
   server: {
     port: 5001,   // 使用不同于主应用的端口
     cors: true,   // 启用CORS

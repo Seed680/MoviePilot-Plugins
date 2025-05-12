@@ -17,14 +17,14 @@
             <v-window-item value="page">
               <h2 class="text-h5 mb-4">Page组件</h2>
               <div class="component-preview">
-                <page-component @action="handleAction"></page-component>
+                <page-component :api="api" @action="handleAction"></page-component>
               </div>
             </v-window-item>
 
             <v-window-item value="config">
               <h2 class="text-h5 mb-4">Config组件</h2>
               <div class="component-preview">
-                <config-component :initial-config="initialConfig" @save="handleConfigSave"></config-component>
+                <config-component :api="api" :initial-config="initialConfig" @save="handleConfigSave"></config-component>
               </div>
             </v-window-item>
 
@@ -32,7 +32,7 @@
               <h2 class="text-h5 mb-4">Dashboard组件</h2>
               <v-switch v-model="dashboardConfig.attrs.border" label="显示边框" color="primary" class="mb-4"></v-switch>
               <div class="component-preview">
-                <dashboard-component :config="dashboardConfig" :allow-refresh="true"></dashboard-component>
+                <dashboard-component :api="api" :config="dashboardConfig" :allow-refresh="true"></dashboard-component>
               </div>
             </v-window-item>
           </v-window>
@@ -60,21 +60,17 @@ import PageComponent from './components/Page.vue'
 import ConfigComponent from './components/Config.vue'
 import DashboardComponent from './components/Dashboard.vue'
 
+
 // 活动标签页
-const activeTab = ref('page')
+const activeTab = ref('config')
 
 // 配置初始值
 const initialConfig = {
-  name: '测试插件',
-  description: '这是一个测试配置',
-  enable_notifications: true,
-  update_interval: 30,
-  api_url: 'https://api.example.com',
-  api_key: 'test_api_key_123',
-  concurrent_tasks: 2,
-  tags: ['电影', '测试'],
-}
+  id: 'downloadsitetagmodnew',
+  name: '下载任务分类与标签联邦魔改版',
 
+}
+console.log(initialConfig.id.value);
 // 仪表板配置
 const dashboardConfig = reactive({
   id: 'test_plugin',
