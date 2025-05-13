@@ -74,16 +74,24 @@
           <v-row>
             <v-col cols="12">
               <v-select
-                v-model="config.downloader"
+                v-model="config.downloaders"
                 :items="config.all_downloaders"
                 label="下载器"
                 placeholder="请选择下载器"
                 item-text="title"
                 item-value="value"
+                multiple
+                chips
                 return-object
               ></v-select>
             </v-col>
-            
+            <v-col cols="6" md="3">
+              <v-text-field
+                v-model="config.catprefix"
+                label="自定义分类前缀"
+                placeholder="默认为空"
+              ></v-text-field>
+            </v-col>
             <v-col cols="6" md="3">
               <v-select
                 v-model="config.interval"
@@ -91,15 +99,14 @@
                 label="定时任务类型"
               ></v-select>
             </v-col>
-            
             <v-col cols="6" md="3" v-if="config.interval === '计划任务'">
-              <v-text-field
-                v-model="config.interval_cron"
-                label="计划任务设置"
-                placeholder="例如：5 4 * * *"
-                hint="Cron表达式格式"
-                persistent-hint
-              ></v-text-field>
+              <VCronField
+                    v-model="config.interval_cron"
+                    label="计划任务设置 CRON表达式"
+                    hint="设置日志清理的执行周期，如：5 4 * * * (每天凌晨4:05)"
+                    persistent-hint
+                    density="compact"
+                  ></VCronField>
             </v-col>
             
             <v-col cols="6" md="3" v-if="config.interval === '固定间隔'">

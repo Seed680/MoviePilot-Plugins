@@ -134,11 +134,12 @@
         "name": "下载任务分类与标签魔改VUE版",
         "description": "(基于叮叮当原版修改，增加按二级分类)自动给下载任务分类与打站点标签、剧集名称标签",
         "labels": "下载管理",
-        "version": "0.0.6",
+        "version": "0.0.7",
         "icon": "Youtube-dl_B.png",
         "author": "叮叮当,Seed680",
         "level": 1,
         "history": {
+            "v0.0.7": "增加自定义分类前缀",
             "v0.0.6": "忘记更新页面了",
             "v0.0.5": "bugfix",
             "v0.0.4": "bugfix",

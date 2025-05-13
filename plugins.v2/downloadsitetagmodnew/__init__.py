@@ -31,7 +31,7 @@ class DownloadSiteTagModNew(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "0.0.6"
+    plugin_version = "0.0.7"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -72,6 +72,7 @@ class DownloadSiteTagModNew(_PluginBase):
     _cat_rename_dict = {}
     _rename_type = False
     _path_rename = None
+    _catprefix = ""
 
     def init_plugin(self, config: dict = None):
         self.downloadhistory_oper = DownloadHistoryOper()
@@ -98,6 +99,7 @@ class DownloadSiteTagModNew(_PluginBase):
             self._enable_tag = config.get("enable_tag")
             self._enable_category = config.get("enable_category")
             self._downloaders = config.get("downloaders")
+            self._catprefix = config.get("catprefix")
             logger.debug(f"all_cat:{self._all_cat}")
             if None == config.get("all_cat_rename") or len(config.get("all_cat_rename")) == 0 :
                 self._all_cat_rename = self._all_cat
@@ -170,7 +172,9 @@ class DownloadSiteTagModNew(_PluginBase):
             "all_cat": self._all_cat,
             "onlyonce": False,  # 始终返回False
             "rename_type": self._rename_type,
-            "path_rename": self._path_rename
+            "path_rename": self._path_rename,
+            "name": self.plugin_name,
+            "catprefix": self._catprefix
         }
 
     def load_config(self, config: dict):
@@ -190,7 +194,8 @@ class DownloadSiteTagModNew(_PluginBase):
                 "onlyonce",
                 "all_cat_rename",
                 "rename_type",
-                "path_rename"
+                "path_rename",
+                "catprefix"
             ):
                 setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
 
@@ -484,6 +489,8 @@ class DownloadSiteTagModNew(_PluginBase):
                         logger.debug(f"判断当前种子是否不需要修改跳过 history.title:{history.title} torrent_cat:{torrent_cat} history.type:{history.type}")
                         continue
                     # 执行通用方法, 设置种子标签与分类
+                    if len(self._catprefix) > 0:
+                        _tags = self._catprefix + _tags
                     self._set_torrent_info(service=service, _hash=_hash, _torrent=torrent, _tags=_tags, _cat=_cat,
                                            _original_tags=torrent_tags)
                 except Exception as e:
@@ -725,353 +732,6 @@ class DownloadSiteTagModNew(_PluginBase):
         except Exception as e:
             logger.error(
                 f"{self.LOG_TAG}分析下载事件时发生了错误: {str(e)}")
-
-
-    #     """
-    #     拼装插件配置页面，需要返回两块数据：1、页面配置；2、数据结构
-    #     """
-    #     vrow_data:dict = {}
-    #     def generate_vrow_components(items, model_prefix="category", cols=6, md=3, items_per_row=4) -> list:
-    #         """
-    #         遍历数组生成VRow组件结构，每4个元素放在一个VRow的VCol中
-
-    #         参数:
-    #         items (list): 需要遍历的数组
-    #         model_prefix (str): model属性的前缀
-    #         cols (int): VCol组件的cols属性值
-    #         md (int): VCol组件的md属性值
-    #         items_per_row (int): 每个VRow中放置的VCol数量
-
-    #         返回:
-    #         dict: 生成的VRow组件结构
-    #         """
-    #         vrows = []
-
-    #         # 每4个元素一组进行处理
-    #         for i in range(0, len(items), items_per_row):
-    #             group = items[i:i+items_per_row]
-    #             vcol_component = []
-
-    #             # 为每个元素创建VTextField并添加到VCol的content中
-    #             for index, item in enumerate(group):
-    #                 vtextfield = {
-    #                     'component': 'VTextField',
-    #                     'props': {
-    #                         'model': f"{model_prefix}{i+index}",
-    #                         'label': f'{item}分类名称(默认: {item})',
-    #                         'placeholder': item
-    #                     }
-    #                 }
-    #                 vrow_data[model_prefix+str(i+index)] = item
-    #                 # 创建VCol组件，将一组VTextField放入其中
-    #                 vcol_content = {
-    #                     'component': 'VCol',
-    #                     'props': {'cols': cols , 'md': md },  # 调整列宽
-    #                     'content': [vtextfield]
-    #                 }
-    #                 vcol_component.append(vcol_content)
-
-
-
-    #             # 创建VRow组件，将VCol放入其中
-    #             vrow_component = {
-    #                 'component': 'VRow',
-    #                 'content': vcol_component
-    #             }
-
-    #             vrows.append(vrow_component)
-
-    #         return vrows
-
-
-    #     cat_list =  self._all_cat
-    #     vrow_list = generate_vrow_components(cat_list)
-    #     form: dict = {
-    #             'component': 'VForm',
-    #             'content': [
-    #                 {
-    #                     'component': 'VRow',
-    #                     'content': [
-    #                         {
-    #                             'component': 'VCol',
-    #                             'props': {
-    #                                 'cols': 12,
-    #                                 'md': 3
-    #                             },
-    #                             'content': [
-    #                                 {
-    #                                     'component': 'VSwitch',
-    #                                     'props': {
-    #                                         'model': 'enable',
-    #                                         'label': '启用插件',
-    #                                     }
-    #                                 }
-    #                             ]
-    #                         },
-    #                         {
-    #                             'component': 'VCol',
-    #                             'props': {
-    #                                 'cols': 12,
-    #                                 'md': 3
-    #                             },
-    #                             'content': [
-    #                                 {
-    #                                     'component': 'VCheckboxBtn',
-    #                                     'props': {
-    #                                         'model': 'enable_tag',
-    #                                         'label': '自动站点标签',
-    #                                     }
-    #                                 }
-    #                             ]
-    #                         },
-    #                         {
-    #                             'component': 'VCol',
-    #                             'props': {
-    #                                 'cols': 12,
-    #                                 'md': 3
-    #                             },
-    #                             'content': [
-    #                                 {
-    #                                     'component': 'VCheckboxBtn',
-    #                                     'props': {
-    #                                         'model': 'enable_media_tag',
-    #                                         'label': '自动剧名标签',
-    #                                     }
-    #                                 }
-    #                             ]
-    #                         },
-    #                         {
-    #                             'component': 'VCol',
-    #                             'props': {
-    #                                 'cols': 12,
-    #                                 'md': 3
-    #                             },
-    #                             'content': [
-    #                                 {
-    #                                     'component': 'VCheckboxBtn',
-    #                                     'props': {
-    #                                         'model': 'enable_category',
-    #                                         'label': '自动设置分类',
-    #                                     }
-    #                                 }
-    #                             ]
-    #                         }
-    #                     ]
-    #                 },
-    #                 {
-    #                     'component': 'VRow',
-    #                     'content': [
-    #                         {
-    #                             'component': 'VCol',
-    #                             'props': {
-    #                                 'cols': 12
-    #                             },
-    #                             'content': [
-    #                                 {
-    #                                     'component': 'VCheckboxBtn',
-    #                                     'props': {
-    #                                         'model': 'onlyonce',
-    #                                         'label': '补全下载历史的标签与分类(一次性任务)'
-    #                                     }
-    #                                 }
-    #                             ]
-    #                         }
-    #                     ]
-    #                 },
-    #                 {
-    #                     'component': 'VRow',
-    #                     'content': [
-    #                         {
-    #                             'component': 'VCol',
-    #                             'props': {
-    #                                 'cols': 12
-    #                             },
-    #                             'content': [
-    #                                 {
-    #                                     'component': 'VSelect',
-    #                                     'props': {
-    #                                         'multiple': True,
-    #                                         'chips': True,
-    #                                         'clearable': True,
-    #                                         'model': 'downloaders',
-    #                                         'label': '下载器',
-    #                                         'items': [{"title": config.name, "value": config.name}
-    #                                                   for config in self.downloader_helper.get_configs().values()]
-    #                                     }
-    #                                 }
-    #                             ]
-    #                         }
-    #                     ]
-    #                 },
-    #                 {
-    #                     'component': 'VRow',
-    #                     'content': [
-    #                         {
-    #                             'component': 'VCol',
-    #                             'props': {
-    #                                 'cols': 12,
-    #                                 'md': 3
-    #                             },
-    #                             'content': [
-    #                                 {
-    #                                     'component': 'VSelect',
-    #                                     'props': {
-    #                                         'model': 'interval',
-    #                                         'label': '定时任务',
-    #                                         'items': [
-    #                                             {'title': '禁用', 'value': '禁用'},
-    #                                             {'title': '计划任务', 'value': '计划任务'},
-    #                                             {'title': '固定间隔', 'value': '固定间隔'}
-    #                                         ]
-    #                                     }
-    #                                 }
-    #                             ]
-    #                         },
-    #                         {
-    #                             'component': 'VCol',
-    #                             'props': {
-    #                                 'cols': 12,
-    #                                 'md': 3,
-    #                             },
-    #                             'content': [
-    #                                 {
-    #                                     'component': 'VTextField',
-    #                                     'props': {
-    #                                         'model': 'interval_cron',
-    #                                         'label': '计划任务设置',
-    #                                         'placeholder': '5 4 * * *'
-    #                                     }
-    #                                 }
-    #                             ]
-    #                         },
-    #                         {
-    #                             'component': 'VCol',
-    #                             'props': {
-    #                                 'cols': 6,
-    #                                 'md': 3,
-    #                             },
-    #                             'content': [
-    #                                 {
-    #                                     'component': 'VTextField',
-    #                                     'props': {
-    #                                         'model': 'interval_time',
-    #                                         'label': '固定间隔设置, 间隔每',
-    #                                         'placeholder': '6'
-    #                                     }
-    #                                 }
-    #                             ]
-    #                         },
-    #                         {
-    #                             'component': 'VCol',
-    #                             'props': {
-    #                                 'cols': 6,
-    #                                 'md': 3,
-    #                             },
-    #                             'content': [
-    #                                 {
-    #                                     'component': 'VSelect',
-    #                                     'props': {
-    #                                         'model': 'interval_unit',
-    #                                         'label': '单位',
-    #                                         'items': [
-    #                                             {'title': '小时', 'value': '小时'},
-    #                                             {'title': '分钟', 'value': '分钟'}
-    #                                         ]
-    #                                     }
-    #                                 }
-    #                             ]
-    #                         }
-    #                     ]
-    #                 },
-    #                 # {
-    #                 #     'component': 'VRow',
-    #                 #     'content': [
-    #                 #         {
-    #                 #             'component': 'VCol',
-    #                 #             'props': {'cols': 6, 'md': 3},
-    #                 #             'content': [
-    #                 #                 {
-    #                 #                     'component': 'VTextField',
-    #                 #                     'props': {
-    #                 #                         'model': 'category[0]',
-    #                 #                         'label': '电影分类名称(默认: 电影)',
-    #                 #                         'placeholder': '电影'
-    #                 #                     }
-    #                 #                 }
-    #                 #             ]
-    #                 #         },
-    #                 #         {
-    #                 #             'component': 'VCol',
-    #                 #             'props': {'cols': 6, 'md': 3},
-    #                 #             'content': [
-    #                 #                 {
-    #                 #                     'component': 'VTextField',
-    #                 #                     'props': {
-    #                 #                         'model': 'category[1]',
-    #                 #                         'label': '电视分类名称(默认: 电视)',
-    #                 #                         'placeholder': '电视'
-    #                 #                     }
-    #                 #                 }
-    #                 #             ]
-    #                 #         },
-    #                 #         {
-    #                 #             'component': 'VCol',
-    #                 #             'props': {'cols': 6, 'md': 3},
-    #                 #             'content': [
-    #                 #                 {
-    #                 #                     'component': 'VTextField',
-    #                 #                     'props': {
-    #                 #                         'model': 'category_anime',
-    #                 #                         'label': '动漫分类名称(默认: 动漫)',
-    #                 #                         'placeholder': '动漫'
-    #                 #                     }
-    #                 #                 }
-    #                 #             ]
-    #                 #         }
-    #                 #     ]
-    #                 # },
-    #                 {
-    #                     'component': 'VRow',
-    #                     'content': [
-    #                         {
-    #                             'component': 'VCol',
-    #                             'props': {'cols': 6, 'md': 3},
-    #                             'content': [
-    #                                 {
-    #                                     'component': 'VAlert',
-    #                                     'props': {
-    #                                         'type': 'info',
-    #                                         'variant': 'tonal',
-    #                                         'text': '定时任务：支持两种定时方式，主要针对辅种刷流等种子补全站点信息。如没有对应的需求建议切换为禁用。'
-    #                                     }
-    #                                 }
-    #                             ]
-    #                         }
-    #                     ]
-    #                 }
-    #             ]
-    #         }
-    #     for  index, item in enumerate(vrow_list):
-    #         form["content"].insert( 4+index, item)
-
-    #     data:Dict[str, Any] = {
-    #         "enable": False,
-    #         "onlyonce": False,
-    #         "enable_tag": True,
-    #         "enable_media_tag": False,
-    #         "enable_category": False,
-    #         "category_movie": "电影",
-    #         "category_tv": "电视",
-    #         "category_anime": "动漫",
-    #         "interval": "计划任务",
-    #         "interval_cron": "5 4 * * *",
-    #         "interval_time": "6",
-    #         "interval_unit": "小时"
-    #     }
-
-    #     return [
-    #         form
-    #      ], {**data, **vrow_data}
 
     def get_page(self) -> List[dict]:
         pass
