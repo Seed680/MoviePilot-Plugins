@@ -31,7 +31,7 @@ class DownloadSiteTagModNew(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "0.0.8"
+    plugin_version = "0.0.9"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -467,7 +467,11 @@ class DownloadSiteTagModNew(_PluginBase):
                     _cat = None
                     # 站点标签, 如果勾选开关的话 因允许torrent_site为空时运行到此, 因此需要判断torrent_site不为空
                     if self._enable_tag and history.torrent_site:
-                        _tags.append(history.torrent_site)
+                        if len(self._siteprefix) > 0:
+                            torrent_site = self._siteprefix + history.torrent_site
+                        else:
+                            torrent_site = history.torrent_site
+                        _tags.append(torrent_site)
                     # 媒体标题标签, 如果勾选开关的话 因允许title为空时运行到此, 因此需要判断title不为空
                     if self._enable_media_tag and history.title:
                         _tags.append(history.title)
@@ -490,6 +494,10 @@ class DownloadSiteTagModNew(_PluginBase):
                             if cat:
                                 logger.debug(f'{history.title} 本剧集类别:{cat}')
                                 _cat = self._cat_rename_dict[str(cat)]
+                                logger.debug(f'{history.title}本剧集映射后的类别:{_cat}')
+                                if len(self._catprefix) > 0:
+                                    logger.debug(f'增加自定义分类前缀:{self._catprefix}')
+                                    _cat = self._catprefix + _cat
                             else:
                                 logger.warn(f'{history.title} 未获取到二级分类信息')
                     # 按路径分类
@@ -499,6 +507,8 @@ class DownloadSiteTagModNew(_PluginBase):
                             if history.path in key:
                                 print(f"{history.path} 命中路径关键字 {key}' 分类: '{self._cat_rename_dict[key]}'")
                                 _cat = self._cat_rename_dict[key]
+                                if len(self._catprefix) > 0:
+                                    _cat = self._catprefix + _cat
                                 break
                     # 去除种子已经存在的标签
                     if _tags and torrent_tags:
@@ -512,8 +522,6 @@ class DownloadSiteTagModNew(_PluginBase):
                         logger.debug(f"判断当前种子是否不需要修改跳过 history.title:{history.title} torrent_cat:{torrent_cat} history.type:{history.type}")
                         continue
                     # 执行通用方法, 设置种子标签与分类
-                    if len(self._catprefix) > 0:
-                        _tags = self._catprefix + _tags
                     self._set_torrent_info(service=service, _hash=_hash, _torrent=torrent, _tags=_tags, _cat=_cat,
                                            _original_tags=torrent_tags)
                 except Exception as e:
@@ -725,13 +733,17 @@ class DownloadSiteTagModNew(_PluginBase):
             _cat = None
             # 站点标签, 如果勾选开关的话
             if self._enable_tag and _torrent.site_name:
-                _tags.append(_torrent.site_name)
+                if len(self._siteprefix) > 0:
+                    torrent_site = self._siteprefix + _torrent.site_name
+                else:
+                    torrent_site = _torrent.site_name
+                _tags.append(torrent_site)
             # 媒体标题标签, 如果勾选开关的话
             if self._enable_media_tag and _media.title:
                 _tags.append(_media.title)
             # 分类, 如果勾选开关的话 <tr暂不支持>
             logger.debug(f'_media.type:{_media.type}')
-            if self._enable_category and _media.type:
+            if self._enable_category and _media.type and not self._rename_type:
                 # tmdb_id获取tmdb信息
                 tmdb_info = self.chain.tmdb_info(mtype=_media.type, tmdbid=_media.tmdb_id)
                 if tmdb_info:
@@ -746,9 +758,25 @@ class DownloadSiteTagModNew(_PluginBase):
                 if cat:
                     logger.debug(f'{_media.title}本剧集类别:{cat}')
                     _cat = self._cat_rename_dict[str(cat)]
-                    logger.debug(f'{_media.title}本剧集映射后的类别:{cat}')
+                    logger.debug(f'{_media.title}本剧集映射后的类别:{_cat}')
+                    if len(self._catprefix) > 0:
+                        logger.debug(f'增加自定义分类前缀:{self._catprefix}')
+                        _cat = self._catprefix + _cat
                 else:
                     logger.debug(f'本剧集类别未找到')
+            # 按路径分类
+
+            if self._enable_category and self._rename_type:
+                # 提取种子hash对应的下载历史
+                history: DownloadHistory = self.downloadhistory_oper.get_by_hash(_hash)
+                if history is not None:
+                    for key in self._cat_rename_dict:
+                        if history.path in key:
+                            print(f"{history.path} 命中路径关键字 {key}' 分类: '{self._cat_rename_dict[key]}'")
+                            _cat = self._cat_rename_dict[key]
+                            if len(self._catprefix) > 0:
+                                _cat = self._catprefix + _cat
+                            break
             if _hash and (_tags or _cat):
                 # 执行通用方法, 设置种子标签与分类
                 self._set_torrent_info(service=service, _hash=_hash, _tags=_tags, _cat=_cat)
