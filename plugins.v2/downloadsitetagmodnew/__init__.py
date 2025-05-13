@@ -33,7 +33,7 @@ class DownloadSiteTagModNew(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "1.1"
+    plugin_version = "1.2"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -478,7 +478,7 @@ class DownloadSiteTagModNew(_PluginBase):
                     if self._enable_media_tag and history.title:
                         _tags.append(history.title)
                     if self._enable_media_tag and not history.title:
-                        torrent_name = self.get_torrent_name_by_hash(_hash)
+                        torrent_name = self.get_torrent_name_by_hash(_hash, downloader_obj)
                         meta = MetaInfo(torrent_name)
                         media_info = self.chain.recognize_media(meta=meta)
                         if not media_info:
@@ -515,7 +515,7 @@ class DownloadSiteTagModNew(_PluginBase):
                             _cat = self.get_cat_rename_by_path(history.path)
                         else:
                             logger.debug(f'未获取到历史下载路径，将从下载器获取下载路径')
-                            path = self.get_save_path_by_hash(_hash,downloader_obj)
+                            path = self.get_save_path_by_hash(_hash, downloader_obj)
                             if path is not None:
                                 logger.debug(f'从下载器获取到下载路径:{path}')
                                 _cat = self.get_cat_rename_by_path(path)
