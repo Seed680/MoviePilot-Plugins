@@ -31,7 +31,7 @@ class DownloadSiteTagModNew(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "0.0.7"
+    plugin_version = "0.0.8"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -73,17 +73,14 @@ class DownloadSiteTagModNew(_PluginBase):
     _rename_type = False
     _path_rename = None
     _catprefix = ""
+    _siteprefix = ""
 
     def init_plugin(self, config: dict = None):
         self.downloadhistory_oper = DownloadHistoryOper()
         self.downloader_helper = DownloaderHelper()
         self.sites_helper = SitesHelper()
-        sys_downloader = SystemConfigOper().get(SystemConfigKey.Downloaders)
         self.category_helper = CategoryHelper()
-        if sys_downloader:
-            self._all_downloaders = [{"title": d.get("name"), "value": [d.get("name")]} for d in sys_downloader if d.get("enabled")]
-        else:
-            self._all_downloaders = []
+
         self._all_cat = [*self.category_helper.tv_categorys, *self.category_helper.movie_categorys]
         self._all_cat_rename = self._all_cat
         # 读取配置
@@ -99,7 +96,8 @@ class DownloadSiteTagModNew(_PluginBase):
             self._enable_tag = config.get("enable_tag")
             self._enable_category = config.get("enable_category")
             self._downloaders = config.get("downloaders")
-            self._catprefix = config.get("catprefix")
+            self._catprefix = config.get("catprefix","")
+            self._siteprefix = config.get("siteprefix","")
             logger.debug(f"all_cat:{self._all_cat}")
             if None == config.get("all_cat_rename") or len(config.get("all_cat_rename")) == 0 :
                 self._all_cat_rename = self._all_cat
@@ -174,7 +172,8 @@ class DownloadSiteTagModNew(_PluginBase):
             "rename_type": self._rename_type,
             "path_rename": self._path_rename,
             "name": self.plugin_name,
-            "catprefix": self._catprefix
+            "catprefix": self._catprefix,
+            "siteprefix": self._siteprefix
         }
 
     def load_config(self, config: dict):
@@ -195,7 +194,8 @@ class DownloadSiteTagModNew(_PluginBase):
                 "all_cat_rename",
                 "rename_type",
                 "path_rename",
-                "catprefix"
+                "catprefix",
+                "siteprefix"
             ):
                 setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
 
@@ -215,12 +215,22 @@ class DownloadSiteTagModNew(_PluginBase):
         return {
             "enable": self._enable,
             "interval": self._interval,
-            "interval_cron": self._interval_cron ,
+            "interval_cron": self._interval_cron,
             "interval_time": self._interval_time,
+            "interval_unit": self._interval_unit,
             "enable_media_tag": self._enable_media_tag,
-            "enable_tag": self._enable_tag ,
+            "enable_tag": self._enable_tag,
             "enable_category": self._enable_category,
             "downloaders": self._downloaders,
+            "all_cat_rename": self._all_cat_rename,
+            "all_downloaders": self._all_downloaders,
+            "all_cat": self._all_cat,
+            "onlyonce": False,  # 始终返回False
+            "rename_type": self._rename_type,
+            "path_rename": self._path_rename,
+            "name": self.plugin_name,
+            "catprefix": self._catprefix,
+            "siteprefix": self._siteprefix
         }
 
     def _save_config(self, config_payload: dict) -> Dict[str, Any]:
@@ -269,6 +279,15 @@ class DownloadSiteTagModNew(_PluginBase):
             return None
 
         return active_services
+
+    @property
+    def _all_downloaders(self) -> List[str]:
+        sys_downloader = SystemConfigOper().get(SystemConfigKey.Downloaders)
+        if sys_downloader:
+            all_downloaders = [{"title": d.get("name"), "value": d.get("name")} for d in sys_downloader if d.get("enabled")]
+        else:
+            all_downloaders = []
+        return all_downloaders
 
     def get_state(self) -> bool:
         return self._enable
@@ -430,10 +449,14 @@ class DownloadSiteTagModNew(_PluginBase):
                             else:
                                 domain = StringUtils.get_url_domain(tracker)
                             site_info = self.sites_helper.get_indexer(domain)
-                            logger.debug(f"sites_helper.get_indexer domain:{domain} site_info:{site_info}")
+                            # logger.debug(f"sites_helper.get_indexer domain:{domain} site_info:{site_info}")
                             if site_info:
-                                history.torrent_site = site_info.get("name")
-                                logger.debug(f"torrent_site:{site_info.get('name')}")
+                                if len(self._siteprefix) > 0:
+                                    torrent_site = torrent_site + site_info.get("name")
+                                else:
+                                    torrent_site = site_info.get("name")
+                                history.torrent_site = torrent_site
+                                logger.debug(f"torrent_site: {torrent_site}")
                                 break
                         # 如果通过tracker还是无法获取站点名称, 且tmdbid, type, title都是空的, 那么跳过当前种子
                         if not history.torrent_site and not history.tmdbid and not history.type and not history.title:
@@ -495,7 +518,7 @@ class DownloadSiteTagModNew(_PluginBase):
                                            _original_tags=torrent_tags)
                 except Exception as e:
                     logger.error(
-                        f"{self.LOG_TAG}分析种子信息时发生了错误: {str(e)}")
+                        f"{self.LOG_TAG}分析种子信息时发生了错误: {str(e)}", exc_info=True)
 
         logger.info(f"{self.LOG_TAG}执行完成")
 
@@ -731,7 +754,7 @@ class DownloadSiteTagModNew(_PluginBase):
                 self._set_torrent_info(service=service, _hash=_hash, _tags=_tags, _cat=_cat)
         except Exception as e:
             logger.error(
-                f"{self.LOG_TAG}分析下载事件时发生了错误: {str(e)}")
+                f"{self.LOG_TAG}分析下载事件时发生了错误: {str(e)}", exc_info=True)
 
     def get_page(self) -> List[dict]:
         pass

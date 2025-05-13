@@ -82,13 +82,19 @@
                 item-value="value"
                 multiple
                 chips
-                return-object
               ></v-select>
             </v-col>
-            <v-col cols="6" md="3">
+            <v-col cols="6" md="6">
               <v-text-field
                 v-model="config.catprefix"
                 label="自定义分类前缀"
+                placeholder="默认为空"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="6" md="6">
+              <v-text-field
+                v-model="config.siteprefix"
+                label="自定义站点标签前缀"
                 placeholder="默认为空"
               ></v-text-field>
             </v-col>
@@ -99,7 +105,7 @@
                 label="定时任务类型"
               ></v-select>
             </v-col>
-            <v-col cols="6" md="3" v-if="config.interval === '计划任务'">
+            <v-col cols="6" md="6" v-if="config.interval === '计划任务'">
               <VCronField
                     v-model="config.interval_cron"
                     label="计划任务设置 CRON表达式"
@@ -209,8 +215,9 @@ const config = reactive({ ...defaultConfig, ...props.initialConfig})
 
 
 // 初始化配置
-onMounted(() => {
-
+onMounted(async () => {
+  const data = await props.api.get(`plugin/${config.id}/config`)
+  config.value = { ...config,...data }
 })
 
 // 自定义事件，用于保存配置
@@ -228,7 +235,7 @@ async function saveConfig() {
 
   try {
     // 模拟API调用等待
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // await new Promise(resolve => setTimeout(resolve, 1000))
 
     // 发送保存事件
     emit('save', { ...config })
