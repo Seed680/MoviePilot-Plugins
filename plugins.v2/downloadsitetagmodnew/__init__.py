@@ -31,7 +31,7 @@ class DownloadSiteTagModNew(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "0.0.9"
+    plugin_version = "0.0.9.1"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -433,7 +433,8 @@ class DownloadSiteTagModNew(_PluginBase):
                         # 加入历史记录
                         if _key:
                             dispose_history[_key] = history
-                    logger.debug(f"history.title:{history.title} torrent_cat:{torrent_cat} history.type:{history.type}")
+                    logger.debug(f"history.title:{history.title} torrent_cat:{torrent_cat} history.type:"
+                                 f"{history.type} history.path :{history.path}")
                     # 如果标签已经存在任意站点, 则不再添加站点标签
                     if indexers.intersection(set(torrent_tags)):
                         history.torrent_site = None
@@ -477,6 +478,7 @@ class DownloadSiteTagModNew(_PluginBase):
                         _tags.append(history.title)
                     # 分类, 如果勾选开关的话 <tr暂不支持> 因允许mtype为空时运行到此, 因此需要判断mtype不为空。为防止不必要的识别, 种子已经存在分类torrent_cat时 也不执行
                     if service.type == "qbittorrent" and self._enable_category and not torrent_cat and history.type and not self._rename_type:
+                        logger.debug(f'按二级分类开始')
                         # 因允许tmdbid为空时运行到此, 因此需要判断tmdbid不为空
                         history_type = MediaType(history.type) if history.type else None
                         if history.tmdbid and history_type:
@@ -503,6 +505,7 @@ class DownloadSiteTagModNew(_PluginBase):
                     # 按路径分类
                     if (service.type == "qbittorrent" and self._enable_category and not torrent_cat and history.path and
                             self._rename_type):
+                        logger.debug(f'按路径关键字分类开始')
                         for key in self._cat_rename_dict:
                             if history.path in key:
                                 print(f"{history.path} 命中路径关键字 {key}' 分类: '{self._cat_rename_dict[key]}'")
