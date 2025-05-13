@@ -22,6 +22,7 @@ from app.utils.string import StringUtils
 from app.db.systemconfig_oper import SystemConfigOper
 from app.schemas.types import SystemConfigKey
 from app.modules.qbittorrent.qbittorrent import Qbittorrent
+from app.core.metainfo import MetaInfo
 
 
 class DownloadSiteTagModNew(_PluginBase):
@@ -32,7 +33,7 @@ class DownloadSiteTagModNew(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "1.0"
+    plugin_version = "1.1"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -476,6 +477,15 @@ class DownloadSiteTagModNew(_PluginBase):
                     # 媒体标题标签, 如果勾选开关的话 因允许title为空时运行到此, 因此需要判断title不为空
                     if self._enable_media_tag and history.title:
                         _tags.append(history.title)
+                    if self._enable_media_tag and not history.title:
+                        torrent_name = self.get_torrent_name_by_hash(_hash)
+                        meta = MetaInfo(torrent_name)
+                        media_info = self.chain.recognize_media(meta=meta)
+                        if not media_info:
+                            logger.error(f"识别媒体信息失败,跳过媒体标题标签，hash: {_hash} 种子名称：{torrent_name}")
+                        else:
+                            logger.error(f"识别媒体信息成功,媒体标题标签: {media_info.title} 种子名称：{torrent_name}")
+                            _tags.append(media_info.title)
                     # 分类, 如果勾选开关的话 <tr暂不支持> 因允许mtype为空时运行到此, 因此需要判断mtype不为空。为防止不必要的识别, 种子已经存在分类torrent_cat时 也不执行
                     if service.type == "qbittorrent" and self._enable_category and not torrent_cat and history.type and not self._rename_type:
                         logger.debug(f'按二级分类开始')
@@ -804,6 +814,13 @@ class DownloadSiteTagModNew(_PluginBase):
         torrents_info = service_instance.qbc.torrents_info(torrent_hashes=torrent_hash)
         if torrents_info:
             return  torrents_info[0].get('save_path')
+        else:
+            return None
+    
+    def get_torrent_name_by_hash(self, torrent_hash:str, service_instance:Qbittorrent):
+        torrents_info = service_instance.qbc.torrents_info(torrent_hashes=torrent_hash)
+        if torrents_info:
+            return  torrents_info[0].get('name')
         else:
             return None
 
