@@ -67,7 +67,7 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "1.5"
+    plugin_version = "1.6"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -318,313 +318,313 @@ class ShortPlayMonitorMod(_PluginBase):
                 logger.error(f"{Path(event_path).name} 无法识别有效信息")
                 return
             # 识别媒体信息
-            mediainfo: MediaInfo = self.chain.recognize_media(meta=file_meta)
+            # mediainfo: MediaInfo = self.chain.recognize_media(meta=file_meta)
 
-            transfer_flag = False
-            title = None
-            # 走tmdb刮削
-            if mediainfo:
-                try:
-                    # 查询转移目的目录
-                    # target_dir = DirectoryHelper().get_dir(mediainfo, src_path=Path(source_dir))
-                    # if not target_dir or not target_dir.library_path:
-                    #     target_dir = TransferDirectoryConf()
-                    #     target_dir.library_path = dest_dir
-                    #     target_dir.transfer_type = self._transfer_type
-                    #     target_dir.renaming = True
-                    #     target_dir.notify = False
-                    #     target_dir.overwrite_mode = 'never'
-                    #     target_dir.library_storage = "local"
-                    # else:
-                    #     target_dir.transfer_type = self._transfer_type
-                    #
-                    # if not target_dir.library_path:
-                    #     logger.error(f"未配置监控目录 {source_dir} 的目的目录")
-                    #     return
+            # transfer_flag = False
+            # title = None
+            # # 走tmdb刮削
+            # if mediainfo:
+            #     try:
+            #         # 查询转移目的目录
+            #         # target_dir = DirectoryHelper().get_dir(mediainfo, src_path=Path(source_dir))
+            #         # if not target_dir or not target_dir.library_path:
+            #         #     target_dir = TransferDirectoryConf()
+            #         #     target_dir.library_path = dest_dir
+            #         #     target_dir.transfer_type = self._transfer_type
+            #         #     target_dir.renaming = True
+            #         #     target_dir.notify = False
+            #         #     target_dir.overwrite_mode = 'never'
+            #         #     target_dir.library_storage = "local"
+            #         # else:
+            #         #     target_dir.transfer_type = self._transfer_type
+            #         #
+            #         # if not target_dir.library_path:
+            #         #     logger.error(f"未配置监控目录 {source_dir} 的目的目录")
+            #         #     return
 
-                    # 更新媒体图片
-                    self.chain.obtain_images(mediainfo=mediainfo)
-                    episodes_info = self.tmdbchain.tmdb_episodes(tmdbid=mediainfo.tmdb_id,
-                                                                 season=file_meta.begin_season or 1)
-                    mediainfo.category = ""
-                    # 转移
-                    file_path = Path(event_path)
-                    item = FileItem(
-                        storage="local",
-                        path=event_path.replace("\\", "/"),
-                        type="dir" if not file_path.is_file() else "file",
-                        name=file_path.name,
-                        size=file_path.stat().st_size,
-                        extension=file_path.suffix.lstrip('.'),
-                    )
+            #         # 更新媒体图片
+            #         self.chain.obtain_images(mediainfo=mediainfo)
+            #         episodes_info = self.tmdbchain.tmdb_episodes(tmdbid=mediainfo.tmdb_id,
+            #                                                      season=file_meta.begin_season or 1)
+            #         mediainfo.category = ""
+            #         # 转移
+            #         file_path = Path(event_path)
+            #         item = FileItem(
+            #             storage="local",
+            #             path=event_path.replace("\\", "/"),
+            #             type="dir" if not file_path.is_file() else "file",
+            #             name=file_path.name,
+            #             size=file_path.stat().st_size,
+            #             extension=file_path.suffix.lstrip('.'),
+            #         )
 
-                    transferinfo: TransferInfo = self.chain.transfer(fileitem=item, meta=file_meta,
-                                                                     mediainfo=mediainfo,
-                                                                     #  target_directory=target_dir,
-                                                                     target_storage=store_conf,
-                                                                     target_path=Path(dest_dir),
-                                                                     transfer_type="copy",
-                                                                     scrape=True,
-                                                                     episodes_info=episodes_info)
-                    if not transferinfo:
-                        logger.error("文件转移模块运行失败")
-                        transfer_flag = False
-                    else:
-                        self.mediachain.scrape_metadata(fileitem=transferinfo.target_diritem,
-                                                        meta=file_meta,
-                                                        mediainfo=mediainfo)
-                        transfer_flag = True
-                except Exception as e:
-                    print(str(e))
-                    transfer_flag = False
-                    logger.error(f"{event_path} tmdb刮削失败", exc_info=True)
+            #         transferinfo: TransferInfo = self.chain.transfer(fileitem=item, meta=file_meta,
+            #                                                          mediainfo=mediainfo,
+            #                                                          #  target_directory=target_dir,
+            #                                                          target_storage=store_conf,
+            #                                                          target_path=Path(dest_dir),
+            #                                                          transfer_type="copy",
+            #                                                          scrape=True,
+            #                                                          episodes_info=episodes_info)
+            #         if not transferinfo:
+            #             logger.error("文件转移模块运行失败")
+            #             transfer_flag = False
+            #         else:
+            #             self.mediachain.scrape_metadata(fileitem=transferinfo.target_diritem,
+            #                                             meta=file_meta,
+            #                                             mediainfo=mediainfo)
+            #             transfer_flag = True
+            #     except Exception as e:
+            #         print(str(e))
+            #         transfer_flag = False
+            #         logger.error(f"{event_path} tmdb刮削失败", exc_info=True)
                 # 广播事件
                 # self.eventmanager.send_event(EventType.TransferComplete, {
                 #     'meta': file_meta,
                 #     'mediainfo': mediainfo,
                 #     'transferinfo': transferinfo
                 # })
-            if not transfer_flag:
-                logger.debug(f"source_dir:{source_dir}")
-                logger.debug(f"dest_dir:{dest_dir}")
-                target_path = event_path.replace(source_dir, dest_dir)
-                logger.debug(f"target_path:{target_path}")
+        # if not transfer_flag:
+            logger.debug(f"source_dir:{source_dir}")
+            logger.debug(f"dest_dir:{dest_dir}")
+            target_path = event_path.replace(source_dir, dest_dir)
+            logger.debug(f"target_path:{target_path}")
 
-                # 目录重命名
-                if str(rename_conf) == "true" or str(rename_conf) == "false":
-                    rename_conf = bool(rename_conf)
-                    logger.debug(f"rename_conf:{rename_conf}")
+            # 目录重命名
+            if str(rename_conf) == "true" or str(rename_conf) == "false":
+                rename_conf = bool(rename_conf)
+                logger.debug(f"rename_conf:{rename_conf}")
+                target = target_path.replace(dest_dir, "")
+                logger.debug(f"target:{target}")
+                # dest_dir todo
+                parent = Path(Path(target).parents[0])
+                logger.debug(f"parent:{parent}")
+                last = target.replace(str(parent), "").replace("/", "")
+                logger.debug(f"last:{last}")
+                if rename_conf:
+                    # 自定义识别次
+                    title, _ = WordsMatcher().prepare(str(parent.name))
+                    logger.debug(f"title:{title}")
+                    # 如果目的目录中没有title，
+                    logger.debug(f"dest_dir:{dest_dir}")
+                    target_path = Path(dest_dir).joinpath(title).joinpath(last)
+                    logger.debug(f"target_path:{target_path}")
+                else:
+                    title = parent.name
+            else:
+                if str(rename_conf) == "smart":
+                    logger.debug(f"rename_conf:smart")
+                    # 文件的绝对目录
                     target = target_path.replace(dest_dir, "")
                     logger.debug(f"target:{target}")
-                    # dest_dir todo
+                    # 文件父目录的绝对路径
                     parent = Path(Path(target).parents[0])
                     logger.debug(f"parent:{parent}")
+                    # 文件名
                     last = target.replace(str(parent), "").replace("/", "")
                     logger.debug(f"last:{last}")
-                    if rename_conf:
-                        # 自定义识别次
-                        title, _ = WordsMatcher().prepare(str(parent.name))
-                        logger.debug(f"title:{title}")
-                        # 如果目的目录中没有title，
-                        logger.debug(f"dest_dir:{dest_dir}")
-                        target_path = Path(dest_dir).joinpath(title).joinpath(last)
+                    # 取.第一个
+                    if parent.parent == parent:
+                        # 如果是根目录 就是没有套文件夹
+                        title = last.split(".")[0]
+                    else:
+                        title = parent.name.split(".")[0]
+                    logger.debug(f"title:{title}")
+                    # 如果目的目录中没有title，
+                    target_path = Path(dest_dir).joinpath(title).joinpath(last)
+                    logger.debug(f"target_path:{target_path}")
+                    # if title in target_path.name:
+                    #     target_path = Path(dest_dir).joinpath(title + last)
+                    # else:
+                    #     target_path = Path(dest_dir).joinpath(title).joinpath(title + last)
+                    # logger.debug(f"target_path:{target_path}")
+                else:
+                    logger.error(f"{target_path} 智能重命名失败")
+                    return
+            # 文件夹同步创建
+            if is_directory:
+                # 目标文件夹不存在则创建
+                if store_conf == "local" and not Path(target_path).exists():
+                    logger.info(f"创建目标文件夹 {target_path}")
+                    os.makedirs(target_path)
+            else:
+                # 媒体重命名
+                try:
+                    pattern = r'S\d+E\d+'
+                    matches = re.search(pattern, Path(target_path).name)
+                    if matches:
+                        target_path = Path(
+                            target_path).parent / f"{matches.group()}{Path(Path(target_path).name).suffix}"
                         logger.debug(f"target_path:{target_path}")
                     else:
-                        title = parent.name
+                        print("未找到匹配的季数和集数")
+                except Exception as e:
+                    logger.error(f"媒体重命名 error: {e}", exc_info=True)
+
+                # 目标文件夹不存在则创建
+                if store_conf == "local" and not Path(target_path).parent.exists():
+                    logger.info(f"创建目标文件夹 {Path(target_path).parent}")
+                    os.makedirs(Path(target_path).parent)
+
+                # 文件：nfo、图片、视频文件
+                if store_conf == "local" and Path(target_path).exists():
+                    logger.debug(f"目标文件 {target_path} 已存在")
+                    return
+
+                if store_conf == "local":
+                    # 硬链接
+                    retcode = self.__transfer_command(file_item=Path(event_path),
+                                                        target_file=target_path,
+                                                        transfer_type=self._transfer_type)
                 else:
-                    if str(rename_conf) == "smart":
-                        logger.debug(f"rename_conf:smart")
-                        # 文件的绝对目录
-                        target = target_path.replace(dest_dir, "")
-                        logger.debug(f"target:{target}")
-                        # 文件父目录的绝对路径
-                        parent = Path(Path(target).parents[0])
-                        logger.debug(f"parent:{parent}")
-                        # 文件名
-                        last = target.replace(str(parent), "").replace("/", "")
-                        logger.debug(f"last:{last}")
-                        # 取.第一个
-                        if parent.parent == parent:
-                            # 如果是根目录 就是没有套文件夹
-                            title = last.split(".")[0]
-                        else:
-                            title = parent.name.split(".")[0]
-                        logger.debug(f"title:{title}")
-                        # 如果目的目录中没有title，
-                        target_path = Path(dest_dir).joinpath(title).joinpath(last)
-                        logger.debug(f"target_path:{target_path}")
-                        # if title in target_path.name:
-                        #     target_path = Path(dest_dir).joinpath(title + last)
-                        # else:
-                        #     target_path = Path(dest_dir).joinpath(title).joinpath(title + last)
-                        # logger.debug(f"target_path:{target_path}")
-                    else:
-                        logger.error(f"{target_path} 智能重命名失败")
-                        return
-                # 文件夹同步创建
-                if is_directory:
-                    # 目标文件夹不存在则创建
-                    if store_conf == "local" and not Path(target_path).exists():
-                        logger.info(f"创建目标文件夹 {target_path}")
-                        os.makedirs(target_path)
-                else:
-                    # 媒体重命名
-                    try:
-                        pattern = r'S\d+E\d+'
-                        matches = re.search(pattern, Path(target_path).name)
-                        if matches:
-                            target_path = Path(
-                                target_path).parent / f"{matches.group()}{Path(Path(target_path).name).suffix}"
-                            logger.debug(f"target_path:{target_path}")
-                        else:
-                            print("未找到匹配的季数和集数")
-                    except Exception as e:
-                        logger.error(f"媒体重命名 error: {e}", exc_info=True)
-
-                    # 目标文件夹不存在则创建
-                    if store_conf == "local" and not Path(target_path).parent.exists():
-                        logger.info(f"创建目标文件夹 {Path(target_path).parent}")
-                        os.makedirs(Path(target_path).parent)
-
-                    # 文件：nfo、图片、视频文件
-                    if store_conf == "local" and Path(target_path).exists():
-                        logger.debug(f"目标文件 {target_path} 已存在")
-                        return
-
-                    if store_conf == "local":
-                        # 硬链接
-                        retcode = self.__transfer_command(file_item=Path(event_path),
-                                                          target_file=target_path,
-                                                          transfer_type=self._transfer_type)
-                    else:
-                        # 源操作对象
-                        source_oper = self.filemanager._FileManagerModule__get_storage_oper("local")
-                        # 目的操作对象
-                        target_oper = self.filemanager._FileManagerModule__get_storage_oper(store_conf)
-                        if not source_oper or not target_oper:
-                            return None, f"不支持的存储类型：{store_conf}"
-                        file_item = FileItem()
-                        file_item.storage = "local"
-                        file_item.path = event_path
-                        new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(fileitem=file_item,
-                                                                                                 target_storage=store_conf,
-                                                                                                 target_file=Path(
-                                                                                                     target_path),
-                                                                                                 transfer_type=self._transfer_type,
-                                                                                                 source_oper=source_oper,
-                                                                                                 target_oper=target_oper)
+                    # 源操作对象
+                    source_oper = self.filemanager._FileManagerModule__get_storage_oper("local")
+                    # 目的操作对象
+                    target_oper = self.filemanager._FileManagerModule__get_storage_oper(store_conf)
+                    if not source_oper or not target_oper:
+                        return None, f"不支持的存储类型：{store_conf}"
+                    file_item = FileItem()
+                    file_item.storage = "local"
+                    file_item.path = event_path
+                    new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(fileitem=file_item,
+                                                                                                target_storage=store_conf,
+                                                                                                target_file=Path(
+                                                                                                    target_path),
+                                                                                                transfer_type=self._transfer_type,
+                                                                                                source_oper=source_oper,
+                                                                                                target_oper=target_oper)
+                    logger.debug(f"new_item: {new_item} ")
+                    if new_item:
+                        retcode = 0
                         logger.debug(f"new_item: {new_item} ")
-                        if new_item:
-                            retcode = 0
-                            logger.debug(f"new_item: {new_item} ")
-                        else:
-                            retcode = 1
-                            logger.debug(f"文件整理错误 {errmsg} ")
-                    if retcode == 0:
-                        if store_conf == "local":
-                            logger.info(f"文件 {event_path} 硬链接完成")
-                        else:
-                            logger.info(f"文件 {event_path} 上传完成")
-                        # 生成 tvshow.nfo
-                        logger.debug(f"文件 {event_path} 生成 tvshow.nfo开始")
-                        logger.debug(f"store_conf: {store_conf}")
-                        if store_conf == "local":
-                            logger.debug(f"tvshow.nfo exists: {(target_path.parent / 'tvshow.nfo').exists()}")
-                        else:
-                            logger.debug(
-                                f"tvshow.nfo exists: "
-                                f"{self.filemanager.get_file_item(store_conf, (target_path.parent / 'tvshow.nfo'))}")
+                    else:
+                        retcode = 1
+                        logger.debug(f"文件整理错误 {errmsg} ")
+                if retcode == 0:
+                    if store_conf == "local":
+                        logger.info(f"文件 {event_path} 硬链接完成")
+                    else:
+                        logger.info(f"文件 {event_path} 上传完成")
+                    # 生成 tvshow.nfo
+                    logger.debug(f"文件 {event_path} 生成 tvshow.nfo开始")
+                    logger.debug(f"store_conf: {store_conf}")
+                    if store_conf == "local":
+                        logger.debug(f"tvshow.nfo exists: {(target_path.parent / 'tvshow.nfo').exists()}")
+                    else:
+                        logger.debug(
+                            f"tvshow.nfo exists: "
+                            f"{self.filemanager.get_file_item(store_conf, (target_path.parent / 'tvshow.nfo'))}")
 
-                        if store_conf == "local" and not (target_path.parent / "tvshow.nfo").exists():
-                            self.__gen_tv_nfo_file(dir_path=target_path.parent,
-                                                   title=title)
-                        # 内存生成nfo
-                        if (store_conf != "local"
-                                and None == self.filemanager.get_file_item(store_conf, (target_path.parent /
-                                                                                        "tvshow.nfo"))):
-                            if not ("/tmp/shortplaymonitormod" / target_path.parent.relative_to(
-                                    Path("/")) / "tvshow.nfo").exists():
-                                os.makedirs(
-                                    Path("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/"))))
-                                self.__gen_tv_nfo_file(
-                                    dir_path=("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/"))),
-                                    title=title)
+                    if store_conf == "local" and not (target_path.parent / "tvshow.nfo").exists():
+                        self.__gen_tv_nfo_file(dir_path=target_path.parent,
+                                                title=title)
+                    # 内存生成nfo
+                    if (store_conf != "local"
+                            and None == self.filemanager.get_file_item(store_conf, (target_path.parent /
+                                                                                    "tvshow.nfo"))):
+                        if not ("/tmp/shortplaymonitormod" / target_path.parent.relative_to(
+                                Path("/")) / "tvshow.nfo").exists():
+                            os.makedirs(
+                                Path("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/"))))
+                            self.__gen_tv_nfo_file(
+                                dir_path=("/tmp/shortplaymonitormod" / target_path.parent.relative_to(Path("/"))),
+                                title=title)
+                            file_item = FileItem()
+                            file_item.storage = "local"
+                            file_item.path = str("/tmp/shortplaymonitormod" / target_path.parent.relative_to(
+                                Path("/")) / "tvshow.nfo")
+                            # 源操作对象
+                            source_oper = self.filemanager._FileManagerModule__get_storage_oper("local")
+                            # 目的操作对象
+                            target_oper = self.filemanager._FileManagerModule__get_storage_oper(store_conf)
+                            if not source_oper or not target_oper:
+                                return None, f"不支持的存储类型：{store_conf}"
+
+                            new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(
+                                fileitem=file_item,
+                                target_storage=store_conf,
+                                target_file=Path(target_path.parent / "tvshow.nfo"),
+                                transfer_type=self._transfer_type,
+                                source_oper=source_oper, target_oper=target_oper)
+                            if new_item:
+                                logger.debug(f"文件 {Path(target_path.parent / 'tvshow.nfo')} 整理完成")
+                            else:
+                                logger.debug((f"文件 {Path(target_path.parent / 'tvshow.nfo')} 整理失败:{errmsg}"))
+                    logger.debug(f"文件 {event_path} 生成 tvshow.nfo结束")
+                    logger.debug(f"文件 {event_path} 生成缩略图开始")
+                    if store_conf == "local":
+                        logger.debug(f"tvshow.nfo exists: {(target_path.parent / 'poster.jpg').exists()}")
+                    else:
+                        logger.debug(
+                            f"tvshow.nfo exists: "
+                            f"{self.filemanager.get_file_item(store_conf, (target_path.parent / 'poster.jpg'))}")
+                    # 生成缩略图
+                    if (store_conf == "local" and not (target_path.parent / "poster.jpg").exists()):
+                        thumb_path = self.gen_file_thumb(title=title,
+                                                            rename_conf=rename_conf,
+                                                            file_path=target_path)
+                        if thumb_path and Path(thumb_path).exists():
+                            self.__save_poster(input_path=thumb_path,
+                                                poster_path=target_path.parent / "poster.jpg",
+                                                cover_conf=cover_conf)
+                            if (target_path.parent / "poster.jpg").exists():
+                                logger.info(f"{target_path.parent / 'poster.jpg'} 缩略图已生成")
+                            thumb_path.unlink()
+                        else:
+                            # 检查是否有缩略图
+                            thumb_files = SystemUtils.list_files(directory=target_path.parent,
+                                                                    extensions=[".jpg"])
+                            if thumb_files:
+                                # 生成poster
+                                for thumb in thumb_files:
+                                    self.__save_poster(input_path=thumb,
+                                                        poster_path=target_path.parent / "poster.jpg",
+                                                        cover_conf=cover_conf)
+                                    break
+                                # 删除多余jpg
+                                for thumb in thumb_files:
+                                    Path(thumb).unlink()
+                    if (store_conf != "local"
+                            and None == self.filemanager.get_file_item(store_conf,
+                                                                        (target_path.parent / "poster.jpg"))):
+                        # 没有缩略图 则本地生成
+                        thumb_path = self.gen_file_thumb(title=title,
+                                                            rename_conf=rename_conf,
+                                                            file_path=Path(event_path),
+                                                            to_thumb_path="/tmp/shortplaymonitormod" /
+                                                                        target_path.parent.relative_to(
+                                                                Path("/")))
+                        if thumb_path and Path(thumb_path).exists():
+                            self.__save_poster(input_path=thumb_path,
+                                                poster_path="/tmp/shortplaymonitormod" /
+                                                            target_path.parent.relative_to(
+                                                    Path("/")) / "poster.jpg",
+                                                cover_conf=cover_conf)
+                            if ("/tmp/shortplaymonitormod" / target_path.parent.relative_to(
+                                    Path("/")) / "poster.jpg").exists():
                                 file_item = FileItem()
                                 file_item.storage = "local"
-                                file_item.path = str("/tmp/shortplaymonitormod" / target_path.parent.relative_to(
-                                    Path("/")) / "tvshow.nfo")
+                                file_item.path = str(
+                                    "/tmp/shortplaymonitormod" / target_path.parent.relative_to(
+                                        Path("/")) / "poster.jpg")
                                 # 源操作对象
                                 source_oper = self.filemanager._FileManagerModule__get_storage_oper("local")
                                 # 目的操作对象
                                 target_oper = self.filemanager._FileManagerModule__get_storage_oper(store_conf)
                                 if not source_oper or not target_oper:
                                     return None, f"不支持的存储类型：{store_conf}"
-
                                 new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(
                                     fileitem=file_item,
                                     target_storage=store_conf,
-                                    target_file=Path(target_path.parent / "tvshow.nfo"),
-                                    transfer_type=self._transfer_type,
-                                    source_oper=source_oper, target_oper=target_oper)
+                                    target_file=Path(target_path.parent / "poster.jpg"),
+                                    transfer_type=self._transfer_type, source_oper=source_oper,
+                                    target_oper=target_oper)
                                 if new_item:
-                                    logger.debug(f"文件 {Path(target_path.parent / 'tvshow.nfo')} 整理完成")
-                                else:
-                                    logger.debug((f"文件 {Path(target_path.parent / 'tvshow.nfo')} 整理失败:{errmsg}"))
-                        logger.debug(f"文件 {event_path} 生成 tvshow.nfo结束")
-                        logger.debug(f"文件 {event_path} 生成缩略图开始")
-                        if store_conf == "local":
-                            logger.debug(f"tvshow.nfo exists: {(target_path.parent / 'poster.jpg').exists()}")
-                        else:
-                            logger.debug(
-                                f"tvshow.nfo exists: "
-                                f"{self.filemanager.get_file_item(store_conf, (target_path.parent / 'poster.jpg'))}")
-                        # 生成缩略图
-                        if (store_conf == "local" and not (target_path.parent / "poster.jpg").exists()):
-                            thumb_path = self.gen_file_thumb(title=title,
-                                                             rename_conf=rename_conf,
-                                                             file_path=target_path)
-                            if thumb_path and Path(thumb_path).exists():
-                                self.__save_poster(input_path=thumb_path,
-                                                   poster_path=target_path.parent / "poster.jpg",
-                                                   cover_conf=cover_conf)
-                                if (target_path.parent / "poster.jpg").exists():
-                                    logger.info(f"{target_path.parent / 'poster.jpg'} 缩略图已生成")
+                                    logger.debug(f"{target_path.parent / 'poster.jpg'} 缩略图已整理")
+                                logger.info(f"{target_path.parent / 'poster.jpg'} 缩略图已生成")
                                 thumb_path.unlink()
-                            else:
-                                # 检查是否有缩略图
-                                thumb_files = SystemUtils.list_files(directory=target_path.parent,
-                                                                     extensions=[".jpg"])
-                                if thumb_files:
-                                    # 生成poster
-                                    for thumb in thumb_files:
-                                        self.__save_poster(input_path=thumb,
-                                                           poster_path=target_path.parent / "poster.jpg",
-                                                           cover_conf=cover_conf)
-                                        break
-                                    # 删除多余jpg
-                                    for thumb in thumb_files:
-                                        Path(thumb).unlink()
-                        if (store_conf != "local"
-                                and None == self.filemanager.get_file_item(store_conf,
-                                                                           (target_path.parent / "poster.jpg"))):
-                            # 没有缩略图 则本地生成
-                            thumb_path = self.gen_file_thumb(title=title,
-                                                             rename_conf=rename_conf,
-                                                             file_path=Path(event_path),
-                                                             to_thumb_path="/tmp/shortplaymonitormod" /
-                                                                           target_path.parent.relative_to(
-                                                                 Path("/")))
-                            if thumb_path and Path(thumb_path).exists():
-                                self.__save_poster(input_path=thumb_path,
-                                                   poster_path="/tmp/shortplaymonitormod" /
-                                                               target_path.parent.relative_to(
-                                                       Path("/")) / "poster.jpg",
-                                                   cover_conf=cover_conf)
-                                if ("/tmp/shortplaymonitormod" / target_path.parent.relative_to(
-                                        Path("/")) / "poster.jpg").exists():
-                                    file_item = FileItem()
-                                    file_item.storage = "local"
-                                    file_item.path = str(
-                                        "/tmp/shortplaymonitormod" / target_path.parent.relative_to(
-                                            Path("/")) / "poster.jpg")
-                                    # 源操作对象
-                                    source_oper = self.filemanager._FileManagerModule__get_storage_oper("local")
-                                    # 目的操作对象
-                                    target_oper = self.filemanager._FileManagerModule__get_storage_oper(store_conf)
-                                    if not source_oper or not target_oper:
-                                        return None, f"不支持的存储类型：{store_conf}"
-                                    new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(
-                                        fileitem=file_item,
-                                        target_storage=store_conf,
-                                        target_file=Path(target_path.parent / "poster.jpg"),
-                                        transfer_type=self._transfer_type, source_oper=source_oper,
-                                        target_oper=target_oper)
-                                    if new_item:
-                                        logger.debug(f"{target_path.parent / 'poster.jpg'} 缩略图已整理")
-                                    logger.info(f"{target_path.parent / 'poster.jpg'} 缩略图已生成")
-                                    thumb_path.unlink()
-                    else:
-                        logger.error(f"文件 {event_path} 硬链接失败，错误码：{retcode}")
+                else:
+                    logger.error(f"文件 {event_path} 硬链接失败，错误码：{retcode}")
             if self._notify:
                 # 发送消息汇总
                 media_list = self._medias.get(mediainfo.title_year if mediainfo else title) or {}
@@ -1186,7 +1186,7 @@ class ShortPlayMonitorMod(_PluginBase):
                                             'type': 'info',
                                             'variant': 'tonal',
                                             'text':
-                                                '默认从tmdb刮削，刮削失败则从pt站刮削。当重命名方式为smart时，如站点管理已配置AGSV、ilolicon，则优先从站点获取短剧封面。'
+                                                '当重命名方式为smart时，如站点管理已配置AGSV、ilolicon，则优先从站点获取短剧封面。'
                                         }
                                     }
                                 ]
