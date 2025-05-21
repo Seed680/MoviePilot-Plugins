@@ -27,7 +27,7 @@ class LocalPluginInstallMod(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.0"
+    plugin_version = "1.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -497,7 +497,7 @@ class LocalPluginInstallMod(_PluginBase):
             try {{
                 // 正确嵌入 API Token 作为查询参数
                 const apiKey = {js_safe_api_token};
-                const apiUrl = `/api/v1/plugin/LocalPluginInstall/localupload?apikey=${{encodeURIComponent(apiKey)}}`; // 使用encodeURIComponent确保安全
+                const apiUrl = `/api/v1/plugin/LocalPluginInstallMod/localupload?apikey=${{encodeURIComponent(apiKey)}}`; // 使用encodeURIComponent确保安全
                 
                 const response = await fetch(apiUrl, {{
                     method: 'POST',
