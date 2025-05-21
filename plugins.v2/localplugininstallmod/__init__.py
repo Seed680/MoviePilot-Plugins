@@ -27,7 +27,7 @@ class LocalPluginInstallMod(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.2"
+    plugin_version = "1.3"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -230,7 +230,7 @@ class LocalPluginInstallMod(_PluginBase):
                 logger.info(f"开始安装插件: {plugin_id.lower()} 从 {extract_path}")
                 
                 # 确保目标目录存在
-                target_dir = Path("/workspace/MoviePilot/app/plugins") / plugin_id.lower()
+                target_dir = Path("/app/app/plugins") / plugin_id.lower()
                 if target_dir.exists():
                     logger.info(f"清理已存在的插件目录: {target_dir}")
                     shutil.rmtree(target_dir)
@@ -367,7 +367,7 @@ class LocalPluginInstallMod(_PluginBase):
             except Exception as e:
                 logger.error(f"插件安装过程中发生错误: {e}", exc_info=True)
                 # 确保清理任何部分安装的文件
-                target_dir = Path("/workspace/MoviePilot/app/plugins") / plugin_id.lower()
+                target_dir = Path("/app/app/plugins") / plugin_id.lower()
                 if target_dir.exists():
                     shutil.rmtree(target_dir)
                 return JSONResponse(status_code=500, content={
