@@ -154,16 +154,17 @@
             "v0.0.2": "new"
         }
     },
-    "TrackerSpeedLimit":{
-        "name": "带宽速度限制",
-        "description": "带宽速度限制",
-        "labels": "",
-        "version": "0.1",
+
+    "LocalPluginInstallMod": {
+        "name": "本地插件安装魔改版",
+        "description": "(基于KoWming魔改版)上传本地ZIP插件包进行安装。",
+        "labels": "下载管理",
+        "version": "1.0",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
-            "v0.1": "new"
+            "v1.1": "自用插件，符合mp命名规范"
         }
     }
 }
