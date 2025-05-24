@@ -111,7 +111,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "2.6.5"
+    plugin_version = "2.6.6"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -758,7 +758,7 @@ class RenameTorrent(_PluginBase):
         if not value:
             return
         plugin_data: dict = self.get_data(key=key)
-        if plugin_data or not isinstance(plugin_data, dict):
+        if plugin_data and isinstance(plugin_data, dict):
             plugin_data.update(value)
             self.save_data(key=key, value=plugin_data)
         else:
