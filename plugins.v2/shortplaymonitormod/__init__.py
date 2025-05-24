@@ -67,7 +67,7 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "1.6"
+    plugin_version = "1.6.1"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -625,26 +625,6 @@ class ShortPlayMonitorMod(_PluginBase):
                                 thumb_path.unlink()
                 else:
                     logger.error(f"文件 {event_path} 硬链接失败，错误码：{retcode}")
-            if self._notify:
-                # 发送消息汇总
-                media_list = self._medias.get(mediainfo.title_year if mediainfo else title) or {}
-                if media_list:
-                    media_files = media_list.get("files") or []
-                    if media_files:
-                        if str(event_path) not in media_files:
-                            media_files.append(str(event_path))
-                    else:
-                        media_files = [str(event_path)]
-                    media_list = {
-                        "files": media_files,
-                        "time": datetime.datetime.now()
-                    }
-                else:
-                    media_list = {
-                        "files": [str(event_path)],
-                        "time": datetime.datetime.now()
-                    }
-                self._medias[mediainfo.title_year if mediainfo else title] = media_list
         except Exception as e:
             logger.error(f"event_handler_created error: {e}", exc_info=True)
         if Path('/tmp/shortplaymonitormod/').exists():
