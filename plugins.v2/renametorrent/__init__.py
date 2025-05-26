@@ -19,7 +19,6 @@ from app.db.models.plugindata import PluginData
 from app.db.systemconfig_oper import SystemConfigOper
 from app.helper.downloader import DownloaderHelper
 from app.log import logger
-from app.modules.filemanager import FileManagerModule
 from app.modules.qbittorrent import Qbittorrent
 from app.plugins import _PluginBase
 from app.schemas.types import EventType, MediaType
@@ -112,7 +111,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "2.6.7"
+    plugin_version = "2.6.8"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -832,8 +831,8 @@ class RenameTorrent(_PluginBase):
         logger.debug(f"处理后的种子名称:{meta.title}")
         rename_dict = format_dict(meta=meta, mediainfo=mediainfo, file_ext=file_ext)
         logger.debug(f"rename_dict： {rename_dict}")
-        
-        return FileManagerModule.get_rename_path(template_string, rename_dict)
+        handler = TransHandler()
+        return handler.get_rename_path(template_string, rename_dict)
 
     def recoveryTorrent(self):
         """
