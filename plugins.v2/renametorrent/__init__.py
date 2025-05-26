@@ -25,6 +25,7 @@ from app.plugins import _PluginBase
 from app.schemas.types import EventType, MediaType
 from app.schemas.types import SystemConfigKey
 from app.core.config import settings
+from app.modules.filemanager.transhandler import TransHandler
 
 @dataclass
 class TorrentFile:
@@ -111,7 +112,7 @@ class RenameTorrent(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "2.6.6"
+    plugin_version = "2.6.7"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -809,7 +810,8 @@ class RenameTorrent(_PluginBase):
         :param file_ext: 文件扩展名
         """
         def format_dict(meta: MetaBase, mediainfo: MediaInfo, file_ext: str = None) -> Dict[str, Any]:
-            return FileManagerModule._FileManagerModule__get_naming_dict(
+            handler = TransHandler()
+            return handler.get_naming_dict(
                 meta=meta, mediainfo=mediainfo, file_ext=file_ext)
         # 处理mp的历史记录种子名称
         logger.debug(f"处理前的种子名称:{meta.title}")
