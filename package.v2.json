@@ -113,11 +113,12 @@
         "name": "短剧刮削魔改版",
         "description": "(基于thsrite大佬原版修改支持网盘)监控视频短剧创建，刮削，支持目的目录为网盘。",
         "labels": "短剧",
-        "version": "1.6",
+        "version": "1.7",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "thsrite,Seed",
         "level": 1,
         "history": {
+            "v1.7": "支持MP 2.5.0",
             "v1.6": "去除tmdb识别",
             "v1.5": "修复tmdb刮削一次失败的问题",
             "v1.4": "bugfix",
