@@ -191,5 +191,18 @@
             "v1.0": "立即清除后端缓存"
 
         }
-    }
+    },
+    "SSDForumSigninMod":{
+        "name": "SSDForum签到魔改版",
+        "description": "(基于imaliang修改)SSDForum自动签到，支持随机延迟。",
+        "labels": "签到",
+        "version": "1.0",
+        "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
+        "author": "imaliang,Seed680",
+        "level": 1,
+        "history": {
+            "v1.0": "重写了延迟执行逻辑，支持随机延迟"
+
+        }
+    },
 }
