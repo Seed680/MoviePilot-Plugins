@@ -1,42 +1,40 @@
 import datetime
 import os
 import re
+import shutil
 import threading
 from pathlib import Path
 from threading import Lock
 from typing import Any, List, Dict, Tuple, Optional
 from xml.dom import minidom
 
-
 import chardet
-import shutil
 import pytz
 from PIL import Image
+from app.helper.sites import SitesHelper, SiteSpider
 from apscheduler.schedulers.background import BackgroundScheduler
 from lxml import etree
 from requests import RequestException
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from watchdog.observers.polling import PollingObserver
-from app.helper.sites import SitesHelper, SiteSpider
 
-from app.chain.tmdb import TmdbChain
 from app.chain.media import MediaChain
+from app.chain.tmdb import TmdbChain
 from app.core.config import settings
 from app.core.meta.words import WordsMatcher
 from app.core.metainfo import MetaInfoPath
 from app.db.site_oper import SiteOper
-from app.helper.directory import DirectoryHelper
 from app.log import logger
+from app.modules.filemanager import FileManagerModule
 from app.plugins import _PluginBase
-from app.schemas import MediaInfo
+from app.schemas import FileItem
 from app.schemas.types import NotificationType
 from app.utils.common import retry
 from app.utils.dom import DomUtils
 from app.utils.http import RequestUtils
 from app.utils.system import SystemUtils
-from app.modules.filemanager import FileManagerModule
-from app.schemas import TransferInfo, TransferDirectoryConf, FileItem
+from app.modules.filemanager.transhandler import TransHandler
 
 ffmpeg_lock = threading.Lock()
 lock = Lock()
@@ -67,7 +65,7 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "1.6"
+    plugin_version = "1.7"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -486,7 +484,7 @@ class ShortPlayMonitorMod(_PluginBase):
                     file_item = FileItem()
                     file_item.storage = "local"
                     file_item.path = event_path
-                    new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(fileitem=file_item,
+                    new_item, errmsg = TransHandler._TransHandler__transfer_command(fileitem=file_item,
                                                                                                 target_storage=store_conf,
                                                                                                 target_file=Path(
                                                                                                     target_path),
@@ -540,7 +538,7 @@ class ShortPlayMonitorMod(_PluginBase):
                             if not source_oper or not target_oper:
                                 return None, f"不支持的存储类型：{store_conf}"
 
-                            new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(
+                            new_item, errmsg = TransHandler._TransHandler__transfer_command(
                                 fileitem=file_item,
                                 target_storage=store_conf,
                                 target_file=Path(target_path.parent / "tvshow.nfo"),
@@ -613,7 +611,7 @@ class ShortPlayMonitorMod(_PluginBase):
                                 target_oper = self.filemanager._FileManagerModule__get_storage_oper(store_conf)
                                 if not source_oper or not target_oper:
                                     return None, f"不支持的存储类型：{store_conf}"
-                                new_item, errmsg = self.filemanager._FileManagerModule__transfer_command(
+                                new_item, errmsg = TransHandler._TransHandler__transfer_command(
                                     fileitem=file_item,
                                     target_storage=store_conf,
                                     target_file=Path(target_path.parent / "poster.jpg"),
