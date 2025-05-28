@@ -33,7 +33,7 @@ class DownloadSiteTagModNew(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "1.2"
+    plugin_version = "1.3"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -847,3 +847,4 @@ class DownloadSiteTagModNew(_PluginBase):
             logger.debug(f'增加自定义分类前缀:{self._catprefix}')
             _cat = self._catprefix + _cat
             logger.debug(f'本剧集类别:{_cat}')
+        return _cat
