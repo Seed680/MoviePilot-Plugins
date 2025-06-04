@@ -22,7 +22,7 @@ class ServiceManagerMod(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/InfinityPacer/MoviePilot-Plugins/main/icons/servicemanager.png"
     # 插件版本
-    plugin_version = "1.3"
+    plugin_version = "1.4"
     # 插件作者
     plugin_author = "InfinityPacer,Seed680"
     # 作者主页
@@ -82,6 +82,7 @@ class ServiceManagerMod(_PluginBase):
             self.update_config(config=config)
             Scheduler().init()
             logger.info("已恢复默认配置并停用插件")
+        self.update_config(config)
 
     def get_state(self) -> bool:
         return self._enabled
