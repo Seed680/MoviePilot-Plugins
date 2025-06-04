@@ -1,6 +1,9 @@
 import threading
+import datetime
 from typing import Any, Dict, List, Tuple
 
+import pytz
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from app.chain.site import SiteChain
@@ -22,7 +25,7 @@ class ServiceManagerMod(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/InfinityPacer/MoviePilot-Plugins/main/icons/servicemanager.png"
     # 插件版本
-    plugin_version = "1.4"
+    plugin_version = "1.5"
     # 插件作者
     plugin_author = "InfinityPacer,Seed680"
     # 作者主页
@@ -33,6 +36,8 @@ class ServiceManagerMod(_PluginBase):
     plugin_order = 29
     # 可使用的用户级别
     auth_level = 1
+    # 日志前缀
+    LOG_TAG = "[ServiceManager]"
 
     # region 私有属性
     # 是否开启
@@ -49,7 +54,7 @@ class ServiceManagerMod(_PluginBase):
     _random_wallpager = ""
     # 订阅元数据更新（小时）
     _subscribe_tmdb = ""
-
+    _scheduler = None
     # endregion
 
     def init_plugin(self, config: dict = None):
@@ -64,16 +69,18 @@ class ServiceManagerMod(_PluginBase):
         self._random_wallpager = config.get("random_wallpager")
         self._subscribe_tmdb = config.get("subscribe_tmdb")
         if self._enabled:
-            if self._sitedata_refresh:
-                Scheduler().remove_plugin_job(pid="None",job_id="sitedata_refresh")
-            if settings.SUBSCRIBE_SEARCH and self._subscribe_search:
-                Scheduler().remove_plugin_job(pid="None", job_id="subscribe_search")
-            if self._clear_cache:
-                Scheduler().remove_plugin_job(pid="None", job_id="clear_cache")
-            if self._random_wallpager:
-                Scheduler().remove_plugin_job(pid="None", job_id="random_wallpager")
-            if self._subscribe_tmdb:
-                Scheduler().remove_plugin_job(pid="None", job_id="subscribe_tmdb")
+            # 延迟清除系统服务
+            logger.info("插件已启用，30秒后清除系统服务")
+            self._scheduler = BackgroundScheduler(timezone=settings.TZ)
+            self._scheduler.add_job(func=self.clear_default_service, trigger='date',
+                                        run_date=datetime.datetime.now(
+                                            tz=pytz.timezone(settings.TZ)) + datetime.timedelta(seconds=30)
+                                        )
+            if self._scheduler and self._scheduler.get_jobs():
+                # 启动服务
+                self._scheduler.print_jobs()
+                self._scheduler.start()
+
         if self._reset_and_disable:
             self._enabled = False
             self._reset_and_disable = False
@@ -406,3 +413,15 @@ class ServiceManagerMod(_PluginBase):
         清理缓存
         """
         Scheduler().clear_cache()
+
+    def clear_default_service(self):
+        if self._sitedata_refresh:
+            Scheduler().remove_plugin_job(pid="None", job_id="sitedata_refresh")
+        if settings.SUBSCRIBE_SEARCH and self._subscribe_search:
+            Scheduler().remove_plugin_job(pid="None", job_id="subscribe_search")
+        if self._clear_cache:
+            Scheduler().remove_plugin_job(pid="None", job_id="clear_cache")
+        if self._random_wallpager:
+            Scheduler().remove_plugin_job(pid="None", job_id="random_wallpager")
+        if self._subscribe_tmdb:
+            Scheduler().remove_plugin_job(pid="None", job_id="subscribe_tmdb")
