@@ -22,6 +22,7 @@ from app.utils.string import StringUtils
 from modules.transmission import Transmission
 from app.db.site_oper import SiteOper
 
+
 class TrackerSpeedLimit(_PluginBase):
     # 插件名称
     plugin_name = "带宽速度限制"
@@ -30,7 +31,7 @@ class TrackerSpeedLimit(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png"
     # 插件版本
-    plugin_version = "0.1"
+    plugin_version = "0.2"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -62,7 +63,6 @@ class TrackerSpeedLimit(_PluginBase):
     _downloaders = []
     _siteConfig = []
     _watch = False
-    
 
     def init_plugin(self, config: dict = None):
         self.downloader_helper = DownloaderHelper()
@@ -73,7 +73,7 @@ class TrackerSpeedLimit(_PluginBase):
         if config:
             self._enable = config.get("enable", False)
             self._onlyonce = config.get("onlyonce", False)
-            self._interval = config.get("interval","计划任务")
+            self._interval = config.get("interval", "计划任务")
             self._interval_cron = config.get("interval_cron", "5 4 * * *")
             self._interval_time = self.str_to_number(config.get("interval_time"), 6)
             self._interval_unit = config.get("interval_unit", "小时")
@@ -106,25 +106,25 @@ class TrackerSpeedLimit(_PluginBase):
             self.update_config(config)
 
     def get_form(self) -> Tuple[Optional[List[dict]], Dict[str, Any]]:
-         # This dict is passed as initialConfig to Config.vue by the host
-         return None, self._get_default_config()
-        # logger.debug(f"all_cat_rename:{self._all_cat_rename}")
+        # This dict is passed as initialConfig to Config.vue by the host
+        return None, self._get_default_config()
 
+    # logger.debug(f"all_cat_rename:{self._all_cat_rename}")
 
     def load_config(self, config: dict):
         """加载配置"""
         if config:
             # 遍历配置中的键并设置相应的属性
             for key in (
-                "enable",
-                "interval",
-                "interval_cron",
-                "interval_time",
-                "interval_unit",
-                "downloaders",
-                "onlyonce",
-                "siteConfig",
-                "watch",
+                    "enable",
+                    "interval",
+                    "interval_cron",
+                    "interval_time",
+                    "interval_unit",
+                    "downloaders",
+                    "onlyonce",
+                    "siteConfig",
+                    "watch",
             ):
                 setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
 
@@ -151,6 +151,7 @@ class TrackerSpeedLimit(_PluginBase):
             "siteConfig": [],
             "watch": False
         }
+
     def _get_config(self) -> Dict[str, Any]:
         """API Endpoint: Returns current plugin configuration."""
         return {
@@ -167,29 +168,31 @@ class TrackerSpeedLimit(_PluginBase):
     def _get_all_downloaders(self) -> List[Any]:
         """API Endpoint: Returns current plugin configuration."""
         return self._all_downloaders
+
     def _get_all_site(self) -> List[Any]:
         return self.site_oper.list_order_by_pri()
 
     def _save_config(self, config_payload: dict) -> Dict[str, Any]:
         # Update instance variables directly from payload, defaulting to current values if key is missing
-            self.load_config(config_payload)
-            # 忽略onlyonce参数
-            config_payload.onlyonce = False
+        self.load_config(config_payload)
+        # 忽略onlyonce参数
+        config_payload.onlyonce = False
 
-            # Prepare config to save
-            # config_to_save = self._get_config()
+        # Prepare config to save
+        # config_to_save = self._get_config()
 
-            # 保存配置
-            self.update_config(config_payload)
+        # 保存配置
+        self.update_config(config_payload)
 
-            # 重新初始化插件
-            self.stop_service()
-            self.init_plugin(self.get_config())
+        # 重新初始化插件
+        self.stop_service()
+        self.init_plugin(self.get_config())
 
-            logger.info(f"{self.plugin_name}: 配置已保存并通过 init_plugin 重新初始化。当前内存状态: enable={self._enable}")
+        logger.info(f"{self.plugin_name}: 配置已保存并通过 init_plugin 重新初始化。当前内存状态: enable={self._enable}")
 
-            # 返回最终状态
-            return {"message": "配置已成功保存", "saved_config": self._get_config()}
+        # 返回最终状态
+        return {"message": "配置已成功保存", "saved_config": self._get_config()}
+
     @property
     def service_infos(self) -> Optional[Dict[str, ServiceInfo]]:
         """
@@ -221,15 +224,14 @@ class TrackerSpeedLimit(_PluginBase):
     def _all_downloaders(self) -> List:
         sys_downloader = SystemConfigOper().get(SystemConfigKey.Downloaders)
         if sys_downloader:
-            all_downloaders = [{"title": d.get("name"), "value": d.get("name")} for d in sys_downloader if d.get("enabled")]
+            all_downloaders = [{"title": d.get("name"), "value": d.get("name")} for d in sys_downloader if
+                               d.get("enabled")]
         else:
             all_downloaders = []
         return all_downloaders
 
     def get_state(self) -> bool:
         return self._enable
-
-
 
     @staticmethod
     def get_command() -> List[Dict[str, Any]]:
@@ -354,7 +356,9 @@ class TrackerSpeedLimit(_PluginBase):
                         if self.tracker_limit_map.get(domain, None):
                             logger.info(
                                 f"{domain} {_name} {_hash} 设置限速 {int(self.tracker_limit_map.get(domain))} ...")
-                            self.torrents_set_upload_limit(_hash, int(self.tracker_limit_map.get(domain)), downloader_obj)
+                            self.torrents_set_upload_limit(_hash, int(self.tracker_limit_map.get(domain)),
+                                                           downloader_obj)
+                            break
                         else:
                             logger.debug(f"未获取到{domain}的设置 设置为不限速...")
                             self.torrents_set_upload_limit(_hash, -1, downloader_obj)
@@ -363,7 +367,6 @@ class TrackerSpeedLimit(_PluginBase):
                         f"{self.LOG_TAG}分析种子信息时发生了错误: {str(e)}", exc_info=True)
 
         logger.info(f"{self.LOG_TAG}执行完成")
-
 
     @staticmethod
     def _torrent_key(torrent: Any, dl_type: str) -> Optional[Tuple[int, str]]:
@@ -436,7 +439,6 @@ class TrackerSpeedLimit(_PluginBase):
             print(str(e))
             return []
 
-
     def _set_torrent_info(self, service: ServiceInfo, _hash: str, _torrent: Any = None, _tags=None, _cat: str = None,
                           _original_tags: list = None):
         """
@@ -496,7 +498,8 @@ class TrackerSpeedLimit(_PluginBase):
 
         if not event.event_data:
             return
-
+        if self._watch is not True:
+            return
         try:
             downloader = event.event_data.get("downloader")
             if not downloader:
@@ -533,28 +536,16 @@ class TrackerSpeedLimit(_PluginBase):
                 for tracker in trackers:
                     logger.debug(f"tracker: {tracker} ...")
                     # 检查tracker是否包含特定的关键字，并进行相应的映射
-                    if self._siteConfig is not None:
-                        for site in self._siteConfig:
-                            if site.get("enabled"):
-                                domain = StringUtils.get_url_domain(tracker)
-                                logger.debug(f"tracker domain: {domain} ...")
-                                if self.tracker_limit_map.get(domain):
-                                    logger.debug(f"获取到{domain}的设置 ...")
-                                    if self.tracker_limit_map.get(domain).get(
-                                            "enabled"):
-                                        logger.debug(f"{domain}设置已生效 ...")
-                                        if self.tracker_limit_map.get(domain).get(
-                                                "speedLimit"):
-                                            logger.debug(
-                                                f"{domain} {_name} {_hash} 设置限速 {int(self.tracker_limit_map.get(domain).get(
-                                                    "speedLimit"))} ...")
-                                            self.torrents_set_upload_limit(_hash, int(self.tracker_limit_map.get(
-                                                domain).get(
-                                                "speedLimit")), downloader_obj)
-                                            break
-                                else:
-                                    logger.debug(f"未获取到{domain}的设置 设置为不限速...")
-                                    self.torrents_set_upload_limit(_hash, -1, downloader_obj)
+                    domain = StringUtils.get_url_domain(tracker)
+                    if self.tracker_limit_map.get(domain, None):
+                        logger.info(
+                            f"{domain} {_name} {_hash} 设置限速 {int(self.tracker_limit_map.get(domain))} ...")
+                        self.torrents_set_upload_limit(_hash, int(self.tracker_limit_map.get(domain)),
+                                                       downloader_obj)
+                        break
+                    else:
+                        logger.debug(f"未获取到{domain}的设置 设置为不限速...")
+                        self.torrents_set_upload_limit(_hash, -1, downloader_obj)
         except Exception as e:
             logger.error(
                 f"{self.LOG_TAG}分析下载事件时发生了错误: {str(e)}", exc_info=True)
@@ -577,13 +568,14 @@ class TrackerSpeedLimit(_PluginBase):
         except Exception as e:
             print(str(e))
 
-    def torrents_set_upload_limit(self, torrent_hash:str, limit: str | int, service_instance:Qbittorrent | Transmission):
+    def torrents_set_upload_limit(self, torrent_hash: str, limit: str | int,
+                                  service_instance: Qbittorrent | Transmission):
         if isinstance(service_instance, Qbittorrent):
-            service_instance.qbc.torrents_set_upload_limit(torrent_hashes=torrent_hash,limit=limit)
+            service_instance.qbc.torrents_set_upload_limit(torrent_hashes=torrent_hash, limit=limit)
         else:
-            service_instance.trc.change_torrent(ids=torrent_hash,upload_limit=int(limit))
+            service_instance.trc.change_torrent(ids=torrent_hash, upload_limit=int(limit))
 
-    def process_site_config(self,site_list) ->dict[str, str]:
+    def process_site_config(self, site_list) -> dict[str, str]:
 
         result = {}
 
