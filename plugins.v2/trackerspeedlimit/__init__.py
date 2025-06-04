@@ -3,13 +3,13 @@ import threading
 from typing import List, Tuple, Dict, Any, Optional
 
 import pytz
-from app.helper.sites import SitesHelper
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from app.core.config import settings
 from app.core.context import Context
 from app.core.event import eventmanager, Event
+from app.db.site_oper import SiteOper
 from app.db.systemconfig_oper import SystemConfigOper
 from app.helper.downloader import DownloaderHelper
 from app.log import logger
@@ -20,7 +20,6 @@ from app.schemas.types import EventType
 from app.schemas.types import SystemConfigKey
 from app.utils.string import StringUtils
 from modules.transmission import Transmission
-from app.db.site_oper import SiteOper
 
 
 class TrackerSpeedLimit(_PluginBase):
@@ -31,7 +30,7 @@ class TrackerSpeedLimit(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png"
     # 插件版本
-    plugin_version = "0.3"
+    plugin_version = "0.4"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -50,7 +49,6 @@ class TrackerSpeedLimit(_PluginBase):
     # 私有属性
     sites_helper = None
     downloader_helper = None
-    site_oper = None
     tracker_limit_map = None
 
     _scheduler = None
@@ -66,7 +64,6 @@ class TrackerSpeedLimit(_PluginBase):
 
     def init_plugin(self, config: dict = None):
         self.downloader_helper = DownloaderHelper()
-        self.sites_helper = SitesHelper()
         self.site_oper = SiteOper()
         # 读取配置
         logger.debug(f"读取配置")
@@ -571,7 +568,7 @@ class TrackerSpeedLimit(_PluginBase):
     def torrents_set_upload_limit(self, torrent_hash: str, limit: str | int,
                                   service_instance: Qbittorrent | Transmission):
         if isinstance(service_instance, Qbittorrent):
-            service_instance.qbc.torrents_set_upload_limit(torrent_hashes=torrent_hash, limit=limit)
+            service_instance.qbc.torrents_set_upload_limit(torrent_hashes=torrent_hash, limit=int(limit*1024))
         else:
             service_instance.trc.change_torrent(ids=torrent_hash, upload_limit=int(limit))
 
