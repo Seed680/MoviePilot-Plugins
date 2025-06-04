@@ -169,16 +169,7 @@
         "author": "Seed680",
         "level": 1,
         "history": {
-<<<<<<< HEAD
-<<<<<<< HEAD
-            "v1.1": "自用插件，符合mp命名规范"
-=======
-            "v1.2": "自用插件，符合mp命名规范"
-=======
             "v1.3": "自用插件，符合mp命名规范"
->>>>>>> a68888d (本地插件安装魔改版)
-
->>>>>>> 8ae3bfb (本地插件安装魔改版)
         }
     },
     "CleanCache":{
@@ -205,6 +196,18 @@
         "history": {
             "v1.0": "重写了延迟执行逻辑，支持随机延迟"
 
+        }
+    },
+    "TrackerSpeedLimit":{
+        "name": "带宽速度限制",
+        "description": "带宽速度限制",
+        "labels": "",
+        "version": "0.1",
+        "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
+        "author": "Seed680",
+        "level": 1,
+        "history": {
+            "v0.1": "初始版本"
         }
     }
 }
