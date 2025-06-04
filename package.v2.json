@@ -153,5 +153,17 @@
             "v0.0.3": "增加按路径关键字自定义分类",
             "v0.0.2": "new"
         }
+    },
+    "TrackerSpeedLimit":{
+        "name": "带宽速度限制",
+        "description": "带宽速度限制",
+        "labels": "",
+        "version": "0.1",
+        "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
+        "author": "Seed680",
+        "level": 1,
+        "history": {
+            "v0.1": "new"
+        }
     }
 }
