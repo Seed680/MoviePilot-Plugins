@@ -159,7 +159,6 @@
             "v0.0.2": "new"
         }
     },
-
     "LocalPluginInstallMod": {
         "name": "本地插件安装魔改版",
         "description": "(基于KoWming魔改版)上传本地ZIP插件包进行安装。",
