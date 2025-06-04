@@ -31,7 +31,7 @@ class TrackerSpeedLimit(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png"
     # 插件版本
-    plugin_version = "0.2"
+    plugin_version = "0.3"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -278,8 +278,8 @@ class TrackerSpeedLimit(_PluginBase):
                 if self._interval == "固定间隔":
                     if self._interval_unit == "小时":
                         return [{
-                            "id": "DownloadSiteTag",
-                            "name": "补全下载历史的标签与分类",
+                            "id": "TrackerSpeedLimit",
+                            "name": "带宽速度控制",
                             "trigger": "interval",
                             "func": self._speed_limit,
                             "kwargs": {
@@ -291,8 +291,8 @@ class TrackerSpeedLimit(_PluginBase):
                             self._interval_time = 5
                             logger.info(f"{self.LOG_TAG}启动定时服务: 最小不少于5分钟, 防止执行间隔太短任务冲突")
                         return [{
-                            "id": "DownloadSiteTag",
-                            "name": "补全下载历史的标签与分类",
+                            "id": "TrackerSpeedLimit",
+                            "name": "带宽速度控制",
                             "trigger": "interval",
                             "func": self._speed_limit,
                             "kwargs": {
@@ -301,8 +301,8 @@ class TrackerSpeedLimit(_PluginBase):
                         }]
                 else:
                     return [{
-                        "id": "DownloadSiteTag",
-                        "name": "补全下载历史的标签与分类",
+                        "id": "TrackerSpeedLimit",
+                        "name": "带宽速度控制",
                         "trigger": CronTrigger.from_crontab(self._interval_cron),
                         "func": self._speed_limit,
                         "kwargs": {}
