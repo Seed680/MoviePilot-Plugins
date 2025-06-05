@@ -30,7 +30,7 @@ class TrackerSpeedLimit(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png"
     # 插件版本
-    plugin_version = "0.5"
+    plugin_version = "0.6"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -575,7 +575,7 @@ class TrackerSpeedLimit(_PluginBase):
                 service_instance.trc.change_torrent(ids=torrent_hash, upload_limited=False)
             else:
                 # 设置限速
-                service_instance.trc.change_torrent(ids=torrent_hash, upload_limit=int(limit))
+                service_instance.trc.change_torrent(ids=torrent_hash, upload_limited=True, upload_limit=int(limit))
 
     def process_site_config(self, site_list) -> dict[str, str]:
 
