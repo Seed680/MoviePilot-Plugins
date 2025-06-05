@@ -201,7 +201,7 @@
         "name": "带宽速度限制",
         "description": "带宽速度限制",
         "labels": "",
-        "version": "0.4",
+        "version": "0.5",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
