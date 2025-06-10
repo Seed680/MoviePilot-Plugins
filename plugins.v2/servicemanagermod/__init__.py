@@ -25,7 +25,7 @@ class ServiceManagerMod(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/InfinityPacer/MoviePilot-Plugins/main/icons/servicemanager.png"
     # 插件版本
-    plugin_version = "1.6.1"
+    plugin_version = "1.6.2"
     # 插件作者
     plugin_author = "InfinityPacer,Seed680"
     # 作者主页
@@ -80,8 +80,6 @@ class ServiceManagerMod(_PluginBase):
                 # 启动服务
                 self._scheduler.print_jobs()
                 self._scheduler.start()
-            Scheduler().update_plugin_job('ServiceManagerMod')
-            logger.info("插件重新注册服务")
         
         if self._reset_and_disable:
             self._enabled = False
@@ -428,3 +426,5 @@ class ServiceManagerMod(_PluginBase):
             Scheduler().remove_plugin_job(pid="None", job_id="random_wallpager")
         if self._subscribe_tmdb:
             Scheduler().remove_plugin_job(pid="None", job_id="subscribe_tmdb")
+        Scheduler().update_plugin_job('ServiceManagerMod')
+        logger.info("插件重新注册服务")

@@ -213,7 +213,7 @@
         "name": "服务管理魔改版",
         "description": "(基于InfinityPacer魔改版)实现自定义服务管理。",
         "labels": "服务",
-        "version": "1.6.1",
+        "version": "1.6.2",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
