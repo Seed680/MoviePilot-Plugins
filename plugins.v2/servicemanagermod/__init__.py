@@ -25,7 +25,7 @@ class ServiceManagerMod(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/InfinityPacer/MoviePilot-Plugins/main/icons/servicemanager.png"
     # 插件版本
-    plugin_version = "1.6.2"
+    plugin_version = "1.7"
     # 插件作者
     plugin_author = "InfinityPacer,Seed680"
     # 作者主页

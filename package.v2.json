@@ -213,11 +213,12 @@
         "name": "服务管理魔改版",
         "description": "(基于InfinityPacer魔改版)实现自定义服务管理。",
         "labels": "服务",
-        "version": "1.6.2",
+        "version": "1.7",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.7": "修复重启后服务没有正常注册的问题",
             "v1.3": "兼容MoviePilot v2.5.0，启动后移除系统原有的相关服务"
         }
     }
