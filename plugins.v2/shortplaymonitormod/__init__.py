@@ -65,7 +65,7 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "1.7.2"
+    plugin_version = "1.7.2.1"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -903,6 +903,7 @@ class ShortPlayMonitorMod(_PluginBase):
             return None
 
         html = etree.HTML(torrent_detail_source)
+        logger.debug(f"种子详情页 {torrents[0].get('page_url')} 解析成功")
         if not html:
             logger.error(f"请求种子详情页失败 {torrents[0].get('page_url')}")
             return None
@@ -914,7 +915,9 @@ class ShortPlayMonitorMod(_PluginBase):
                 return None
             return str(image)
         if desc_xpath:
-            desc = html.xpath(desc_xpath)[0]
+            desc = html.xpath(desc_xpath)
+            logger.debug(f"desc: {desc}")
+            logger.debug(f"clean_text_list: {self.clean_text_list(desc)[-1]}")
             if not desc:
                 logger.error(f"未获取到种子简介 {torrents[0].get('page_url')}")
                 return None
@@ -1300,7 +1303,7 @@ class ShortPlayMonitorMod(_PluginBase):
         self._observer = []
 
     
-    def clean_text_list(text_list):
+    def clean_text_list(self, text_list):
         cleaned = []
         for line in text_list:
             # 去除首尾空白字符（包括 \n、\t、全角空格、\xa0）
