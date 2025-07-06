@@ -65,7 +65,7 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "1.7"
+    plugin_version = "1.7.1"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -757,6 +757,7 @@ class ShortPlayMonitorMod(_PluginBase):
         """
         # 开始生成XML
         logger.info(f"正在生成电视剧NFO文件：{dir_path.name}")
+        desc = self.gen_desc_from_site(title=title)
         doc = minidom.Document()
         root = DomUtils.add_node(doc, doc, "tvshow")
 
@@ -765,6 +766,9 @@ class ShortPlayMonitorMod(_PluginBase):
         DomUtils.add_node(doc, root, "originaltitle", title)
         DomUtils.add_node(doc, root, "season", "-1")
         DomUtils.add_node(doc, root, "episode", "-1")
+        if desc:
+            # 简介
+            DomUtils.add_node(doc, root, "plot", desc)
         # 保存
         self.__save_nfo(doc, dir_path.joinpath("tvshow.nfo"))
 
@@ -792,7 +796,7 @@ class ShortPlayMonitorMod(_PluginBase):
                 image_xpath = "//*[@id='kdescr']/img[1]/@src"
                 # 查询站点资源
                 logger.info(f"开始检索 {site.name} {title}")
-                image = self.__get_site_torrents(url=req_url, site=site, image_xpath=image_xpath, index=index)
+                image = self.__get_site_torrents(url=req_url, site=site, index=index,image_xpath=image_xpath)
             if not image:
                 domain = "ilolicon.com"
                 site = SiteOper().get_by_domain(domain)
@@ -804,7 +808,7 @@ class ShortPlayMonitorMod(_PluginBase):
                     image_xpath = "//*[@id='kdescr']/img[1]/@src"
                     # 查询站点资源
                     logger.info(f"开始检索 {site.name} {title}")
-                    image = self.__get_site_torrents(url=req_url, site=site, image_xpath=image_xpath, index=index)
+                    image = self.__get_site_torrents(url=req_url, site=site, index=index,image_xpath=image_xpath)
 
             if not image:
                 logger.error(f"检索站点 {title} 封面失败")
@@ -816,6 +820,46 @@ class ShortPlayMonitorMod(_PluginBase):
             return None
         except Exception as e:
             logger.error(f"检索站点 {title} 封面失败 {str(e)}", exc_info=True)
+            return None
+
+
+    def gen_desc_from_site(self, title: str):
+        """
+        从agsv或者萝莉站查询封面
+        """
+        try:
+            image = None
+            # 查询索引
+            domain = "agsvpt.com"
+            site = SiteOper().get_by_domain(domain)
+            index = SitesHelper().get_indexer(domain)
+            if site:
+                req_url = (f"https://www.agsvpt.com/torrents.php?search_mode=0&search_area=0&page=0&notnewword=1&cat"
+                           f"=419&search={title}")
+                desc_xpath = "//*[@id='kdescr']/text()"
+                # 查询站点资源
+                logger.info(f"开始检索 {site.name} {title}")
+                desc = self.__get_site_torrents(url=req_url, site=site, index=index,desc_xpath=desc_xpath)
+            if not desc:
+                domain = "ilolicon.com"
+                site = SiteOper().get_by_domain(domain)
+                index = SitesHelper().get_indexer(domain)
+                if site:
+                    req_url = (f"https://share.ilolicon.com/torrents.php?search_mode=0&search_area=0&page=0&notnewword"
+                               f"=1&cat=402&search={title}")
+
+                    desc_xpath = "//*[@id='kdescr']/text()"
+                    # 查询站点资源
+                    logger.info(f"开始检索 {site.name} {title}")
+                    desc = self.__get_site_torrents(url=req_url, site=site, index=index,desc_xpath=desc_xpath)
+
+            if not desc:
+                logger.error(f"检索站点 {title} 简介失败")
+                return None
+            else:
+                return desc
+        except Exception as e:
+            logger.error(f"检索站点 {title} 简介失败 {str(e)}", exc_info=True)
             return None
 
     @retry(RequestException, logger=logger)
@@ -839,7 +883,7 @@ class ShortPlayMonitorMod(_PluginBase):
             logger.error(f"{file_path.stem}图片下载失败：{str(err)}", exc_info=True)
             return False
 
-    def __get_site_torrents(self, url: str, site, image_xpath, index):
+    def __get_site_torrents(self, url: str, site, index, image_xpath=None, desc_xpath=None):
         """
         查询站点资源
         """
@@ -863,13 +907,19 @@ class ShortPlayMonitorMod(_PluginBase):
         if not html:
             logger.error(f"请求种子详情页失败 {torrents[0].get('page_url')}")
             return None
-
-        image = html.xpath(image_xpath)[0]
-        if not image:
-            logger.error(f"未获取到种子封面图 {torrents[0].get('page_url')}")
-            return None
-
-        return str(image)
+        
+        if image_xpath:
+            image = html.xpath(image_xpath)[0]
+            if not image:
+                logger.error(f"未获取到种子封面图 {torrents[0].get('page_url')}")
+                return None
+            return str(image)
+        if desc_xpath:
+            desc = html.xpath(desc_xpath)
+            if not desc:
+                logger.error(f"未获取到种子简介 {torrents[0].get('page_url')}")
+                return None
+            return self.clean_text_list(desc)[-1]
 
     def __get_page_source(self, url: str, site):
         """
@@ -1249,3 +1299,21 @@ class ShortPlayMonitorMod(_PluginBase):
                 except Exception as e:
                     print(str(e))
         self._observer = []
+
+    
+    def clean_text_list(text_list):
+        cleaned = []
+        for line in text_list:
+            # 去除首尾空白字符（包括 \n、\t、全角空格、\xa0）
+            line = line.strip()
+
+            # 替换全角空格（\u3000）和不间断空格（\xa0）为普通空格
+            line = line.replace('\u3000', ' ').replace('\xa0', ' ')
+
+            # 替换多个空格（包括中文空格）为一个普通空格
+            line = re.sub(r'[ \u3000\xa0]+', ' ', line)
+
+            # 去掉多余空行
+            if line:
+                cleaned.append(line)
+        return cleaned
