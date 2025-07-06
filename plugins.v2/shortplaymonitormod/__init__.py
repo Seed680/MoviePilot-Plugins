@@ -65,7 +65,7 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "1.7.1"
+    plugin_version = "1.7.2"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -828,7 +828,6 @@ class ShortPlayMonitorMod(_PluginBase):
         从agsv或者萝莉站查询封面
         """
         try:
-            image = None
             # 查询索引
             domain = "agsvpt.com"
             site = SiteOper().get_by_domain(domain)
@@ -915,7 +914,7 @@ class ShortPlayMonitorMod(_PluginBase):
                 return None
             return str(image)
         if desc_xpath:
-            desc = html.xpath(desc_xpath)
+            desc = html.xpath(desc_xpath)[0]
             if not desc:
                 logger.error(f"未获取到种子简介 {torrents[0].get('page_url')}")
                 return None
