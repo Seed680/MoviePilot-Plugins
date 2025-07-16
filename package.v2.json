@@ -165,11 +165,12 @@
         "name": "本地插件安装魔改版",
         "description": "(基于KoWming魔改版)上传本地ZIP插件包进行安装。",
         "labels": "安装",
-        "version": "1.3",
+        "version": "1.4",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.4": "兼容联邦插件安装",
             "v1.3": "自用插件，符合mp命名规范"
         }
     },

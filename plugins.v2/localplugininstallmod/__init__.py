@@ -27,7 +27,7 @@ class LocalPluginInstallMod(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.3"
+    plugin_version = "1.4"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -162,20 +162,9 @@ class LocalPluginInstallMod(_PluginBase):
                     
                     # 解压文件
                     logger.info(f"开始解压到: {extract_path}")
-                    for file_info in zip_ref.infolist():
-                        # 跳过 __MACOSX 目录
-                        if '__MACOSX' in file_info.filename:
-                            continue
+                    zip_ref.extractall(extract_path)
                             
-                        # 处理文件路径
-                        if file_info.filename.startswith(f'{plugin_id.lower()}/'):
-                            # 如果文件在正确的插件目录下，直接解压
-                            zip_ref.extract(file_info, extract_path.parent)
-                        else:
-                            # 如果文件不在插件目录下，创建正确的目录结构
-                            target_path = extract_path / Path(file_info.filename).name
-                            with zip_ref.open(file_info) as source, open(target_path, 'wb') as target:
-                                shutil.copyfileobj(source, target)
+                        
                     
                     logger.info(f"解压完成: {extract_path}")
                     
