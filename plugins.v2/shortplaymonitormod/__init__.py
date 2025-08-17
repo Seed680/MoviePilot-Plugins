@@ -11,7 +11,8 @@ from xml.dom import minidom
 import chardet
 import pytz
 from PIL import Image
-from app.helper.sites import SitesHelper, SiteSpider
+from app.helper.sites import SitesHelper
+from app.modules.indexer.spider import SiteSpider
 from apscheduler.schedulers.background import BackgroundScheduler
 from lxml import etree
 from requests import RequestException
@@ -65,7 +66,7 @@ class ShortPlayMonitorMod(_PluginBase):
     # 插件图标
     plugin_icon = "Amule_B.png"
     # 插件版本
-    plugin_version = "1.7.2.1"
+    plugin_version = "1.7.3"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -376,13 +377,13 @@ class ShortPlayMonitorMod(_PluginBase):
             #         print(str(e))
             #         transfer_flag = False
             #         logger.error(f"{event_path} tmdb刮削失败", exc_info=True)
-                # 广播事件
-                # self.eventmanager.send_event(EventType.TransferComplete, {
-                #     'meta': file_meta,
-                #     'mediainfo': mediainfo,
-                #     'transferinfo': transferinfo
-                # })
-        # if not transfer_flag:
+            # 广播事件
+            # self.eventmanager.send_event(EventType.TransferComplete, {
+            #     'meta': file_meta,
+            #     'mediainfo': mediainfo,
+            #     'transferinfo': transferinfo
+            # })
+            # if not transfer_flag:
             logger.debug(f"source_dir:{source_dir}")
             logger.debug(f"dest_dir:{dest_dir}")
             target_path = event_path.replace(source_dir, dest_dir)
@@ -472,8 +473,8 @@ class ShortPlayMonitorMod(_PluginBase):
                 if store_conf == "local":
                     # 硬链接
                     retcode = self.__transfer_command(file_item=Path(event_path),
-                                                        target_file=target_path,
-                                                        transfer_type=self._transfer_type)
+                                                      target_file=target_path,
+                                                      transfer_type=self._transfer_type)
                 else:
                     # 源操作对象
                     source_oper = self.filemanager._FileManagerModule__get_storage_oper("local")
@@ -485,12 +486,12 @@ class ShortPlayMonitorMod(_PluginBase):
                     file_item.storage = "local"
                     file_item.path = event_path
                     new_item, errmsg = TransHandler._TransHandler__transfer_command(fileitem=file_item,
-                                                                                                target_storage=store_conf,
-                                                                                                target_file=Path(
-                                                                                                    target_path),
-                                                                                                transfer_type=self._transfer_type,
-                                                                                                source_oper=source_oper,
-                                                                                                target_oper=target_oper)
+                                                                                    target_storage=store_conf,
+                                                                                    target_file=Path(
+                                                                                        target_path),
+                                                                                    transfer_type=self._transfer_type,
+                                                                                    source_oper=source_oper,
+                                                                                    target_oper=target_oper)
                     logger.debug(f"new_item: {new_item} ")
                     if new_item:
                         retcode = 0
@@ -515,7 +516,7 @@ class ShortPlayMonitorMod(_PluginBase):
 
                     if store_conf == "local" and not (target_path.parent / "tvshow.nfo").exists():
                         self.__gen_tv_nfo_file(dir_path=target_path.parent,
-                                                title=title)
+                                               title=title)
                     # 内存生成nfo
                     if (store_conf != "local"
                             and None == self.filemanager.get_file_item(store_conf, (target_path.parent /
@@ -559,45 +560,45 @@ class ShortPlayMonitorMod(_PluginBase):
                     # 生成缩略图
                     if (store_conf == "local" and not (target_path.parent / "poster.jpg").exists()):
                         thumb_path = self.gen_file_thumb(title=title,
-                                                            rename_conf=rename_conf,
-                                                            file_path=target_path)
+                                                         rename_conf=rename_conf,
+                                                         file_path=target_path)
                         if thumb_path and Path(thumb_path).exists():
                             self.__save_poster(input_path=thumb_path,
-                                                poster_path=target_path.parent / "poster.jpg",
-                                                cover_conf=cover_conf)
+                                               poster_path=target_path.parent / "poster.jpg",
+                                               cover_conf=cover_conf)
                             if (target_path.parent / "poster.jpg").exists():
                                 logger.info(f"{target_path.parent / 'poster.jpg'} 缩略图已生成")
                             thumb_path.unlink()
                         else:
                             # 检查是否有缩略图
                             thumb_files = SystemUtils.list_files(directory=target_path.parent,
-                                                                    extensions=[".jpg"])
+                                                                 extensions=[".jpg"])
                             if thumb_files:
                                 # 生成poster
                                 for thumb in thumb_files:
                                     self.__save_poster(input_path=thumb,
-                                                        poster_path=target_path.parent / "poster.jpg",
-                                                        cover_conf=cover_conf)
+                                                       poster_path=target_path.parent / "poster.jpg",
+                                                       cover_conf=cover_conf)
                                     break
                                 # 删除多余jpg
                                 for thumb in thumb_files:
                                     Path(thumb).unlink()
                     if (store_conf != "local"
                             and None == self.filemanager.get_file_item(store_conf,
-                                                                        (target_path.parent / "poster.jpg"))):
+                                                                       (target_path.parent / "poster.jpg"))):
                         # 没有缩略图 则本地生成
                         thumb_path = self.gen_file_thumb(title=title,
-                                                            rename_conf=rename_conf,
-                                                            file_path=Path(event_path),
-                                                            to_thumb_path="/tmp/shortplaymonitormod" /
-                                                                        target_path.parent.relative_to(
-                                                                Path("/")))
+                                                         rename_conf=rename_conf,
+                                                         file_path=Path(event_path),
+                                                         to_thumb_path="/tmp/shortplaymonitormod" /
+                                                                       target_path.parent.relative_to(
+                                                                           Path("/")))
                         if thumb_path and Path(thumb_path).exists():
                             self.__save_poster(input_path=thumb_path,
-                                                poster_path="/tmp/shortplaymonitormod" /
-                                                            target_path.parent.relative_to(
-                                                    Path("/")) / "poster.jpg",
-                                                cover_conf=cover_conf)
+                                               poster_path="/tmp/shortplaymonitormod" /
+                                                           target_path.parent.relative_to(
+                                                               Path("/")) / "poster.jpg",
+                                               cover_conf=cover_conf)
                             if ("/tmp/shortplaymonitormod" / target_path.parent.relative_to(
                                     Path("/")) / "poster.jpg").exists():
                                 file_item = FileItem()
@@ -625,7 +626,7 @@ class ShortPlayMonitorMod(_PluginBase):
                     logger.error(f"文件 {event_path} 硬链接失败，错误码：{retcode}")
             if self._notify:
                 # 发送消息汇总
-                media_list = self._medias.get(mediainfo.title_year if mediainfo else title) or {}
+                media_list = self._medias.get(title) or {}
                 if media_list:
                     media_files = media_list.get("files") or []
                     if media_files:
@@ -642,7 +643,7 @@ class ShortPlayMonitorMod(_PluginBase):
                         "files": [str(event_path)],
                         "time": datetime.datetime.now()
                     }
-                self._medias[mediainfo.title_year if mediainfo else title] = media_list
+                self._medias[title] = media_list
         except Exception as e:
             logger.error(f"event_handler_created error: {e}", exc_info=True)
         if Path('/tmp/shortplaymonitormod/').exists():
@@ -796,7 +797,7 @@ class ShortPlayMonitorMod(_PluginBase):
                 image_xpath = "//*[@id='kdescr']/img[1]/@src"
                 # 查询站点资源
                 logger.info(f"开始检索 {site.name} {title}")
-                image = self.__get_site_torrents(url=req_url, site=site, index=index,image_xpath=image_xpath)
+                image = self.__get_site_torrents(url=req_url, site=site, index=index, image_xpath=image_xpath)
             if not image:
                 domain = "ilolicon.com"
                 site = SiteOper().get_by_domain(domain)
@@ -808,7 +809,7 @@ class ShortPlayMonitorMod(_PluginBase):
                     image_xpath = "//*[@id='kdescr']/img[1]/@src"
                     # 查询站点资源
                     logger.info(f"开始检索 {site.name} {title}")
-                    image = self.__get_site_torrents(url=req_url, site=site, index=index,image_xpath=image_xpath)
+                    image = self.__get_site_torrents(url=req_url, site=site, index=index, image_xpath=image_xpath)
 
             if not image:
                 logger.error(f"检索站点 {title} 封面失败")
@@ -821,7 +822,6 @@ class ShortPlayMonitorMod(_PluginBase):
         except Exception as e:
             logger.error(f"检索站点 {title} 封面失败 {str(e)}", exc_info=True)
             return None
-
 
     def gen_desc_from_site(self, title: str):
         """
@@ -838,7 +838,7 @@ class ShortPlayMonitorMod(_PluginBase):
                 desc_xpath = "//*[@id='kdescr']/text()"
                 # 查询站点资源
                 logger.info(f"开始检索 {site.name} {title}")
-                desc = self.__get_site_torrents(url=req_url, site=site, index=index,desc_xpath=desc_xpath)
+                desc = self.__get_site_torrents(url=req_url, site=site, index=index, desc_xpath=desc_xpath)
             if not desc:
                 domain = "ilolicon.com"
                 site = SiteOper().get_by_domain(domain)
@@ -850,7 +850,7 @@ class ShortPlayMonitorMod(_PluginBase):
                     desc_xpath = "//*[@id='kdescr']/text()"
                     # 查询站点资源
                     logger.info(f"开始检索 {site.name} {title}")
-                    desc = self.__get_site_torrents(url=req_url, site=site, index=index,desc_xpath=desc_xpath)
+                    desc = self.__get_site_torrents(url=req_url, site=site, index=index, desc_xpath=desc_xpath)
 
             if not desc:
                 logger.error(f"检索站点 {title} 简介失败")
@@ -907,7 +907,7 @@ class ShortPlayMonitorMod(_PluginBase):
         if not html:
             logger.error(f"请求种子详情页失败 {torrents[0].get('page_url')}")
             return None
-        
+
         if image_xpath:
             image = html.xpath(image_xpath)[0]
             if not image:
@@ -1302,7 +1302,6 @@ class ShortPlayMonitorMod(_PluginBase):
                     print(str(e))
         self._observer = []
 
-    
     def clean_text_list(self, text_list):
         cleaned = []
         for line in text_list:
