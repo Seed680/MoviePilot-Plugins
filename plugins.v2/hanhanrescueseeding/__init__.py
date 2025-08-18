@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "0.0.6.1"
+    plugin_version = "1.0"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -75,7 +75,7 @@ class HanHanRescueSeeding(_PluginBase):
             logger.info("立即运行拯救憨憨保种区")
             self._scheduler = BackgroundScheduler(timezone=settings.TZ)
             self._scheduler.add_job(self._check_seeding, 'date',
-                                    run_date=datetime.now(
+                                    run_date=datetime.datetime.now(
                                         tz=pytz.timezone(settings.TZ)
                                     ) + datetime.timedelta(seconds=3),
                                     name="拯救憨憨保种区")
@@ -246,8 +246,8 @@ class HanHanRescueSeeding(_PluginBase):
                 seed = elem.xpath('div[3]/div/div[3]/a')
                 for sub_elem in seed:
                     # 打印子元素的文本内容和链接
-                    print("做种人数:", sub_elem.text)
-                    if sub_elem.text and int(sub_elem.text) < self._seeding_count:
+                    logger.info("做种人数:", sub_elem.text)
+                    if sub_elem.text and int(sub_elem.text) <= self._seeding_count:
                         # 如果做种人数小于设定值，则下载种子
                         download_element = elem.xpath('div[4]/div/a')
                         if download_element:

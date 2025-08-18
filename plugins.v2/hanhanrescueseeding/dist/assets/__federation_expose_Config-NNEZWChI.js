@@ -261,7 +261,7 @@ return (_ctx, _cache) => {
                           label: "做种人数",
                           type: "number",
                           placeholder: "请输入做种人数",
-                          hint: "当种子的做种人数超过该值时进行相应处理",
+                          hint: "当种子的做种人数小于等于该值时进行相应处理",
                           "persistent-hint": ""
                         }, null, 8, ["modelValue"])
                       ]),
