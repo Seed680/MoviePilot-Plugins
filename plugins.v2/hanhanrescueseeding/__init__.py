@@ -25,7 +25,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "0.0.2"
+    plugin_version = "0.0.3"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -49,7 +49,7 @@ class HanHanRescueSeeding(_PluginBase):
     def init_plugin(self, config: dict = None):
         self.downloader_helper = DownloaderHelper()
         # 获取站点信息
-        self.site = SiteOper().get_site(self.domain)
+        self.site = SiteOper().get_by_domain(self.domain)
         if not self.site:
             logger.error(f"站点 {self.domain} 未配置，请先在系统配置中添加站点")
             return
