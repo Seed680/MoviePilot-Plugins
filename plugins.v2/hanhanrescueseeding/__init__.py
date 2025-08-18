@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "0.0.5"
+    plugin_version = "0.0.6"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -79,10 +79,10 @@ class HanHanRescueSeeding(_PluginBase):
                                         tz=pytz.timezone(settings.TZ)
                                     ) + datetime.timedelta(seconds=3),
                                     name="拯救憨憨保种区")
-        if self._scheduler.get_jobs():
-                # 启动服务
-                self._scheduler.print_jobs()
-                self._scheduler.start()
+            if self._scheduler.get_jobs():
+                    # 启动服务
+                    self._scheduler.print_jobs()
+                    self._scheduler.start()
 
     def get_form(self) -> Tuple[Optional[List[dict]], Dict[str, Any]]:
         """
