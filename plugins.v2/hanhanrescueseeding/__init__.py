@@ -1,4 +1,6 @@
 import re
+import datetime
+import pytz
 from typing import List, Tuple, Dict, Any, Optional
 
 import chardet
@@ -41,6 +43,7 @@ class HanHanRescueSeeding(_PluginBase):
     downloader_helper = None
     _scheduler = None
     _enable = False
+    _run_once = False
     _cron = None
     _downloader = None
     _seeding_count = 10
@@ -57,6 +60,7 @@ class HanHanRescueSeeding(_PluginBase):
         # 读取配置
         if config:
             self._enable = config.get("enable", False)
+            self._run_once = config.get("run_once", False)
             self._cron = config.get("cron")
             self._downloader = config.get("downloader", None)
             self._seeding_count = config.get("seeding_count", 10)
@@ -64,15 +68,21 @@ class HanHanRescueSeeding(_PluginBase):
 
         # 停止现有任务
         self.stop_service()
-
-        # 启动定时任务
-        if self._enable and self._cron:
+        if self._run_once:
+            self._run_once = False
+            config.update({"run_once": False})
+            self.update_config(config=config)
+            logger.info("立即运行拯救憨憨保种区")
             self._scheduler = BackgroundScheduler(timezone=settings.TZ)
-            self._scheduler.add_job(func=self._check_seeding,
-                                    trigger=CronTrigger.from_crontab(self._cron),
-                                    name="憨憨保种区")
-            self._scheduler.print_jobs()
-            self._scheduler.start()
+            self._scheduler.add_job(self._check_seeding, 'date',
+                                    run_date=datetime.now(
+                                        tz=pytz.timezone(settings.TZ)
+                                    ) + datetime.timedelta(seconds=3),
+                                    name="拯救憨憨保种区")
+        if self._scheduler.get_jobs():
+                # 启动服务
+                self._scheduler.print_jobs()
+                self._scheduler.start()
 
     def get_form(self) -> Tuple[Optional[List[dict]], Dict[str, Any]]:
         """
@@ -80,6 +90,7 @@ class HanHanRescueSeeding(_PluginBase):
         """
         return None, {
             "enable": self._enable,
+            "run_once": self._run_once,
             "cron": self._cron,
             "downloader": self._downloader,
             "seeding_count": self._seeding_count,
@@ -94,6 +105,7 @@ class HanHanRescueSeeding(_PluginBase):
             # 遍历配置中的键并设置相应的属性
             for key in (
                 "enable",
+                "run_once"
                 "cron",
                 "downloader",
                 "seeding_count",
@@ -117,6 +129,7 @@ class HanHanRescueSeeding(_PluginBase):
 
         return {
             "enable": self._enable,
+            "run_once": self._run_once,
             "cron": self._cron,
             "downloader": self._downloader,
             "seeding_count": self._seeding_count,
