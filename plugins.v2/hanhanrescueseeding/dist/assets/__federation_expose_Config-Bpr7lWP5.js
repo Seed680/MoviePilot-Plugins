@@ -35,7 +35,7 @@ const saving = ref(false);
 
 // 配置数据，使用默认值和初始配置合并
 const defaultConfig = {
-  id: 'hanhanrescueseeding',
+  id: 'HanHanRescueSeeding',
   name: '憨憨保种区',
   enable: false,
   cron: '',
