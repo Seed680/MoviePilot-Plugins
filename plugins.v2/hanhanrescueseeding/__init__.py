@@ -25,7 +25,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "0.0.1"
+    plugin_version = "0.0.2"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -286,6 +286,9 @@ class HanHanRescueSeeding(_PluginBase):
             page_source = ""
 
         return page_source
+
+    def get_page(self) -> List[dict]:
+        pass
 
     def stop_service(self):
         """
