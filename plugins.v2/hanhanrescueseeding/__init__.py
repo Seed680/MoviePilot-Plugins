@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.1.6"
+    plugin_version = "1.1.7"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -48,6 +48,7 @@ class HanHanRescueSeeding(_PluginBase):
     _cron = None
     _downloader = None
     _seeding_count = None
+    _download_limit = None
     _save_path = None
     _custom_tag = None
 
@@ -72,6 +73,7 @@ class HanHanRescueSeeding(_PluginBase):
                 self._cron = config.get("cron")
                 self._downloader = config.get("downloader", None)
                 self._seeding_count = config.get("seeding_count", "1-3")
+                self._download_limit = config.get("download_limit", 5)
                 self._save_path = config.get("save_path")
                 self._custom_tag = config.get("custom_tag")
 
@@ -105,6 +107,7 @@ class HanHanRescueSeeding(_PluginBase):
             "cron": self._cron,
             "downloader": self._downloader,
             "seeding_count": self._seeding_count,
+            "download_limit": self._download_limit,
             "all_downloaders": self._all_downloaders,
             "save_path": self._save_path,
             "custom_tag": self._custom_tag
@@ -121,6 +124,7 @@ class HanHanRescueSeeding(_PluginBase):
                 "cron",
                 "downloader",
                 "seeding_count",
+                "download_limit",
                 "save_path",
                 "custom_tag"
             ):
@@ -146,6 +150,7 @@ class HanHanRescueSeeding(_PluginBase):
             "cron": self._cron,
             "downloader": self._downloader,
             "seeding_count": self._seeding_count,
+            "download_limit": self._download_limit,
             "all_downloaders": self._all_downloaders,
             "save_path": self._save_path,
             "custom_tag": self._custom_tag
@@ -243,7 +248,7 @@ class HanHanRescueSeeding(_PluginBase):
             if not self._downloader:
                 logger.error("未配置下载器，无法执行保种任务")
                 return
-            
+            downloaded_count = 0
             for page in range(0, 11):
                 torrent_detail_source = self._get_page_source(url=f"https://" + self.domain +"/rescue.php?page={page}", site=self.site)
                 if not torrent_detail_source:
@@ -286,6 +291,10 @@ class HanHanRescueSeeding(_PluginBase):
                                 except ValueError:
                                     logger.error(f"无效的数字格式: {seeding_count_str}")
                                     continue
+                            # 检查下载数量限制
+                            if self._download_limit > 0 and downloaded_count >= self._download_limit:
+                                logger.info(f"已达到单次下载数量限制 ({self._download_limit})，停止下载")
+                                return
                             # 如果做种人数在设定区间内，则下载种子
                             download_element = elem.xpath('div[4]/div/a')
                             if download_element:
@@ -309,8 +318,13 @@ class HanHanRescueSeeding(_PluginBase):
                                                     download_kwargs["tag"] = self._custom_tag
                                                 
                                                 # 下载种子文件
-                                                service_info.instance.add_torrent(**download_kwargs)
-                                                logger.info(f"成功下载种子: {download_link}")
+                                                result = service_info.instance.add_torrent(**download_kwargs)
+                                                if result:
+                                                    logger.info(f"成功下载种子: {download_link}")
+                                                    downloaded_count+=1
+                                                else:
+                                                    logger.error(f"下载种子失败: {download_link}")
+                                                
                                             except Exception as e:
                                                 logger.error(f"下载种子失败: {str(e)}")
                                         else:
@@ -346,8 +360,8 @@ class HanHanRescueSeeding(_PluginBase):
                 page_source = ret.text
         else:
             page_source = ""
-
         return page_source
+
     def get_page(self) -> List[dict]:
         pass
 
