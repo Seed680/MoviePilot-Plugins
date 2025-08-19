@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.1.4.1"
+    plugin_version = "1.1.5"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -47,48 +47,53 @@ class HanHanRescueSeeding(_PluginBase):
     _run_once = False
     _cron = None
     _downloader = None
-    _seeding_count = 10
+    _seeding_count = None
     _save_path = None
     _custom_tag = None
 
     def init_plugin(self, config: dict = None):
-        self.downloader_helper = DownloaderHelper()
-        # 获取站点信息
-        self.site = SiteOper().get_by_domain(self.domain)
-        if not self.site:
-            self.domain = "hhan.club"
+        try: 
+
+            self.downloader_helper = DownloaderHelper()
+            # 获取站点信息
             self.site = SiteOper().get_by_domain(self.domain)
             if not self.site:
-                logger.error(f"憨憨站点未配置，请先在系统配置中添加站点")
-                return
-        
-        # 读取配置
-        if config:
-            self._enable = config.get("enable", False)
-            self._run_once = config.get("run_once", False)
-            self._cron = config.get("cron")
-            self._downloader = config.get("downloader", None)
-            self._seeding_count = config.get("seeding_count", 10)
-            self._save_path = config.get("save_path")
-            self._custom_tag = config.get("custom_tag")
+                self.domain = "hhan.club"
+                self.site = SiteOper().get_by_domain(self.domain)
+                if not self.site:
+                    logger.error(f"憨憨站点未配置，请先在系统配置中添加站点")
+                    return
+            
+            # 读取配置
+            if config:
+                logger.debug(f"读取配置：{config}")
+                self._enable = config.get("enable", False)
+                self._run_once = config.get("run_once", False)
+                self._cron = config.get("cron")
+                self._downloader = config.get("downloader", None)
+                self._seeding_count = config.get("seeding_count", "1-5")
+                self._save_path = config.get("save_path")
+                self._custom_tag = config.get("custom_tag")
 
-        # 停止现有任务
-        self.stop_service()
-        if self._run_once:
-            self._run_once = False
-            config.update({"run_once": False})
-            self.update_config(config=config)
-            logger.info("立即运行拯救憨憨保种区")
-            self._scheduler = BackgroundScheduler(timezone=settings.TZ)
-            self._scheduler.add_job(self._check_seeding, 'date',
-                                    run_date=datetime.datetime.now(
-                                        tz=pytz.timezone(settings.TZ)
-                                    ) + datetime.timedelta(seconds=3),
-                                    name="拯救憨憨保种区")
-            if self._scheduler.get_jobs():
-                    # 启动服务
-                    self._scheduler.print_jobs()
-                    self._scheduler.start()
+            # 停止现有任务
+            self.stop_service()
+            if self._run_once:
+                self._run_once = False
+                config.update({"run_once": False})
+                self.update_config(config=config)
+                logger.info("立即运行拯救憨憨保种区")
+                self._scheduler = BackgroundScheduler(timezone=settings.TZ)
+                self._scheduler.add_job(self._check_seeding, 'date',
+                                        run_date=datetime.datetime.now(
+                                            tz=pytz.timezone(settings.TZ)
+                                        ) + datetime.timedelta(seconds=3),
+                                        name="拯救憨憨保种区")
+                if self._scheduler.get_jobs():
+                        # 启动服务
+                        self._scheduler.print_jobs()
+                        self._scheduler.start()
+        except Exception as e:
+            logger.error(f"初始化失败：{str(e)}", exc_info=True)
 
     def get_form(self) -> Tuple[Optional[List[dict]], Dict[str, Any]]:
         """
@@ -230,85 +235,88 @@ class HanHanRescueSeeding(_PluginBase):
         return []
 
     def _check_seeding(self):
-        if not self._enable:
-            logger.info("憨憨保种区插件未启用，跳过检查")
-            return
+        try:
+            if not self._enable:
+                logger.info("憨憨保种区插件未启用，跳过检查")
+                return
 
-        if not self._downloader:
-            logger.error("未配置下载器，无法执行保种任务")
-            return
-        
-        for page in range(0, 11):
-            torrent_detail_source = self._get_page_source(url=f"https://" + self.domain +"/rescue.php?page={page}", site=self.site)
-            if not torrent_detail_source:
-                logger.error(f"请求憨憨保种区第{page}页失败")
-                break
-            html = etree.HTML(torrent_detail_source)
-            if html is None:
-                logger.error(f"憨憨保种区第{page}页页面解析失败")
-                break
-            elements = html.xpath('//*[@id="mainContent"]/div[1]/div[2]/div[3]/div')
-            if len(elements) == 0:
-                break
-            for elem in elements:
-                # 在每个找到的元素中再次通过xpath搜索
-                seed = elem.xpath('div[3]/div/div[3]/a')
-                for sub_elem in seed:
-                    # 打印子元素的文本内容和链接
-                    logger.info("做种人数:", sub_elem.text)
-                    # 检查做种人数是否在设定区间内
-                    if sub_elem.text:
-                        seeding_count_str = str(self._seeding_count)
-                        if '-' in seeding_count_str:
-                            # 分割范围字符串并转换为整数
-                            range_parts = seeding_count_str.split('-')
-                            if len(range_parts) == 2:
+            if not self._downloader:
+                logger.error("未配置下载器，无法执行保种任务")
+                return
+            
+            for page in range(0, 11):
+                torrent_detail_source = self._get_page_source(url=f"https://" + self.domain +"/rescue.php?page={page}", site=self.site)
+                if not torrent_detail_source:
+                    logger.error(f"请求憨憨保种区第{page}页失败")
+                    break
+                html = etree.HTML(torrent_detail_source)
+                if html is None:
+                    logger.error(f"憨憨保种区第{page}页页面解析失败")
+                    break
+                elements = html.xpath('//*[@id="mainContent"]/div[1]/div[2]/div[3]/div')
+                if len(elements) == 0:
+                    break
+                for elem in elements:
+                    # 在每个找到的元素中再次通过xpath搜索
+                    seed = elem.xpath('div[3]/div/div[3]/a')
+                    for sub_elem in seed:
+                        # 打印子元素的文本内容和链接
+                        logger.info("做种人数:", sub_elem.text)
+                        # 检查做种人数是否在设定区间内
+                        if sub_elem.text:
+                            seeding_count_str = str(self._seeding_count)
+                            if '-' in seeding_count_str:
+                                # 分割范围字符串并转换为整数
+                                range_parts = seeding_count_str.split('-')
+                                if len(range_parts) == 2:
+                                    try:
+                                        lower_bound = int(range_parts[0])
+                                        upper_bound = int(range_parts[1])
+                                        # 检查做种人数是否在范围内
+                                        if (lower_bound > int(sub_elem.text)) or (upper_bound < int(sub_elem.text)):
+                                            return
+                                    except ValueError:
+                                        logger.error(f"无效的范围格式: {seeding_count_str}")
+                                        continue
+                            else:
+                                # 不包含-号，判断sub_elem.text是否小于该数字
                                 try:
-                                    lower_bound = int(range_parts[0])
-                                    upper_bound = int(range_parts[1])
-                                    # 检查做种人数是否在范围内
-                                    if (lower_bound > int(sub_elem.text)) or (upper_bound < int(sub_elem.text)):
+                                    if int(sub_elem.text) > int(seeding_count_str):
                                         return
                                 except ValueError:
-                                    logger.error(f"无效的范围格式: {seeding_count_str}")
+                                    logger.error(f"无效的数字格式: {seeding_count_str}")
                                     continue
-                        else:
-                            # 不包含-号，判断sub_elem.text是否小于该数字
-                            try:
-                                if int(sub_elem.text) > int(seeding_count_str):
-                                    return
-                            except ValueError:
-                                logger.error(f"无效的数字格式: {seeding_count_str}")
-                                continue
-                        # 如果做种人数在设定区间内，则下载种子
-                        download_element = elem.xpath('div[4]/div/a')
-                        if download_element:
-                            download_link = "https://" + self.domain+"/" + download_element[0].get('href')
-                            if download_link:
-                                logger.info(f"下载种子链接: {download_link}")
-                                # 调用下载器下载种子
-                                for downloader in self._downloader:
-                                    service_info = self.downloader_helper.get_service(downloader)
-                                    if service_info and service_info.instance:
-                                        try:
-                                            # 准备下载参数
-                                            download_kwargs = {
-                                                "content": download_link,
-                                                "download_dir": self._save_path,
-                                                "cookie": self.site.cookie
-                                            }
-                                            
-                                            # 如果有自定义标签，则添加标签参数
-                                            if self._custom_tag:
-                                                download_kwargs["tag"] = self._custom_tag
-                                            
-                                            # 下载种子文件
-                                            service_info.instance.add_torrent(**download_kwargs)
-                                            logger.info(f"成功下载种子: {download_link}")
-                                        except Exception as e:
-                                            logger.error(f"下载种子失败: {str(e)}")
-                                    else:
-                                        logger.error(f"下载器 {downloader} 未连接或不可用")
+                            # 如果做种人数在设定区间内，则下载种子
+                            download_element = elem.xpath('div[4]/div/a')
+                            if download_element:
+                                download_link = "https://" + self.domain+"/" + download_element[0].get('href')
+                                if download_link:
+                                    logger.info(f"下载种子链接: {download_link}")
+                                    # 调用下载器下载种子
+                                    for downloader in self._downloader:
+                                        service_info = self.downloader_helper.get_service(downloader)
+                                        if service_info and service_info.instance:
+                                            try:
+                                                # 准备下载参数
+                                                download_kwargs = {
+                                                    "content": download_link
+                                                    "cookie": self.site.cookie
+                                                }
+                                                if self._save_path:
+                                                    download_kwargs["download_dir"] = self._save_path
+                                                # 如果有自定义标签，则添加标签参数
+                                                if self._custom_tag:
+                                                    download_kwargs["tag"] = self._custom_tag
+                                                
+                                                # 下载种子文件
+                                                service_info.instance.add_torrent(**download_kwargs)
+                                                logger.info(f"成功下载种子: {download_link}")
+                                            except Exception as e:
+                                                logger.error(f"下载种子失败: {str(e)}")
+                                        else:
+                                            logger.error(f"下载器 {downloader} 未连接或不可用")
+        except Exception as e:
+            logger.error(f"检查保种区异常:{str(e)}", exc_info=True)
 
     def _get_page_source(self, url: str, site):
         """
