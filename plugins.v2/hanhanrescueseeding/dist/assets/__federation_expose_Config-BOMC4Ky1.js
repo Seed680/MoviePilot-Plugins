@@ -40,7 +40,7 @@ const defaultConfig = {
   enable: false,
   cron: '',
   downloader: '',
-  seeding_count: 3,
+  seeding_count: '',
   all_downloaders: [],
   save_path: '',
   run_once: false,

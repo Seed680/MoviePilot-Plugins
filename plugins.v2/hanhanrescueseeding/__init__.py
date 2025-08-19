@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.1.4"
+    plugin_version = "1.1.4.1"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
