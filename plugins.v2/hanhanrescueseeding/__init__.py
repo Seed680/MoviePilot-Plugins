@@ -250,7 +250,7 @@ class HanHanRescueSeeding(_PluginBase):
                 return
             downloaded_count = 0
             for page in range(0, 11):
-                logger.info(f"憨憨保种区第{page + 1}页"))
+                logger.info(f"憨憨保种区第{page + 1}页")
                 torrent_detail_source = self._get_page_source(url=f"https://" + self.domain +"/rescue.php?page={page}", site=self.site)
                 if not torrent_detail_source:
                     logger.error(f"请求憨憨保种区第{page}页失败")
