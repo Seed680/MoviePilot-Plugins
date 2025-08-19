@@ -230,11 +230,12 @@
         "name": "憨憨保种区",
         "description": "自动下载憨憨保种区的种子，支持下载器配置。",
         "labels": "保种",
-        "version": "1.0",
+        "version": "1.1",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.1": "1.支持自定义标签\n2.做种人数支持区间\n3.支持备用域名",
             "v1.0": "初始版本"
         }
     }

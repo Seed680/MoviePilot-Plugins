@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.0"
+    plugin_version = "1.1"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -48,14 +48,18 @@ class HanHanRescueSeeding(_PluginBase):
     _downloader = None
     _seeding_count = 10
     _save_path = None
+    _custom_tag = None
 
     def init_plugin(self, config: dict = None):
         self.downloader_helper = DownloaderHelper()
         # 获取站点信息
         self.site = SiteOper().get_by_domain(self.domain)
         if not self.site:
-            logger.error(f"站点 {self.domain} 未配置，请先在系统配置中添加站点")
-            return
+            self.domain = "hhan.club"
+            self.site = SiteOper().get_by_domain(self.domain)
+            if not self.site:
+                logger.error(f"憨憨站点未配置，请先在系统配置中添加站点")
+                return
         
         # 读取配置
         if config:
@@ -65,6 +69,7 @@ class HanHanRescueSeeding(_PluginBase):
             self._downloader = config.get("downloader", None)
             self._seeding_count = config.get("seeding_count", 10)
             self._save_path = config.get("save_path")
+            self._custom_tag = config.get("custom_tag")
 
         # 停止现有任务
         self.stop_service()
@@ -95,7 +100,8 @@ class HanHanRescueSeeding(_PluginBase):
             "downloader": self._downloader,
             "seeding_count": self._seeding_count,
             "all_downloaders": self._all_downloaders,
-            "save_path": self._save_path
+            "save_path": self._save_path,
+            "custom_tag": self._custom_tag
         }
 
 
@@ -105,11 +111,12 @@ class HanHanRescueSeeding(_PluginBase):
             # 遍历配置中的键并设置相应的属性
             for key in (
                 "enable",
-                "run_once"
+                "run_once",
                 "cron",
                 "downloader",
                 "seeding_count",
-                "save_path"
+                "save_path",
+                "custom_tag"
             ):
                 setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
 
@@ -134,7 +141,8 @@ class HanHanRescueSeeding(_PluginBase):
             "downloader": self._downloader,
             "seeding_count": self._seeding_count,
             "all_downloaders": self._all_downloaders,
-            "save_path": self._save_path
+            "save_path": self._save_path,
+            "custom_tag": self._custom_tag
         }
 
     @property
@@ -230,7 +238,7 @@ class HanHanRescueSeeding(_PluginBase):
             return
         
         for page in range(0, 11):
-            torrent_detail_source = self._get_page_source(url=f"https://hhanclub.top/rescue.php?page={page}", site=self.site)
+            torrent_detail_source = self._get_page_source(url=f"https://" + self.domain +"/rescue.php?page={page}", site=self.site)
             if not torrent_detail_source:
                 logger.error(f"请求憨憨保种区第{page}页失败")
                 break
@@ -247,11 +255,34 @@ class HanHanRescueSeeding(_PluginBase):
                 for sub_elem in seed:
                     # 打印子元素的文本内容和链接
                     logger.info("做种人数:", sub_elem.text)
-                    if sub_elem.text and int(sub_elem.text) <= self._seeding_count:
-                        # 如果做种人数小于设定值，则下载种子
+                    # 检查做种人数是否在设定区间内
+                    if sub_elem.text:
+                        seeding_count_str = str(self._seeding_count)
+                        if '-' in seeding_count_str:
+                            # 分割范围字符串并转换为整数
+                            range_parts = seeding_count_str.split('-')
+                            if len(range_parts) == 2:
+                                try:
+                                    lower_bound = int(range_parts[0])
+                                    upper_bound = int(range_parts[1])
+                                    # 检查做种人数是否在范围内
+                                    if (lower_bound > int(sub_elem.text)) or (upper_bound < int(sub_elem.text)):
+                                        return
+                                except ValueError:
+                                    logger.error(f"无效的范围格式: {seeding_count_str}")
+                                    continue
+                        else:
+                            # 不包含-号，判断sub_elem.text是否小于该数字
+                            try:
+                                if int(sub_elem.text) > int(seeding_count_str):
+                                    return
+                            except ValueError:
+                                logger.error(f"无效的数字格式: {seeding_count_str}")
+                                continue
+                        # 如果做种人数在设定区间内，则下载种子
                         download_element = elem.xpath('div[4]/div/a')
                         if download_element:
-                            download_link = "https://hhanclub.top/" + download_element[0].get('href')
+                            download_link = "https://" + self.domain+"/" + download_element[0].get('href')
                             if download_link:
                                 logger.info(f"下载种子链接: {download_link}")
                                 # 调用下载器下载种子
@@ -259,10 +290,19 @@ class HanHanRescueSeeding(_PluginBase):
                                     service_info = self.downloader_helper.get_service(downloader)
                                     if service_info and service_info.instance:
                                         try:
+                                            # 准备下载参数
+                                            download_kwargs = {
+                                                "content": download_link,
+                                                "download_dir": self._save_path,
+                                                "cookie": self.site.cookie
+                                            }
+                                            
+                                            # 如果有自定义标签，则添加标签参数
+                                            if self._custom_tag:
+                                                download_kwargs["tag"] = self._custom_tag
+                                            
                                             # 下载种子文件
-                                            service_info.instance.add_torrent(content=download_link,
-                                             download_dir=self._save_path,
-                                             cookie=self.site.cookie)
+                                            service_info.instance.add_torrent(**download_kwargs)
                                             logger.info(f"成功下载种子: {download_link}")
                                         except Exception as e:
                                             logger.error(f"下载种子失败: {str(e)}")
@@ -299,19 +339,3 @@ class HanHanRescueSeeding(_PluginBase):
             page_source = ""
 
         return page_source
-
-    def get_page(self) -> List[dict]:
-        pass
-
-    def stop_service(self):
-        """
-        退出插件
-        """
-        try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._scheduler.shutdown()
-                self._scheduler = None
-        except Exception as e:
-            logger.error("退出插件失败：%s" % str(e))
