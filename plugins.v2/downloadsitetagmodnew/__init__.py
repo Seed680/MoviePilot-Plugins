@@ -43,7 +43,8 @@ class DownloadSiteTagModNew(_PluginBase):
     # 加载顺序
     plugin_order = 2
     # 可使用的用户级别
-    auth_level = 1
+    auth_level = 99
+    plugin_public_key = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIJy7s/o8eiVvC34Tki7CsybbghauQn+8smwpcACIGUGQkrYizsLjvof91vqGyNXXMCKZ8SExjpks+HGtR/YSvsCAwEAAQ=="
     # 日志前缀
     LOG_TAG = "[DownloadSiteTagModNew] "
 

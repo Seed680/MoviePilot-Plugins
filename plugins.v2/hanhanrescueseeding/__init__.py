@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.1.1"
+    plugin_version = "1.1.2"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -37,7 +37,8 @@ class HanHanRescueSeeding(_PluginBase):
     # 加载顺序
     plugin_order = 16
     # 可使用的用户级别
-    auth_level = 1
+    auth_level = 99
+    plugin_public_key = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIJy7s/o8eiVvC34Tki7CsybbghauQn+8smwpcACIGUGQkrYizsLjvof91vqGyNXXMCKZ8SExjpks+HGtR/YSvsCAwEAAQ=="
     domain = "hhanclub.top"
     # 私有属性
     downloader_helper = None
