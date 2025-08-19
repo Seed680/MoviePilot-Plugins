@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.1.5.2"
+    plugin_version = "1.1.6"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -71,7 +71,7 @@ class HanHanRescueSeeding(_PluginBase):
                 self._run_once = config.get("run_once", False)
                 self._cron = config.get("cron")
                 self._downloader = config.get("downloader", None)
-                self._seeding_count = config.get("seeding_count", "1-5")
+                self._seeding_count = config.get("seeding_count", "1-3")
                 self._save_path = config.get("save_path")
                 self._custom_tag = config.get("custom_tag")
 
