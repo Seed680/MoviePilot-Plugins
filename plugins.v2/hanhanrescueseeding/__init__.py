@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.1.8.7"
+    plugin_version = "1.1.9"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -37,8 +37,8 @@ class HanHanRescueSeeding(_PluginBase):
     # 加载顺序
     plugin_order = 16
     # 可使用的用户级别
-    auth_level = 99
-    plugin_public_key = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzX5Ft4P2mFCBCOSLV65lXfoCQBIes1I6hUqGpAuHas39YkljTrK7Xyia3Ybt7ylqKJpYH8JocPubk3LZYaGRl6CKESk8ZN8t1drNonRrJtQK3f0O03M4iZCsM4EcIpkcXzL6Ox0yu9rXW+n7fnPPil6z6/tWEzAIpI9Zt1O429CRacGHvVt+S6lhtGpqON2pzGUEhNyfG+xzPo8wO/anrdR28lv3mhro2HxvpEQFXQwxdgXA/xy+CneamzB1B69n09YoRavrwswJtnEKZVHQ4MHqJxRrVOPot6HcG7CZxtDpNVJANTK0z69cz4t+SCqBk2wSz362iX9n5Tb1qCDG5wIDAQAB"
+    auth_level = 1
+    # plugin_public_key = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzX5Ft4P2mFCBCOSLV65lXfoCQBIes1I6hUqGpAuHas39YkljTrK7Xyia3Ybt7ylqKJpYH8JocPubk3LZYaGRl6CKESk8ZN8t1drNonRrJtQK3f0O03M4iZCsM4EcIpkcXzL6Ox0yu9rXW+n7fnPPil6z6/tWEzAIpI9Zt1O429CRacGHvVt+S6lhtGpqON2pzGUEhNyfG+xzPo8wO/anrdR28lv3mhro2HxvpEQFXQwxdgXA/xy+CneamzB1B69n09YoRavrwswJtnEKZVHQ4MHqJxRrVOPot6HcG7CZxtDpNVJANTK0z69cz4t+SCqBk2wSz362iX9n5Tb1qCDG5wIDAQAB"
     domain = "hhanclub.top"
     # 私有属性
     downloader_helper = None
@@ -53,7 +53,7 @@ class HanHanRescueSeeding(_PluginBase):
     _custom_tag = None
 
     def init_plugin(self, config: dict = None):
-        try: 
+        try:
 
             self.downloader_helper = DownloaderHelper()
             # 获取站点信息
@@ -64,7 +64,7 @@ class HanHanRescueSeeding(_PluginBase):
                 if not self.site:
                     logger.error(f"憨憨站点未配置，请先在系统配置中添加站点")
                     return
-            
+
             # 读取配置
             if config:
                 logger.debug(f"读取配置：{config}")
@@ -91,9 +91,9 @@ class HanHanRescueSeeding(_PluginBase):
                                         ) + datetime.timedelta(seconds=3),
                                         name="拯救憨憨保种区")
                 if self._scheduler.get_jobs():
-                        # 启动服务
-                        self._scheduler.print_jobs()
-                        self._scheduler.start()
+                    # 启动服务
+                    self._scheduler.print_jobs()
+                    self._scheduler.start()
         except Exception as e:
             logger.error(f"初始化失败：{str(e)}", exc_info=True)
 
@@ -113,23 +113,21 @@ class HanHanRescueSeeding(_PluginBase):
             "custom_tag": self._custom_tag
         }
 
-
     def load_config(self, config: dict):
         """加载配置"""
         if config:
             # 遍历配置中的键并设置相应的属性
             for key in (
-                "enable",
-                "run_once",
-                "cron",
-                "downloader",
-                "seeding_count",
-                "download_limit",
-                "save_path",
-                "custom_tag"
+                    "enable",
+                    "run_once",
+                    "cron",
+                    "downloader",
+                    "seeding_count",
+                    "download_limit",
+                    "save_path",
+                    "custom_tag"
             ):
                 setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
-
 
     @staticmethod
     def get_render_mode() -> Tuple[str, str]:
@@ -182,7 +180,6 @@ class HanHanRescueSeeding(_PluginBase):
             return None
 
         return active_services
-
 
     @property
     def _all_downloaders(self) -> List[dict]:
@@ -256,13 +253,13 @@ class HanHanRescueSeeding(_PluginBase):
                 if not torrent_detail_source:
                     logger.error(f"请求憨憨保种区第{page}页失败")
                     break
-                logger.debug(f"憨憨保种区第{page + 1}页详情：" +torrent_detail_source)
+                # logger.debug(f"憨憨保种区第{page + 1}页详情：" +torrent_detail_source)
                 html = etree.HTML(torrent_detail_source)
                 if html is None:
                     logger.error(f"憨憨保种区第{page}页页面解析失败")
                     break
                 elements = html.xpath('//*[@id="mainContent"]/div[1]/div[2]/div[3]/div')
-                logger.info(f"第{page}页数据获取{len(elements)}条数据")
+                logger.info(f"第{page + 1}页数据获取{len(elements)}条数据")
                 if len(elements) == 0:
                     break
                 for elem in elements:
@@ -302,7 +299,7 @@ class HanHanRescueSeeding(_PluginBase):
                         # 如果做种人数在设定区间内，则下载种子
                         download_element = elem.xpath('div[4]/div/a')
                         if download_element:
-                            download_link = "https://" + self.domain+"/" + download_element[0].get('href')
+                            download_link = "https://" + self.domain + "/" + download_element[0].get('href')
                             if download_link:
                                 logger.info(f"下载种子链接: {download_link}")
                                 # 调用下载器下载种子
@@ -320,15 +317,15 @@ class HanHanRescueSeeding(_PluginBase):
                                         # 如果有自定义标签，则添加标签参数
                                         if self._custom_tag:
                                             download_kwargs["tag"] = self._custom_tag
-                                        
+
                                         # 下载种子文件
                                         result = service_info.instance.add_torrent(**download_kwargs)
                                         if result:
                                             logger.info(f"成功下载种子: {download_link}")
-                                            downloaded_count+=1
+                                            downloaded_count += 1
                                         else:
                                             logger.error(f"下载种子失败: {download_link}")
-                                        
+
                                     except Exception as e:
                                         logger.error(f"下载种子失败: {str(e)}")
                                 else:
