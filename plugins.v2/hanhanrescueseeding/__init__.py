@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.1.7.1"
+    plugin_version = "1.1.8"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -302,8 +302,8 @@ class HanHanRescueSeeding(_PluginBase):
                             if download_link:
                                 logger.info(f"下载种子链接: {download_link}")
                                 # 调用下载器下载种子
-                                for downloader in self._downloader:
-                                    service_info = self.downloader_helper.get_service(downloader)
+                                downloader = self._downloader:
+                                service_info = self.downloader_helper.get_service(downloader)
                                     if service_info and service_info.instance:
                                         try:
                                             # 准备下载参数
