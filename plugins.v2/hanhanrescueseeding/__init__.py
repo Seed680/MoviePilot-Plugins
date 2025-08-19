@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.1.8"
+    plugin_version = "1.1.8.1"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -250,6 +250,7 @@ class HanHanRescueSeeding(_PluginBase):
                 return
             downloaded_count = 0
             for page in range(0, 11):
+                logger.info(f"憨憨保种区第{page + 1}页"))
                 torrent_detail_source = self._get_page_source(url=f"https://" + self.domain +"/rescue.php?page={page}", site=self.site)
                 if not torrent_detail_source:
                     logger.error(f"请求憨憨保种区第{page}页失败")
@@ -259,6 +260,7 @@ class HanHanRescueSeeding(_PluginBase):
                     logger.error(f"憨憨保种区第{page}页页面解析失败")
                     break
                 elements = html.xpath('//*[@id="mainContent"]/div[1]/div[2]/div[3]/div')
+                logger.info(f"第{page}页数据获取{len(elements)}条数据")
                 if len(elements) == 0:
                     break
                 for elem in elements:
