@@ -40,7 +40,7 @@ const defaultConfig = {
   enable: false,
   cron: '',
   downloader: '',
-  seeding_count: '',
+  seeding_count: '1-3',
   all_downloaders: [],
   save_path: '',
   run_once: false,
@@ -258,9 +258,8 @@ return (_ctx, _cache) => {
                         _createVNode(_component_v_text_field, {
                           modelValue: config.seeding_count,
                           "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((config.seeding_count) = $event)),
-                          modelModifiers: { number: true },
                           label: "做种人数",
-                          type: "number",
+                          type: "text",
                           placeholder: "请输入做种人数",
                           hint: "例:3或者1-3",
                           "persistent-hint": ""
