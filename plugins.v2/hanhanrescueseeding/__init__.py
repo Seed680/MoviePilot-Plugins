@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.1.8.2"
+    plugin_version = "1.1.8.3"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -255,6 +255,7 @@ class HanHanRescueSeeding(_PluginBase):
                 if not torrent_detail_source:
                     logger.error(f"请求憨憨保种区第{page}页失败")
                     break
+                logger.debug(f"憨憨保种区第{page + 1}页详情：" +torrent_detail_source)
                 html = etree.HTML(torrent_detail_source)
                 if html is None:
                     logger.error(f"憨憨保种区第{page}页页面解析失败")
