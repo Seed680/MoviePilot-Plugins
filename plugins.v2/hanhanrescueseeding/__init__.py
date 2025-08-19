@@ -304,7 +304,7 @@ class HanHanRescueSeeding(_PluginBase):
                             if download_link:
                                 logger.info(f"下载种子链接: {download_link}")
                                 # 调用下载器下载种子
-                                downloader = self._downloader:
+                                downloader = self._downloader
                                 service_info = self.downloader_helper.get_service(downloader)
                                     if service_info and service_info.instance:
                                         try:
