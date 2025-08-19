@@ -306,31 +306,31 @@ class HanHanRescueSeeding(_PluginBase):
                                 # 调用下载器下载种子
                                 downloader = self._downloader
                                 service_info = self.downloader_helper.get_service(downloader)
-                                    if service_info and service_info.instance:
-                                        try:
-                                            # 准备下载参数
-                                            download_kwargs = {
-                                                "content": download_link,
-                                                "cookie": self.site.cookie
-                                            }
-                                            if self._save_path:
-                                                download_kwargs["download_dir"] = self._save_path
-                                            # 如果有自定义标签，则添加标签参数
-                                            if self._custom_tag:
-                                                download_kwargs["tag"] = self._custom_tag
-                                            
-                                            # 下载种子文件
-                                            result = service_info.instance.add_torrent(**download_kwargs)
-                                            if result:
-                                                logger.info(f"成功下载种子: {download_link}")
-                                                downloaded_count+=1
-                                            else:
-                                                logger.error(f"下载种子失败: {download_link}")
-                                            
-                                        except Exception as e:
-                                            logger.error(f"下载种子失败: {str(e)}")
-                                    else:
-                                        logger.error(f"下载器 {downloader} 未连接或不可用")
+                                if service_info and service_info.instance:
+                                    try:
+                                        # 准备下载参数
+                                        download_kwargs = {
+                                            "content": download_link,
+                                            "cookie": self.site.cookie
+                                        }
+                                        if self._save_path:
+                                            download_kwargs["download_dir"] = self._save_path
+                                        # 如果有自定义标签，则添加标签参数
+                                        if self._custom_tag:
+                                            download_kwargs["tag"] = self._custom_tag
+                                        
+                                        # 下载种子文件
+                                        result = service_info.instance.add_torrent(**download_kwargs)
+                                        if result:
+                                            logger.info(f"成功下载种子: {download_link}")
+                                            downloaded_count+=1
+                                        else:
+                                            logger.error(f"下载种子失败: {download_link}")
+                                        
+                                    except Exception as e:
+                                        logger.error(f"下载种子失败: {str(e)}")
+                                else:
+                                    logger.error(f"下载器 {downloader} 未连接或不可用")
         except Exception as e:
             logger.error(f"检查保种区异常:{str(e)}", exc_info=True)
 
