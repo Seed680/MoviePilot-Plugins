@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.1.8.6"
+    plugin_version = "1.1.8.7"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -250,7 +250,7 @@ class HanHanRescueSeeding(_PluginBase):
                 return
             downloaded_count = 0
             for page in range(0, 11):
-                url = "https://" + self.domain +f"/rescue.php?page={page}
+                url = "https://" + self.domain + f"/rescue.php?page={page}"
                 logger.info(f"憨憨保种区第{page + 1}页:{url}")
                 torrent_detail_source = self._get_page_source(url=url, site=self.site)
                 if not torrent_detail_source:
