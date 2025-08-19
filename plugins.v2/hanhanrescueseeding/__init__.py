@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.1.7"
+    plugin_version = "1.1.7.1"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -264,71 +264,71 @@ class HanHanRescueSeeding(_PluginBase):
                 for elem in elements:
                     # 在每个找到的元素中再次通过xpath搜索
                     seed = elem.xpath('div[3]/div/div[3]/a')
-                    for sub_elem in seed:
-                        # 打印子元素的文本内容和链接
-                        logger.info("做种人数:", sub_elem.text)
-                        # 检查做种人数是否在设定区间内
-                        if sub_elem.text:
-                            seeding_count_str = str(self._seeding_count)
-                            if '-' in seeding_count_str:
-                                # 分割范围字符串并转换为整数
-                                range_parts = seeding_count_str.split('-')
-                                if len(range_parts) == 2:
-                                    try:
-                                        lower_bound = int(range_parts[0])
-                                        upper_bound = int(range_parts[1])
-                                        # 检查做种人数是否在范围内
-                                        if (lower_bound > int(sub_elem.text)) or (upper_bound < int(sub_elem.text)):
-                                            return
-                                    except ValueError:
-                                        logger.error(f"无效的范围格式: {seeding_count_str}")
-                                        continue
-                            else:
-                                # 不包含-号，判断sub_elem.text是否小于该数字
+                    sub_elem = seed[0] if len(seed) > 0 else None
+                    # 打印子元素的文本内容和链接
+                    logger.info("做种人数:", sub_elem.text)
+                    # 检查做种人数是否在设定区间内
+                    if sub_elem.text:
+                        seeding_count_str = str(self._seeding_count)
+                        if '-' in seeding_count_str:
+                            # 分割范围字符串并转换为整数
+                            range_parts = seeding_count_str.split('-')
+                            if len(range_parts) == 2:
                                 try:
-                                    if int(sub_elem.text) > int(seeding_count_str):
-                                        return
+                                    lower_bound = int(range_parts[0])
+                                    upper_bound = int(range_parts[1])
+                                    # 检查做种人数是否在范围内
+                                    if (lower_bound > int(sub_elem.text)) or (upper_bound < int(sub_elem.text)):
+                                        continue
                                 except ValueError:
-                                    logger.error(f"无效的数字格式: {seeding_count_str}")
+                                    logger.error(f"无效的范围格式: {seeding_count_str}")
                                     continue
-                            # 检查下载数量限制
-                            if self._download_limit > 0 and downloaded_count >= self._download_limit:
-                                logger.info(f"已达到单次下载数量限制 ({self._download_limit})，停止下载")
-                                return
-                            # 如果做种人数在设定区间内，则下载种子
-                            download_element = elem.xpath('div[4]/div/a')
-                            if download_element:
-                                download_link = "https://" + self.domain+"/" + download_element[0].get('href')
-                                if download_link:
-                                    logger.info(f"下载种子链接: {download_link}")
-                                    # 调用下载器下载种子
-                                    for downloader in self._downloader:
-                                        service_info = self.downloader_helper.get_service(downloader)
-                                        if service_info and service_info.instance:
-                                            try:
-                                                # 准备下载参数
-                                                download_kwargs = {
-                                                    "content": download_link,
-                                                    "cookie": self.site.cookie
-                                                }
-                                                if self._save_path:
-                                                    download_kwargs["download_dir"] = self._save_path
-                                                # 如果有自定义标签，则添加标签参数
-                                                if self._custom_tag:
-                                                    download_kwargs["tag"] = self._custom_tag
-                                                
-                                                # 下载种子文件
-                                                result = service_info.instance.add_torrent(**download_kwargs)
-                                                if result:
-                                                    logger.info(f"成功下载种子: {download_link}")
-                                                    downloaded_count+=1
-                                                else:
-                                                    logger.error(f"下载种子失败: {download_link}")
-                                                
-                                            except Exception as e:
-                                                logger.error(f"下载种子失败: {str(e)}")
-                                        else:
-                                            logger.error(f"下载器 {downloader} 未连接或不可用")
+                        else:
+                            # 不包含-号，判断sub_elem.text是否小于该数字
+                            try:
+                                if int(sub_elem.text) > int(seeding_count_str):
+                                    continue
+                            except ValueError:
+                                logger.error(f"无效的数字格式: {seeding_count_str}")
+                                continue
+                        # 检查下载数量限制
+                        if self._download_limit > 0 and downloaded_count >= self._download_limit:
+                            logger.info(f"已达到单次下载数量限制 ({self._download_limit})，停止下载")
+                            return
+                        # 如果做种人数在设定区间内，则下载种子
+                        download_element = elem.xpath('div[4]/div/a')
+                        if download_element:
+                            download_link = "https://" + self.domain+"/" + download_element[0].get('href')
+                            if download_link:
+                                logger.info(f"下载种子链接: {download_link}")
+                                # 调用下载器下载种子
+                                for downloader in self._downloader:
+                                    service_info = self.downloader_helper.get_service(downloader)
+                                    if service_info and service_info.instance:
+                                        try:
+                                            # 准备下载参数
+                                            download_kwargs = {
+                                                "content": download_link,
+                                                "cookie": self.site.cookie
+                                            }
+                                            if self._save_path:
+                                                download_kwargs["download_dir"] = self._save_path
+                                            # 如果有自定义标签，则添加标签参数
+                                            if self._custom_tag:
+                                                download_kwargs["tag"] = self._custom_tag
+                                            
+                                            # 下载种子文件
+                                            result = service_info.instance.add_torrent(**download_kwargs)
+                                            if result:
+                                                logger.info(f"成功下载种子: {download_link}")
+                                                downloaded_count+=1
+                                            else:
+                                                logger.error(f"下载种子失败: {download_link}")
+                                            
+                                        except Exception as e:
+                                            logger.error(f"下载种子失败: {str(e)}")
+                                    else:
+                                        logger.error(f"下载器 {downloader} 未连接或不可用")
         except Exception as e:
             logger.error(f"检查保种区异常:{str(e)}", exc_info=True)
 
