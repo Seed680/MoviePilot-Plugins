@@ -33,7 +33,7 @@ class DownloadSiteTagModNew(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "1.3"
+    plugin_version = "1.3.1"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -43,8 +43,7 @@ class DownloadSiteTagModNew(_PluginBase):
     # 加载顺序
     plugin_order = 2
     # 可使用的用户级别
-    auth_level = 99
-    plugin_public_key = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIJy7s/o8eiVvC34Tki7CsybbghauQn+8smwpcACIGUGQkrYizsLjvof91vqGyNXXMCKZ8SExjpks+HGtR/YSvsCAwEAAQ=="
+    auth_level = 1
     # 日志前缀
     LOG_TAG = "[DownloadSiteTagModNew] "
 
