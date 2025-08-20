@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.1.9"
+    plugin_version = "1.2.0"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -38,7 +38,7 @@ class HanHanRescueSeeding(_PluginBase):
     plugin_order = 16
     # 可使用的用户级别
     auth_level = 99
-    plugin_public_key = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIJy7s/o8eiVvC34Tki7CsybbghauQn+8smwpcACIGUGQkrYizsLjvof91vqGyNXXMCKZ8SExjpks+HGtR/YSvsCAwEAAQ=="
+    plugin_public_key = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzX5Ft4P2mFCBCOSLV65lXfoCQBIes1I6hUqGpAuHas39YkljTrK7Xyia3Ybt7ylqKJpYH8JocPubk3LZYaGRl6CKESk8ZN8t1drNonRrJtQK3f0O03M4iZCsM4EcIpkcXzL6Ox0yu9rXW+n7fnPPil6z6/tWEzAIpI9Zt1O429CRacGHvVt+S6lhtGpqON2pzGUEhNyfG+xzPo8wO/anrdR28lv3mhro2HxvpEQFXQwxdgXA/xy+CneamzB1B69n09YoRavrwswJtnEKZVHQ4MHqJxRrVOPot6HcG7CZxtDpNVJANTK0z69cz4t+SCqBk2wSz362iX9n5Tb1qCDG5wIDAQAB"
 
     domain = "hhanclub.top"
     # 私有属性
@@ -317,7 +317,10 @@ class HanHanRescueSeeding(_PluginBase):
                                             download_kwargs["download_dir"] = self._save_path
                                         # 如果有自定义标签，则添加标签参数
                                         if self._custom_tag:
-                                            download_kwargs["tag"] = self._custom_tag
+                                            if service_info.type == "qbittorrent":
+                                                download_kwargs["tag"] = self._custom_tag
+                                            elif service_info.type == "transmission":
+                                                download_kwargs["labels"] = self._custom_tag
 
                                         # 下载种子文件
                                         result = service_info.instance.add_torrent(**download_kwargs)
