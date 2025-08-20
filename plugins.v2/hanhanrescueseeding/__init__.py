@@ -37,8 +37,9 @@ class HanHanRescueSeeding(_PluginBase):
     # 加载顺序
     plugin_order = 16
     # 可使用的用户级别
-    auth_level = 1
-    # plugin_public_key = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzX5Ft4P2mFCBCOSLV65lXfoCQBIes1I6hUqGpAuHas39YkljTrK7Xyia3Ybt7ylqKJpYH8JocPubk3LZYaGRl6CKESk8ZN8t1drNonRrJtQK3f0O03M4iZCsM4EcIpkcXzL6Ox0yu9rXW+n7fnPPil6z6/tWEzAIpI9Zt1O429CRacGHvVt+S6lhtGpqON2pzGUEhNyfG+xzPo8wO/anrdR28lv3mhro2HxvpEQFXQwxdgXA/xy+CneamzB1B69n09YoRavrwswJtnEKZVHQ4MHqJxRrVOPot6HcG7CZxtDpNVJANTK0z69cz4t+SCqBk2wSz362iX9n5Tb1qCDG5wIDAQAB"
+    auth_level = 99
+    plugin_public_key = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIJy7s/o8eiVvC34Tki7CsybbghauQn+8smwpcACIGUGQkrYizsLjvof91vqGyNXXMCKZ8SExjpks+HGtR/YSvsCAwEAAQ=="
+
     domain = "hhanclub.top"
     # 私有属性
     downloader_helper = None
