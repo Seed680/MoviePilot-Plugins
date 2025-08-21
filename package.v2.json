@@ -230,11 +230,12 @@
         "name": "嗦嗦",
         "description": "自动嗦牛",
         "labels": "嗦牛",
-        "version": "1.2.0",
+        "version": "1.2.1",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.2.1": "支持多个标签",
             "v1.2.0": "支持TR",
             "v1.1.8": "修复获取下载器失败的问题",
             "v1.1.7": "增加队列限制",

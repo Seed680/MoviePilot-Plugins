@@ -27,7 +27,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.2.0"
+    plugin_version = "1.2.1"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -318,9 +318,9 @@ class HanHanRescueSeeding(_PluginBase):
                                         # 如果有自定义标签，则添加标签参数
                                         if self._custom_tag:
                                             if service_info.type == "qbittorrent":
-                                                download_kwargs["tag"] = self._custom_tag
+                                                download_kwargs["tag"] = self._custom_tag.split(',')
                                             elif service_info.type == "transmission":
-                                                download_kwargs["labels"] = self._custom_tag
+                                                download_kwargs["labels"] = self._custom_tag.split(',')
 
                                         # 下载种子文件
                                         result = service_info.instance.add_torrent(**download_kwargs)
