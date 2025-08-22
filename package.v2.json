@@ -179,11 +179,12 @@
         "name": "清除后端缓存",
         "description": "立即清除后端缓存",
         "labels": "清理",
-        "version": "1.0",
+        "version": "1.1",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.1": "兼容MP 2.7.4",
             "v1.0": "立即清除后端缓存"
 
         }

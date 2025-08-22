@@ -6,7 +6,11 @@ import pytz
 # 第三方库
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from app.core.cache import cache_backend
+try:
+    from app.core.cache import cache_backend
+except ImportError:
+    from app.core.cache import Cache
+    cache_backend = Cache()
 from app.core.config import settings
 from app.log import logger
 from app.plugins import _PluginBase
@@ -23,7 +27,7 @@ class CleanCache(_PluginBase):
     # 插件图标
     plugin_icon = "spider.png"
     # 插件版本
-    plugin_version = "1.0"
+    plugin_version = "1.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -128,4 +132,9 @@ class CleanCache(_PluginBase):
     def main(self):
         logger.info("开始清理全部缓存")
         cache_backend.clear()
+        try:
+            from app.core.cache import FileCache
+            FileCache().clear()
+        except ImportError:
+            logger.warning("未找到FileCache、AsyncFileCache缓存模块")
         logger.info("清理全部缓存结束")
