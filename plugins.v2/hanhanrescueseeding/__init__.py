@@ -8,6 +8,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from lxml import etree
 
+from app.schemas import NotificationType
 from app.core.config import settings
 from app.db.site_oper import SiteOper
 from app.db.systemconfig_oper import SystemConfigOper
@@ -27,18 +28,17 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.2.1"
+    plugin_version = "1.2.2"
     # 插件作者
-    plugin_author = "Seed"
+    plugin_author = "Seed680"
     # 作者主页
-    author_url = "Seed"
+    author_url = "Seed680"
     # 插件配置项ID前缀
     plugin_config_prefix = "hanhanrescueseeding_"
     # 加载顺序
     plugin_order = 16
     # 可使用的用户级别
-    auth_level = 99
-    plugin_public_key = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzX5Ft4P2mFCBCOSLV65lXfoCQBIes1I6hUqGpAuHas39YkljTrK7Xyia3Ybt7ylqKJpYH8JocPubk3LZYaGRl6CKESk8ZN8t1drNonRrJtQK3f0O03M4iZCsM4EcIpkcXzL6Ox0yu9rXW+n7fnPPil6z6/tWEzAIpI9Zt1O429CRacGHvVt+S6lhtGpqON2pzGUEhNyfG+xzPo8wO/anrdR28lv3mhro2HxvpEQFXQwxdgXA/xy+CneamzB1B69n09YoRavrwswJtnEKZVHQ4MHqJxRrVOPot6HcG7CZxtDpNVJANTK0z69cz4t+SCqBk2wSz362iX9n5Tb1qCDG5wIDAQAB"
+    auth_level = 2
 
     domain = "hhanclub.top"
     # 私有属性
@@ -52,6 +52,7 @@ class HanHanRescueSeeding(_PluginBase):
     _download_limit = None
     _save_path = None
     _custom_tag = None
+    _enable_notification = None
 
     def init_plugin(self, config: dict = None):
         try:
@@ -77,6 +78,7 @@ class HanHanRescueSeeding(_PluginBase):
                 self._download_limit = config.get("download_limit", 5)
                 self._save_path = config.get("save_path")
                 self._custom_tag = config.get("custom_tag")
+                self._enable_notification = config.get("enable_notification", False)
 
             # 停止现有任务
             self.stop_service()
@@ -111,7 +113,8 @@ class HanHanRescueSeeding(_PluginBase):
             "download_limit": self._download_limit,
             "all_downloaders": self._all_downloaders,
             "save_path": self._save_path,
-            "custom_tag": self._custom_tag
+            "custom_tag": self._custom_tag,
+            "enable_notification": self._enable_notification
         }
 
     def load_config(self, config: dict):
@@ -126,7 +129,8 @@ class HanHanRescueSeeding(_PluginBase):
                     "seeding_count",
                     "download_limit",
                     "save_path",
-                    "custom_tag"
+                    "custom_tag",
+                    "enable_notification"
             ):
                 setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
 
@@ -152,7 +156,8 @@ class HanHanRescueSeeding(_PluginBase):
             "download_limit": self._download_limit,
             "all_downloaders": self._all_downloaders,
             "save_path": self._save_path,
-            "custom_tag": self._custom_tag
+            "custom_tag": self._custom_tag,
+            "enable_notification": self._enable_notification
         }
 
     @property
@@ -247,6 +252,8 @@ class HanHanRescueSeeding(_PluginBase):
                 logger.error("未配置下载器，无法执行保种任务")
                 return
             downloaded_count = 0
+            success_downloaded_count = 0
+            failed_downloaded_count = 0
             for page in range(0, 11):
                 url = "https://" + self.domain + f"/rescue.php?page={page}"
                 logger.info(f"憨憨保种区第{page + 1}页:{url}")
@@ -327,15 +334,34 @@ class HanHanRescueSeeding(_PluginBase):
                                         if result:
                                             logger.info(f"成功下载种子: {download_link}")
                                             downloaded_count += 1
+                                            success_downloaded_count += 1
                                         else:
                                             logger.error(f"下载种子失败: {download_link}")
+                                            failed_downloaded_count += 1
 
                                     except Exception as e:
                                         logger.error(f"下载种子失败: {str(e)}")
+                                        failed_downloaded_count += 1
                                 else:
                                     logger.error(f"下载器 {downloader} 未连接或不可用")
+                                    failed_downloaded_count += 1
+            
+            # 发送通知
+            if self._enable_notification:
+                self.post_message(
+                    mtype=NotificationType.Plugin,
+                    title="【憨憨保种区】",
+                    text=f"拯救保种任务执行完成，成功拯救了 {success_downloaded_count} 个种子"
+                )
         except Exception as e:
             logger.error(f"检查保种区异常:{str(e)}", exc_info=True)
+            # 发送异常通知
+            if self._enable_notification:
+                self.post_message(
+                    mtype=NotificationType.Plugin,
+                    title="【憨憨保种区】",
+                    text=f"保种任务执行异常，请查看日志了解详情"
+                )
 
     def _get_page_source(self, url: str, site):
         """
