@@ -28,7 +28,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.2.2"
+    plugin_version = "1.2.2.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -162,6 +162,11 @@ class HanHanRescueSeeding(_PluginBase):
             "enable_notification": self._enable_notification
         }
 
+    def _get_download_records(self) -> List[Dict[str, Any]]:
+        """API Endpoint: Returns download records."""
+        records = self.get_data("download_records") or []
+        return records
+
     @property
     def service_infos(self) -> Optional[Dict[str, ServiceInfo]]:
         """
@@ -220,6 +225,13 @@ class HanHanRescueSeeding(_PluginBase):
                 "methods": ["GET"],
                 "auth": "bear",
                 "summary": "获取当前配置"
+            },
+            {
+                "path": "/download_records",
+                "endpoint": self._get_download_records,
+                "methods": ["GET"],
+                "auth": "bear",
+                "summary": "获取下载记录"
             }
         ]
 
@@ -256,6 +268,8 @@ class HanHanRescueSeeding(_PluginBase):
             downloaded_count = 0
             success_downloaded_count = 0
             failed_downloaded_count = 0
+            # 先获取现有的下载记录列表
+            download_records = self.get_data("download_records") or []
             for page in range(0, 11):
                 url = "https://" + self.domain + f"/rescue.php?page={page}"
                 logger.info(f"憨憨保种区第{page + 1}页:{url}")
@@ -274,7 +288,14 @@ class HanHanRescueSeeding(_PluginBase):
                     break
                 for elem in elements:
                     # 在每个找到的元素中再次通过xpath搜索
+                    # 做种人数
                     seed = elem.xpath('div[3]/div/div[3]/a')
+                    # 英文标题
+                    title = elem.xpath('div[2]/div/a')
+                    # 中文标题
+                    zh_title = elem.xpath('div[2]/div/div[1]/div')
+                    # 种子大小
+                    size = elem.xpath('div[3]/div/div[1]')
                     sub_elem = seed[0] if len(seed) > 0 else None
                     # 打印子元素的文本内容和链接
                     logger.info("做种人数:", sub_elem.text)
@@ -309,6 +330,7 @@ class HanHanRescueSeeding(_PluginBase):
                         # 如果做种人数在设定区间内，则下载种子
                         download_element = elem.xpath('div[4]/div/a')
                         if download_element:
+                            # 下载链接
                             download_link = "https://" + self.domain + "/" + download_element[0].get('href')
                             if download_link:
                                 logger.info(f"下载种子链接: {download_link}")
@@ -337,6 +359,29 @@ class HanHanRescueSeeding(_PluginBase):
                                             logger.info(f"成功下载种子: {download_link}")
                                             downloaded_count += 1
                                             success_downloaded_count += 1
+                                            # 获取种子信息
+                                            title_text = title[0].text.strip() if title else "未知标题"
+                                            zh_title_text = zh_title[0].text.strip() if zh_title else "无中文标题"
+                                            size_text = size[0].text.strip() if size else "未知大小"
+                                            seed_count = sub_elem.text.strip() if sub_elem is not None else "0"
+
+                                            # 保存下载记录
+                                            download_record = {
+                                                "title": title_text,
+                                                "zh_title": zh_title_text,
+                                                "size": size_text,
+                                                "seeders": seed_count,
+                                                "download_link": download_link,
+                                                "download_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                            }
+
+                                            # 使用self.save_data保存数据，以列表形式保存所有下载记录
+                                            # 将新记录添加到列表中
+                                            download_records.append(download_record)
+                                            # 保存更新后的列表
+                                            self.save_data(key="download_records", value=download_records)
+
+
                                         else:
                                             logger.error(f"下载种子失败: {download_link}")
                                             failed_downloaded_count += 1
@@ -347,7 +392,7 @@ class HanHanRescueSeeding(_PluginBase):
                                 else:
                                     logger.error(f"下载器 {downloader} 未连接或不可用")
                                     failed_downloaded_count += 1
-            
+
             # 发送通知
             if self._enable_notification:
                 self.post_message(
@@ -396,7 +441,7 @@ class HanHanRescueSeeding(_PluginBase):
         return page_source
 
     def get_page(self) -> List[dict]:
-        pass
+        return None
 
     def stop_service(self):
         """
