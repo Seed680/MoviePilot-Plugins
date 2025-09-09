@@ -19,7 +19,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.2"
+    plugin_version = "1.0.3"
     # 插件作者
     plugin_author = "Your Name"
     # 作者主页
@@ -199,6 +199,7 @@ class MusicSaverBot(_PluginBase):
         """
         在独立线程中运行bot
         """
+        self._is_running = True
         try:
             logger.debug("开始运行Telegram Bot")
             logger.debug(f"Bot应用状态: {self._bot_app is not None}")
@@ -211,8 +212,10 @@ class MusicSaverBot(_PluginBase):
             # 在新创建的事件循环中运行bot
             loop.run_until_complete(self._bot_app.run_polling())
         except Exception as e:
-            logger.error(f"运行Music Saver Bot时出错: {str(e)}", exc_info=True)
+            if self._is_running:
+                logger.error(f"运行Music Saver Bot时出错: {str(e)}", exc_info=True)
         finally:
+            self._is_running = False
             # 清理事件循环
             try:
                 if 'loop' in locals():
