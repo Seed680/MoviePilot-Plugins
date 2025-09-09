@@ -245,5 +245,14 @@
             "v1.1": "1.支持自定义标签\n2.做种人数支持区间\n3.支持备用域名",
             "v1.0": "初始版本"
         }
+    },
+    "MusicSaverBot": { 
+        "name": "TG Music Saver Bot",
+        "description": "接收Telegram发送的音乐文件并保存到本地",
+        "labels": "Music",
+        "version": "1.0",
+        "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
+        "author": "Seed680",
+        "level": 1
     }
 }
