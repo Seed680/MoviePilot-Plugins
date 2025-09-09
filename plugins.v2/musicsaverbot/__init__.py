@@ -69,10 +69,11 @@ class MusicSaverBot(_PluginBase):
         # 如果插件启用且有bot token，则启动bot
         if self._enabled and self._bot_token and self._telegram_api_id and self._telegram_api_hash and self._telegram_data_path:
             # 启动Telegram本地服务
-            self._start_telegram_local_server()
-            logger.debug("插件已启用且Bot Token已设置，启动Bot")
-            self._start_bot()
-
+            if self._start_telegram_local_server():
+                logger.debug("Telegram本地服务启动成功，启动Bot")
+                self._start_bot()
+            else:
+                logger.error("Telegram本地服务启动失败，不启动Bot")
         else:
             logger.debug(f"插件未启用或Bot Token未设置，停止Bot - 启用: {self._enabled}, Token设置: {bool(self._bot_token)}")
             self._stop_bot()
@@ -523,7 +524,7 @@ class MusicSaverBot(_PluginBase):
             # 判断运行系统是否为Linux
             if platform.system() != "Linux":
                 logger.warn(f"当前系统为{platform.system()}，仅支持在Linux系统上运行Telegram本地服务")
-                return
+                return False
             
             # 获取系统架构
             architecture = platform.machine()
@@ -532,7 +533,7 @@ class MusicSaverBot(_PluginBase):
             # 判断是否是支持的架构
             if architecture not in ["x86_64", "aarch64", "arm64"]:
                 logger.warn(f"不支持的系统架构: {architecture}，仅支持x86_64和arm64架构")
-                return
+                return False
             
             # 处理arm64架构标记不一致的问题
             if architecture == "aarch64":
@@ -554,7 +555,7 @@ class MusicSaverBot(_PluginBase):
                     logger.info("Telegram本地服务执行文件下载完成")
                 except Exception as e:
                     logger.error(f"下载Telegram本地服务执行文件失败: {str(e)}")
-                    return
+                    return False
             
             # 赋予执行权限
             os.chmod(telegram_executable, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
@@ -585,6 +586,8 @@ class MusicSaverBot(_PluginBase):
             self._telegram_process_thread = threading.Thread(target=run_telegram_server, daemon=True)
             self._telegram_process_thread.start()
             logger.info("Telegram本地服务启动成功")
+            return True
             
         except Exception as e:
             logger.error(f"启动Telegram本地服务失败: {str(e)}", exc_info=True)
+            return False
