@@ -19,7 +19,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.3"
+    plugin_version = "1.0.4"
     # 插件作者
     plugin_author = "Your Name"
     # 作者主页
@@ -42,7 +42,7 @@ class MusicSaverBot(_PluginBase):
     _telegram_data_path = None
     _telegram_bot_api_version = "1.0"
     _bot_app = None
-    _bot_thread = None
+    _bot_task = None
     _executor = None
     _telegram_process = None
     _telegram_process_thread = None
@@ -163,11 +163,18 @@ class MusicSaverBot(_PluginBase):
             # 创建线程池执行器用于异步下载
             self._executor = ThreadPoolExecutor(max_workers=3)
 
-            # 在新线程中运行bot
-            logger.debug("启动Bot线程")
-            self._bot_thread = threading.Thread(target=self._run_bot, daemon=True)
-            self._bot_thread.start()
-            logger.debug(f"Bot线程已启动: {self._bot_thread is not None}")
+            # 使用 asyncio.create_task 运行bot
+            logger.debug("启动Bot任务")
+            try:
+                # 尝试获取当前运行的事件循环
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                # 如果没有正在运行的事件循环，则创建一个新的
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            self._bot_task = loop.create_task(self._run_bot())
+            logger.debug(f"Bot任务已启动: {self._bot_task is not None}")
 
             logger.info("Music Saver Bot 启动成功")
         except Exception as e:
@@ -188,41 +195,28 @@ class MusicSaverBot(_PluginBase):
                 self._executor.shutdown(wait=False)
                 self._executor = None
 
-            if self._bot_thread and self._bot_thread.is_alive():
-                self._bot_thread = None
+            if self._bot_task and not self._bot_task.done():
+                self._bot_task.cancel()
+                self._bot_task = None
 
             logger.info("Music Saver Bot 已停止")
         except Exception as e:
             logger.error(f"停止Music Saver Bot失败: {str(e)}")
 
-    def _run_bot(self):
+    async def _run_bot(self):
         """
-        在独立线程中运行bot
+        运行bot的异步任务
         """
-        self._is_running = True
         try:
             logger.debug("开始运行Telegram Bot")
             logger.debug(f"Bot应用状态: {self._bot_app is not None}")
             
-            # 创建一个新的事件循环，因为我们在独立线程中
-            logger.debug("创建新的事件循环用于运行bot")
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            # 在新创建的事件循环中运行bot
-            loop.run_until_complete(self._bot_app.run_polling())
+            # 在事件循环中运行bot
+            await self._bot_app.run_polling()
+        except asyncio.CancelledError:
+            logger.info("Music Saver Bot 任务已被取消")
         except Exception as e:
-            if self._is_running:
-                logger.error(f"运行Music Saver Bot时出错: {str(e)}", exc_info=True)
-        finally:
-            self._is_running = False
-            # 清理事件循环
-            try:
-                if 'loop' in locals():
-                    loop.stop()
-                    loop.close()
-            except Exception as e:
-                logger.error(f"清理事件循环时出错: {str(e)}")
+            logger.error(f"运行Music Saver Bot时出错: {str(e)}", exc_info=True)
 
     async def _handle_audio_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
