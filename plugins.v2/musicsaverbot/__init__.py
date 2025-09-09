@@ -19,7 +19,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.1"
+    plugin_version = "1.0.2"
     # 插件作者
     plugin_author = "Your Name"
     # 作者主页
@@ -202,29 +202,24 @@ class MusicSaverBot(_PluginBase):
         try:
             logger.debug("开始运行Telegram Bot")
             logger.debug(f"Bot应用状态: {self._bot_app is not None}")
-            # 使用 asyncio 运行 bot
-            # 修复事件循环冲突问题
-            import asyncio
-            import sys
             
-            # 检查是否已有事件循环在运行
-            try:
-                # 对于Python 3.7+
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                # 没有运行中的事件循环
-                loop = None
+            # 创建一个新的事件循环，因为我们在独立线程中
+            logger.debug("创建新的事件循环用于运行bot")
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
             
-            if loop and loop.is_running():
-                # 如果已有运行中的事件循环，使用ensure_future或create_task
-                logger.debug("检测到已在运行的事件循环，使用现有循环运行bot")
-                loop.create_task(self._bot_app.run_polling())
-            else:
-                # 否则创建新的事件循环
-                logger.debug("未检测到运行中的事件循环，创建新的事件循环")
-                asyncio.run(self._bot_app.run_polling())
+            # 在新创建的事件循环中运行bot
+            loop.run_until_complete(self._bot_app.run_polling())
         except Exception as e:
             logger.error(f"运行Music Saver Bot时出错: {str(e)}", exc_info=True)
+        finally:
+            # 清理事件循环
+            try:
+                if 'loop' in locals():
+                    loop.stop()
+                    loop.close()
+            except Exception as e:
+                logger.error(f"清理事件循环时出错: {str(e)}")
 
     async def _handle_audio_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
