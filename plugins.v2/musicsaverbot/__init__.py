@@ -19,7 +19,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.9"
+    plugin_version = "1.0.10"
     # 插件作者
     plugin_author = "Your Name"
     # 作者主页
@@ -55,6 +55,7 @@ class MusicSaverBot(_PluginBase):
         logger.debug(f"初始化MusicSaverBot插件，配置: {config}")
 
         if config:
+            self.stop_service()
             self._enabled = config.get("enable", False)
             self._bot_token = config.get("bot_token", "")
             self._save_path = config.get("save_path", "")
@@ -538,7 +539,7 @@ class MusicSaverBot(_PluginBase):
             try:
                 import requests
                 logout_url = f"https://api.telegram.org/bot{self._bot_token}/logOut"
-                requests.post(logout_url, timeout=5)
+                requests.get(logout_url, timeout=5)
                 logger.info("已调用Telegram Bot的logout方法，清理之前的会话")
             except Exception as e:
                 logger.warn(f"调用Telegram Bot logout接口失败: {str(e)}", exc_info=True)
@@ -603,29 +604,18 @@ class MusicSaverBot(_PluginBase):
                             uid = int(puid)
                             gid = int(pgid)
                             os.chown(str(telegram_data_path), uid, gid)
-                            # 递归设置目录及子文件的权限
-                            for root, dirs, files in os.walk(telegram_data_path):
-                                for d in dirs:
-                                    os.chown(os.path.join(root, d), uid, gid)
-                                for f in files:
-                                    os.chown(os.path.join(root, f), uid, gid)
-                            logger.debug(f"设置目录 {telegram_data_path} 及子文件的所有者为 UID:{uid}, GID:{gid}")
+                            logger.debug(f"设置目录 {telegram_data_path} 的所有者为 UID:{uid}, GID:{gid}")
                         except Exception as e:
                             logger.warning(f"设置目录所有者失败: {str(e)}")
                     
                     if umask:
                         try:
                             # 应用umask设置
-                            mask = int(umask, 8)
-                            # 设置目录权限
-                            os.chmod(str(telegram_data_path), 0o777 & ~mask)
-                            # 递归设置目录及子文件的权限
-                            for root, dirs, files in os.walk(telegram_data_path):
-                                for d in dirs:
-                                    os.chmod(os.path.join(root, d), 0o777 & ~mask)
-                                for f in files:
-                                    os.chmod(os.path.join(root, f), 0o666 & ~mask)
-                            logger.debug(f"应用umask {umask} 到目录 {telegram_data_path} 及子文件")
+                            current_umask = os.umask(int(umask, 8))
+                            os.umask(current_umask)  # 恢复原来的umask
+                            # 重新设置目录权限
+                            os.chmod(str(telegram_data_path), 0o777 & ~int(umask, 8))
+                            logger.debug(f"应用umask {umask} 到目录 {telegram_data_path}")
                         except Exception as e:
                             logger.warning(f"应用umask设置失败: {str(e)}")
                     
@@ -639,40 +629,7 @@ class MusicSaverBot(_PluginBase):
                     return False
             else:
                 logger.info(f"Telegram数据目录已存在: {telegram_data_path}")
-                # 即使目录已存在，也尝试应用权限设置
-                puid = os.environ.get('PUID')
-                pgid = os.environ.get('PGID')
-                umask = os.environ.get('UMASK')
-                
-                if puid and pgid:
-                    try:
-                        uid = int(puid)
-                        gid = int(pgid)
-                        os.chown(str(telegram_data_path), uid, gid)
-                        # 递归设置目录及子文件的权限
-                        for root, dirs, files in os.walk(telegram_data_path):
-                            for d in dirs:
-                                os.chown(os.path.join(root, d), uid, gid)
-                            for f in files:
-                                os.chown(os.path.join(root, f), uid, gid)
-                        logger.debug(f"设置现有目录 {telegram_data_path} 及子文件的所有者为 UID:{uid}, GID:{gid}")
-                    except Exception as e:
-                        logger.warning(f"设置现有目录所有者失败: {str(e)}")
-                
-                if umask:
-                    try:
-                        mask = int(umask, 8)
-                        # 设置目录权限
-                        os.chmod(str(telegram_data_path), 0o777 & ~mask)
-                        # 递归设置目录及子文件的权限
-                        for root, dirs, files in os.walk(telegram_data_path):
-                            for d in dirs:
-                                os.chmod(os.path.join(root, d), 0o777 & ~mask)
-                            for f in files:
-                                os.chmod(os.path.join(root, f), 0o666 & ~mask)
-                        logger.debug(f"应用umask {umask} 到现有目录 {telegram_data_path} 及子文件")
-                    except Exception as e:
-                        logger.warning(f"应用umask设置到现有目录失败: {str(e)}")
+            
             # 构造启动命令
             cmd = [
                 str(telegram_executable),
