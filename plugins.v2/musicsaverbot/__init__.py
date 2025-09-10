@@ -26,7 +26,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.13"
+    plugin_version = "1.0.14"
     # 插件作者
     plugin_author = "your_name"
     # 作者主页
@@ -244,7 +244,8 @@ class MusicSaverBot(_PluginBase):
             # 在新线程中设置事件循环
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            loop.run_until_complete(self._bot_app.run_polling())
+            # 禁用信号处理以避免在非主线程中设置信号的问题
+            loop.run_until_complete(self._bot_app.run_polling(stop_signals=[]))
         except Exception as e:
             logger.error(f"机器人运行出错: {str(e)}", exc_info=True)
             self._bot_running = False
