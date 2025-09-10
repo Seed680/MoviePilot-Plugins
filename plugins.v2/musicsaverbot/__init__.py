@@ -25,7 +25,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.11"
+    plugin_version = "1.0.12"
     # 插件作者
     plugin_author = "your_name"
     # 作者主页
@@ -84,12 +84,41 @@ class MusicSaverBot(_PluginBase):
             "whitelist": self._whitelist
         }
 
-    def get_page(self) -> List[dict]:
-        pass
-
     def get_state(self) -> bool:
         logger.debug(f"获取插件状态: {self._enable}")
         return self._enable
+
+    def get_api(self) -> List[Dict[str, Any]]:
+        """
+        注册插件API接口
+        """
+        logger.debug("注册插件API接口")
+        return [
+            {
+                "path": "/config",
+                "endpoint": self._get_config,
+                "methods": ["GET"],
+                "auth": "bear",
+                "summary": "获取当前配置"
+            },
+            {
+                "path": "/status",
+                "endpoint": self._get_status,
+                "methods": ["GET"],
+                "auth": "bear",
+                "summary": "获取机器人运行状态"
+            },
+            {
+                "path": "/restart",
+                "endpoint": self._restart_bot,
+                "methods": ["POST"],
+                "auth": "bear",
+                "summary": "重启机器人服务"
+            }
+        ]
+
+    def get_page(self) -> List[dict]:
+        pass
 
     def stop_service(self):
         """
@@ -97,6 +126,58 @@ class MusicSaverBot(_PluginBase):
         """
         logger.info("停止音乐保存机器人插件服务")
         self._stop_bot()
+
+    @staticmethod
+    def get_render_mode() -> Tuple[str, str]:
+        """
+        获取插件渲染模式
+        :return: 1、渲染模式，支持：vue/vuetify，默认vuetify
+        :return: 2、组件路径，默认 dist/assets
+        """
+        return "vue", "dist/assets"
+
+    def _get_config(self) -> Dict[str, Any]:
+        """
+        API接口：获取当前配置
+        """
+        logger.debug("API调用：获取当前配置")
+        return {
+            "enable": self._enable,
+            "enable_custom_api": self._enable_custom_api,
+            "custom_api_url": self._custom_api_url,
+            "bot_token": self._bot_token,
+            "save_path": self._save_path,
+            "whitelist": self._whitelist
+        }
+
+    def _get_status(self) -> Dict[str, Any]:
+        """
+        API接口：获取机器人运行状态
+        """
+        logger.debug("API调用：获取机器人运行状态")
+        return {
+            "running": self._bot_running,
+            "enable": self._enable,
+            "bot_token_set": bool(self._bot_token)
+        }
+
+    def _restart_bot(self) -> Dict[str, Any]:
+        """
+        API接口：重启机器人服务
+        """
+        logger.debug("API调用：重启机器人服务")
+        try:
+            if self._bot_running:
+                self._stop_bot()
+            
+            if self._enable and self._bot_token:
+                self._start_bot()
+                return {"success": True, "message": "机器人服务已重启", "running": self._bot_running}
+            else:
+                return {"success": False, "message": "插件未启用或缺少必要配置", "running": self._bot_running}
+        except Exception as e:
+            logger.error(f"重启机器人服务失败: {str(e)}", exc_info=True)
+            return {"success": False, "message": f"重启失败: {str(e)}", "running": self._bot_running}
 
     def _start_bot(self):
         """
