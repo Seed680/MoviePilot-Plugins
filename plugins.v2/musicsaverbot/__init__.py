@@ -19,7 +19,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.7"
+    plugin_version = "1.0.8"
     # 插件作者
     plugin_author = "Your Name"
     # 作者主页
@@ -407,6 +407,31 @@ class MusicSaverBot(_PluginBase):
             if not save_dir.exists():
                 logger.debug("保存目录不存在，正在创建")
                 save_dir.mkdir(parents=True, exist_ok=True)
+                
+                # 如果在Docker环境中运行，尝试使用PUID/PGID/UMASK环境变量设置权限
+                puid = os.environ.get('PUID')
+                pgid = os.environ.get('PGID')
+                umask = os.environ.get('UMASK')
+                
+                if puid and pgid:
+                    try:
+                        uid = int(puid)
+                        gid = int(pgid)
+                        os.chown(str(save_dir), uid, gid)
+                        logger.debug(f"设置目录 {save_dir} 的所有者为 UID:{uid}, GID:{gid}")
+                    except Exception as e:
+                        logger.warning(f"设置目录所有者失败: {str(e)}")
+                
+                if umask:
+                    try:
+                        # 应用umask设置
+                        current_umask = os.umask(int(umask, 8))
+                        os.umask(current_umask)  # 恢复原来的umask
+                        # 重新设置目录权限
+                        os.chmod(str(save_dir), 0o777 & ~int(umask, 8))
+                        logger.debug(f"应用umask {umask} 到目录 {save_dir}")
+                    except Exception as e:
+                        logger.warning(f"应用umask设置失败: {str(e)}")
 
             # 构造完整文件路径
             full_path = save_dir / file_name
@@ -423,6 +448,29 @@ class MusicSaverBot(_PluginBase):
                 await file_obj.download_to_drive(full_path)
                 logger.debug("文件下载完成")
                 logger.info(f"文件下载完成: {full_path}")
+                
+                # 如果在Docker环境中运行，尝试使用PUID/PGID/UMASK环境变量设置权限
+                puid = os.environ.get('PUID')
+                pgid = os.environ.get('PGID')
+                umask = os.environ.get('UMASK')
+                
+                if puid and pgid:
+                    try:
+                        uid = int(puid)
+                        gid = int(pgid)
+                        os.chown(str(full_path), uid, gid)
+                        logger.debug(f"设置文件 {full_path} 的所有者为 UID:{uid}, GID:{gid}")
+                    except Exception as e:
+                        logger.warning(f"设置文件所有者失败: {str(e)}")
+                
+                if umask:
+                    try:
+                        # 应用umask设置到文件
+                        os.chmod(str(full_path), 0o666 & ~int(umask, 8))
+                        logger.debug(f"应用umask {umask} 到文件 {full_path}")
+                    except Exception as e:
+                        logger.warning(f"应用umask设置到文件失败: {str(e)}")
+                
                 return str(full_path)
             except Exception as file_info_error:
                 logger.warning(f"通过Telegram Bot API获取文件信息失败: {str(file_info_error)}", exc_info=True)
@@ -544,6 +592,32 @@ class MusicSaverBot(_PluginBase):
                 try:
                     logger.debug(f"尝试创建Telegram数据目录: {telegram_data_path}")
                     telegram_data_path.mkdir(parents=True, exist_ok=True)
+                    
+                    # 如果在Docker环境中运行，尝试使用PUID/PGID/UMASK环境变量设置权限
+                    puid = os.environ.get('PUID')
+                    pgid = os.environ.get('PGID')
+                    umask = os.environ.get('UMASK')
+                    
+                    if puid and pgid:
+                        try:
+                            uid = int(puid)
+                            gid = int(pgid)
+                            os.chown(str(telegram_data_path), uid, gid)
+                            logger.debug(f"设置目录 {telegram_data_path} 的所有者为 UID:{uid}, GID:{gid}")
+                        except Exception as e:
+                            logger.warning(f"设置目录所有者失败: {str(e)}")
+                    
+                    if umask:
+                        try:
+                            # 应用umask设置
+                            current_umask = os.umask(int(umask, 8))
+                            os.umask(current_umask)  # 恢复原来的umask
+                            # 重新设置目录权限
+                            os.chmod(str(telegram_data_path), 0o777 & ~int(umask, 8))
+                            logger.debug(f"应用umask {umask} 到目录 {telegram_data_path}")
+                        except Exception as e:
+                            logger.warning(f"应用umask设置失败: {str(e)}")
+                    
                     if telegram_data_path.exists():
                         logger.info(f"Telegram数据目录创建成功: {telegram_data_path}")
                     else:
