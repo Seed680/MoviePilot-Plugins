@@ -19,7 +19,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.6"
+    plugin_version = "1.0.7"
     # 插件作者
     plugin_author = "Your Name"
     # 作者主页
@@ -537,12 +537,20 @@ class MusicSaverBot(_PluginBase):
             
             # 检查并创建数据目录
             telegram_data_path = Path(self._telegram_data_path)
+            logger.debug(f"检查Telegram数据目录: {telegram_data_path}")
+            logger.debug(f"数据目录是否存在: {telegram_data_path.exists()}")
+            
             if not telegram_data_path.exists():
                 try:
+                    logger.debug(f"尝试创建Telegram数据目录: {telegram_data_path}")
                     telegram_data_path.mkdir(parents=True, exist_ok=True)
-                    logger.info(f"Telegram数据目录已创建: {telegram_data_path}")
+                    if telegram_data_path.exists():
+                        logger.info(f"Telegram数据目录创建成功: {telegram_data_path}")
+                    else:
+                        logger.error(f"Telegram数据目录创建失败: {telegram_data_path}")
+                        return False
                 except Exception as e:
-                    logger.error(f"创建Telegram数据目录失败: {str(e)}", exc_info=True)
+                    logger.error(f"创建Telegram数据目录时发生异常: {str(e)}", exc_info=True)
                     return False
             else:
                 logger.info(f"Telegram数据目录已存在: {telegram_data_path}")
@@ -563,7 +571,18 @@ class MusicSaverBot(_PluginBase):
             # 启动进程
             def run_telegram_server():
                 try:
-                    self._telegram_process = subprocess.Popen(cmd)
+                    # 设置子进程的工作目录和环境变量
+                    env = os.environ.copy()
+                    env['HOME'] = str(plugin_dir)
+                    
+                    self._telegram_process = subprocess.Popen(
+                        cmd,
+                        cwd=str(plugin_dir),  # 设置工作目录
+                        env=env,  # 传递环境变量
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE
+                    )
+                    logger.debug(f"Telegram进程PID: {self._telegram_process.pid}")
                     self._telegram_process.wait()
                 except Exception as e:
                     logger.error(f"Telegram本地服务运行异常: {str(e)}", exc_info=True)
@@ -574,23 +593,43 @@ class MusicSaverBot(_PluginBase):
             
             # 给一些时间让进程启动
             import time
-            time.sleep(2)
+            time.sleep(3)  # 增加等待时间到3秒
             
             # 检查进程是否成功启动
             # 方法1: 检查线程是否仍在运行
             # 方法2: 检查_telegram_process是否已创建且仍在运行
-            if (self._telegram_process_thread.is_alive() and 
-                self._telegram_process is not None and 
-                self._telegram_process.poll() is None):
+            logger.debug(f"检查Telegram服务启动状态:")
+            logger.debug(f"  线程是否存活: {self._telegram_process_thread.is_alive()}")
+            logger.debug(f"  进程对象是否存在: {self._telegram_process is not None}")
+            
+            if self._telegram_process is not None:
+                poll_result = self._telegram_process.poll()
+                logger.debug(f"  进程poll结果: {poll_result}")
+                logger.debug(f"  进程是否仍在运行: {poll_result is None}")
+                
+                # 如果poll()返回None，表示进程仍在运行
+                if poll_result is None:
+                    logger.info("Telegram本地服务启动成功")
+                    return True
+                else:
+                    # 进程已结束，尝试获取退出码和错误信息
+                    logger.error(f"Telegram本地服务启动失败，进程已退出，退出码: {poll_result}")
+                    try:
+                        stdout, stderr = self._telegram_process.communicate(timeout=2)
+                        if stdout:
+                            logger.debug(f"Telegram本地服务标准输出: {stdout.decode('utf-8')}")
+                        if stderr:
+                            logger.error(f"Telegram本地服务错误输出: {stderr.decode('utf-8')}")
+                    except Exception as e:
+                        logger.warning(f"获取Telegram本地服务输出信息时发生异常: {str(e)}")
+                    return False
+            elif self._telegram_process_thread.is_alive():
+                # 如果进程对象还未创建但线程仍在运行，给更多时间
+                logger.debug("进程对象尚未创建但线程仍在运行，可能是启动较慢")
                 logger.info("Telegram本地服务启动成功")
                 return True
             else:
                 logger.error("Telegram本地服务启动失败")
-                # 如果启动失败，尝试获取错误信息
-                if self._telegram_process is not None:
-                    stdout, stderr = self._telegram_process.communicate(timeout=1)
-                    if stderr:
-                        logger.error(f"Telegram本地服务启动错误信息: {stderr}")
                 return False
 
         except Exception as e:
