@@ -19,7 +19,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.4"
+    plugin_version = "1.0.5"
     # 插件作者
     plugin_author = "Your Name"
     # 作者主页
@@ -416,57 +416,17 @@ class MusicSaverBot(_PluginBase):
                 file_obj = await context.bot.get_file(file_id)
                 logger.debug(f"文件信息获取成功: {file_obj}")
                 logger.debug(f"文件大小: {file_obj.file_size} bytes")
-
-                # 检查文件大小是否超过Telegram Bot API限制(20MB)
-                if file_obj.file_size and file_obj.file_size > 20 * 1024 * 1024:  # 20MB
-                    logger.warning(f"文件 {file_name} 大小为 {file_obj.file_size} bytes，超过20MB限制，将使用替代方法下载")
-
-                    # 获取文件URL
-                    file_url = file_obj.file_path
-                    if not file_url.startswith('http'):
-                        # 构造完整的文件URL
-                        file_url = f"https://api.telegram.org/file/bot{self._bot_token}/{file_obj.file_path}"
-
-                    logger.debug(f"文件URL: {file_url}")
-                else:
-                    # 异步下载文件（小文件）
-                    logger.debug("开始下载文件到磁盘")
-                    await file_obj.download_to_drive(full_path)
-                    logger.debug("文件下载完成")
-                    logger.info(f"文件下载完成: {full_path}")
-                    return str(full_path)
+                # 异步下载文件（小文件）
+                logger.debug("开始下载文件到磁盘")
+                await file_obj.download_to_drive(full_path)
+                logger.debug("文件下载完成")
+                logger.info(f"文件下载完成: {full_path}")
+                return str(full_path)
             except Exception as file_info_error:
                 logger.warning(f"通过Telegram Bot API获取文件信息失败: {str(file_info_error)}")
                 # 如果获取文件信息失败，假设是大文件，尝试直接构造URL下载
-                file_url = f"https://api.telegram.org/file/bot{self._bot_token}/{file_id}"
+                file_url = f"http://127.0.0.1:{self._telegram_port}/file/bot{self._bot_token}/{file_id}"
                 logger.debug(f"构造文件URL: {file_url}")
-
-            # 如果上面的方法失败或者确定是大文件，使用requests直接下载
-            response = requests.get(file_url, stream=True, timeout=60)
-            response.raise_for_status()
-
-            # 获取文件总大小
-            total_size = int(response.headers.get('content-length', 0))
-            logger.debug(f"文件总大小: {total_size} bytes")
-
-            # 写入文件并显示进度
-            downloaded_size = 0
-            with open(full_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded_size += len(chunk)
-                        # 记录下载进度（每5MB记录一次）
-                        if downloaded_size % (5 * 1024 * 1024) == 0:
-                            progress_percent = (downloaded_size / total_size) * 100 if total_size > 0 else 0
-                            logger.debug(f"已下载: {downloaded_size}/{total_size} bytes ({progress_percent:.2f}%)")
-
-            logger.info(f"大文件下载完成: {full_path} (总大小: {downloaded_size} bytes)")
-            return str(full_path)
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"使用requests下载文件时出错: {str(e)}", exc_info=True)
-            return None
         except Exception as e:
             logger.error(f"下载文件时出错: {str(e)}", exc_info=True)
             return None
@@ -578,7 +538,8 @@ class MusicSaverBot(_PluginBase):
                 "--api-id=" + str(self._telegram_api_id),
                 "--api-hash=" + str(self._telegram_api_hash),
                 "--local",
-                "--http-ip=0.0.0.0",
+                "--http-ip-address=127.0.0.1",
+                "--filter=0/"+ str(self._bot_token),
                 "--http-port=" + str(self._telegram_port),
                 "--dir=" + str(self._telegram_data_path)
             ]
@@ -596,8 +557,27 @@ class MusicSaverBot(_PluginBase):
             # 在新线程中运行
             self._telegram_process_thread = threading.Thread(target=run_telegram_server, daemon=True)
             self._telegram_process_thread.start()
-            logger.info("Telegram本地服务启动成功")
-            return True
+            
+            # 给一些时间让进程启动
+            import time
+            time.sleep(2)
+            
+            # 检查进程是否成功启动
+            # 方法1: 检查线程是否仍在运行
+            # 方法2: 检查_telegram_process是否已创建且仍在运行
+            if (self._telegram_process_thread.is_alive() and 
+                self._telegram_process is not None and 
+                self._telegram_process.poll() is None):
+                logger.info("Telegram本地服务启动成功")
+                return True
+            else:
+                logger.error("Telegram本地服务启动失败")
+                # 如果启动失败，尝试获取错误信息
+                if self._telegram_process is not None:
+                    stdout, stderr = self._telegram_process.communicate(timeout=1)
+                    if stderr:
+                        logger.error(f"Telegram本地服务启动错误信息: {stderr}")
+                return False
 
         except Exception as e:
             logger.error(f"启动Telegram本地服务失败: {str(e)}", exc_info=True)
