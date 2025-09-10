@@ -26,7 +26,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.16"
+    plugin_version = "1.0.17"
     # 插件作者
     plugin_author = "your_name"
     # 作者主页
@@ -261,14 +261,29 @@ class MusicSaverBot(_PluginBase):
             # 在新线程中设置事件循环
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
+            
+            logger.debug("开始初始化机器人应用")
             # 初始化并运行机器人
             loop.run_until_complete(self._bot_app.initialize())
+            logger.debug("机器人应用初始化完成")
+            
+            logger.debug("开始启动机器人应用")
             loop.run_until_complete(self._bot_app.start())
-            loop.run_until_complete(self._bot_app.updater.start_polling())
+            logger.debug("机器人应用启动完成")
+            
+            logger.debug("开始启动轮询更新器")
+            loop.run_until_complete(self._bot_app.updater.start_polling(timeout=30, poll_interval=0.01))
+            logger.debug("轮询更新器启动完成")
+            
+            logger.debug("机器人开始空闲运行")
             loop.run_until_complete(self._bot_app.updater.idle())
+        except asyncio.TimeoutError as e:
+            logger.error(f"机器人连接超时，请检查网络连接、Bot Token和API地址配置: {str(e)}", exc_info=True)
         except Exception as e:
             logger.error(f"机器人运行出错: {str(e)}", exc_info=True)
+        finally:
             self._bot_running = False
+            logger.info("机器人轮询线程已结束")
 
     def _handle_audio_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
