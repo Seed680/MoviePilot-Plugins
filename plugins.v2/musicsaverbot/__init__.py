@@ -1,5 +1,6 @@
 import os
 import threading
+import asyncio
 from typing import List, Tuple, Dict, Any, Optional
 
 from app.log import logger
@@ -25,7 +26,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.12"
+    plugin_version = "1.0.13"
     # 插件作者
     plugin_author = "your_name"
     # 作者主页
@@ -240,7 +241,10 @@ class MusicSaverBot(_PluginBase):
         """
         logger.info("机器人轮询线程已启动")
         try:
-            self._bot_app.run_polling()
+            # 在新线程中设置事件循环
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(self._bot_app.run_polling())
         except Exception as e:
             logger.error(f"机器人运行出错: {str(e)}", exc_info=True)
             self._bot_running = False
