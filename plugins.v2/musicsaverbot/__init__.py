@@ -26,7 +26,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.19"
+    plugin_version = "1.0.20"
     # 插件作者
     plugin_author = "your_name"
     # 作者主页
@@ -198,7 +198,11 @@ class MusicSaverBot(_PluginBase):
             # 创建机器人应用
             if self._enable_custom_api and self._custom_api_url:
                 logger.debug(f"使用自定义API地址: {self._custom_api_url}")
-                self._bot_app = ApplicationBuilder().token(self._bot_token).base_url(self._custom_api_url).build()
+                self._bot_app = ApplicationBuilder()
+                .token(self._bot_token)
+                .base_url(f"{self._custom_api_url}/bot{self._bot_token}")
+                .base_file_url(f"{self._custom_api_url}/file/bot{self._bot_token}")
+                .build()
             else:
                 logger.debug("使用默认API地址")
                 self._bot_app = ApplicationBuilder().token(self._bot_token).build()
