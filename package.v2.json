@@ -229,9 +229,9 @@
         }
     },
     "HanHanRescueSeeding": {
-        "name": "嗦嗦",
-        "description": "自动嗦牛",
-        "labels": "嗦牛",
+        "name": "憨憨保种区",
+        "description": "拯救憨憨保种区",
+        "labels": "保种",
         "version": "1.2.2.1",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
