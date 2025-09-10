@@ -26,7 +26,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.15"
+    plugin_version = "1.0.16"
     # 插件作者
     plugin_author = "your_name"
     # 作者主页
@@ -229,11 +229,28 @@ class MusicSaverBot(_PluginBase):
             
         try:
             if self._bot_app:
-                # 停止机器人（注意：python-telegram-bot v20+没有直接的停止方法）
+                # 在单独的线程中停止机器人
+                stop_thread = threading.Thread(target=self._stop_bot_async, daemon=True)
+                stop_thread.start()
+                stop_thread.join(timeout=5)  # 等待最多5秒
                 self._bot_running = False
                 logger.info("音乐保存机器人已停止")
         except Exception as e:
             logger.error(f"停止机器人失败: {str(e)}", exc_info=True)
+    
+    def _stop_bot_async(self):
+        """
+        异步停止机器人
+        """
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(self._bot_app.updater.stop())
+            loop.run_until_complete(self._bot_app.stop())
+            loop.run_until_complete(self._bot_app.shutdown())
+            loop.close()
+        except Exception as e:
+            logger.error(f"异步停止机器人失败: {str(e)}", exc_info=True)
 
     def _run_bot(self):
         """
@@ -247,7 +264,8 @@ class MusicSaverBot(_PluginBase):
             # 初始化并运行机器人
             loop.run_until_complete(self._bot_app.initialize())
             loop.run_until_complete(self._bot_app.start())
-            loop.run_until_complete(self._bot_app.run_polling(stop_signals=[]))
+            loop.run_until_complete(self._bot_app.updater.start_polling())
+            loop.run_until_complete(self._bot_app.updater.idle())
         except Exception as e:
             logger.error(f"机器人运行出错: {str(e)}", exc_info=True)
             self._bot_running = False
