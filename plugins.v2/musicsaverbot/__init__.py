@@ -26,7 +26,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.18"
+    plugin_version = "1.0.19"
     # 插件作者
     plugin_author = "your_name"
     # 作者主页
@@ -228,54 +228,37 @@ class MusicSaverBot(_PluginBase):
             return
             
         try:
+            # 直接关闭机器人应用
             if self._bot_app:
-                # 在单独的线程中停止机器人
-                stop_thread = threading.Thread(target=self._stop_bot_async, daemon=True)
-                stop_thread.start()
-                stop_thread.join(timeout=5)  # 等待最多5秒
-                self._bot_running = False
-                logger.info("音乐保存机器人已停止")
+                self._bot_app.stop()
+                self._bot_app.shutdown()
+            
+            self._bot_running = False
+            logger.info("音乐保存机器人已停止")
         except Exception as e:
             logger.error(f"停止机器人失败: {str(e)}", exc_info=True)
-    
-    async def _stop_bot_async(self):
-        """异步停止机器人（简化逻辑，复用现有循环）"""
-        try:
-            if self._bot_app.updater.running:
-                await self._bot_app.updater.stop()
-            await self._bot_app.stop()
-            await self._bot_app.shutdown()
-        except Exception as e:
-            logger.error(f"异步停止机器人失败: {str(e)}", exc_info=True)
 
     def _run_bot(self):
-        """在独立线程中运行机器人（修复事件循环逻辑）"""
+        """
+        在独立线程中运行机器人
+        """
         logger.info("机器人轮询线程已启动")
         try:
-            # 改用 python-telegram-bot 推荐的异步运行方式，避免手动创建循环
-            asyncio.run(self._run_bot_async())  # 委托给独立异步函数
+            # 在新线程中设置事件循环并运行机器人
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            logger.debug("开始运行机器人轮询")
+            # 直接运行轮询，禁用信号处理避免线程问题
+            loop.run_until_complete(self._bot_app.run_polling(stop_signals=[]))
         except asyncio.TimeoutError as e:
-            logger.error(f"机器人连接超时，请检查网络/Token/API地址: {str(e)}", exc_info=True)
+            logger.error(f"机器人连接超时，请检查网络连接、Bot Token和API地址配置")
+            logger.error(f"详细错误信息: {str(e)}")
         except Exception as e:
             logger.error(f"机器人运行出错: {str(e)}", exc_info=True)
         finally:
             self._bot_running = False
             logger.info("机器人轮询线程已结束")
-
-    # 新增独立异步函数，统一管理异步逻辑
-    async def _run_bot_async(self):
-        await self._bot_app.initialize()
-        await self._bot_app.start()
-        await self._bot_app.updater.start_polling(
-            timeout=60,
-            poll_interval=2,
-            read_timeout=60,
-            connect_timeout=60,
-            retry_after=10
-        )
-        await self._bot_app.updater.idle()  # 等待轮询结束
-        await self._bot_app.stop()
-        await self._bot_app.shutdown()
 
     def _handle_audio_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
