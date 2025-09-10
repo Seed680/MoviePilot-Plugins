@@ -19,7 +19,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.5"
+    plugin_version = "1.0.6"
     # 插件作者
     plugin_author = "Your Name"
     # 作者主页
@@ -77,6 +77,7 @@ class MusicSaverBot(_PluginBase):
         else:
             logger.debug(f"插件未启用或Bot Token未设置，停止Bot - 启用: {self._enabled}, Token设置: {bool(self._bot_token)}")
             self._stop_bot()
+            self._enabled = False
 
     @staticmethod
     def get_render_mode() -> Tuple[str, str]:
@@ -178,6 +179,7 @@ class MusicSaverBot(_PluginBase):
 
             logger.info("Music Saver Bot 启动成功")
         except Exception as e:
+            self._enabled = False
             logger.error(f"启动Music Saver Bot失败: {str(e)}", exc_info=True)
             self._stop_bot()
 
@@ -201,7 +203,7 @@ class MusicSaverBot(_PluginBase):
 
             logger.info("Music Saver Bot 已停止")
         except Exception as e:
-            logger.error(f"停止Music Saver Bot失败: {str(e)}")
+            logger.error(f"停止Music Saver Bot失败: {str(e)}", exc_info=True)
 
     async def _run_bot(self):
         """
@@ -214,7 +216,7 @@ class MusicSaverBot(_PluginBase):
             # 在事件循环中运行bot
             await self._bot_app.run_polling()
         except asyncio.CancelledError:
-            logger.info("Music Saver Bot 任务已被取消")
+            logger.info("Music Saver Bot 任务已被取消", exc_info=True)
         except Exception as e:
             logger.error(f"运行Music Saver Bot时出错: {str(e)}", exc_info=True)
 
@@ -423,7 +425,7 @@ class MusicSaverBot(_PluginBase):
                 logger.info(f"文件下载完成: {full_path}")
                 return str(full_path)
             except Exception as file_info_error:
-                logger.warning(f"通过Telegram Bot API获取文件信息失败: {str(file_info_error)}")
+                logger.warning(f"通过Telegram Bot API获取文件信息失败: {str(file_info_error)}", exc_info=True)
                 # 如果获取文件信息失败，假设是大文件，尝试直接构造URL下载
                 file_url = f"http://127.0.0.1:{self._telegram_port}/file/bot{self._bot_token}/{file_id}"
                 logger.debug(f"构造文件URL: {file_url}")
@@ -468,7 +470,8 @@ class MusicSaverBot(_PluginBase):
                 self._telegram_process_thread = None
 
         except Exception as e:
-            logger.error(f"停止Telegram本地服务失败: {str(e)}")
+            logger.error(f"停止Telegram本地服务失败: {str(e)}", exc_info=True)
+            self._enabled = False
 
     def _start_telegram_local_server(self):
         """
@@ -490,7 +493,7 @@ class MusicSaverBot(_PluginBase):
                 requests.post(logout_url, timeout=5)
                 logger.info("已调用Telegram Bot的logout方法，清理之前的会话")
             except Exception as e:
-                logger.warn(f"调用Telegram Bot logout接口失败: {str(e)}")
+                logger.warn(f"调用Telegram Bot logout接口失败: {str(e)}", exc_info=True)
 
             # 判断运行系统是否为Linux
             if platform.system() != "Linux":
@@ -525,13 +528,25 @@ class MusicSaverBot(_PluginBase):
                     urllib.request.urlretrieve(download_url, telegram_executable)
                     logger.info("Telegram本地服务执行文件下载完成")
                 except Exception as e:
-                    logger.error(f"下载Telegram本地服务执行文件失败: {str(e)}")
+                    logger.error(f"下载Telegram本地服务执行文件失败: {str(e)}", exc_info=True)
                     return False
 
             # 赋予执行权限
             os.chmod(telegram_executable, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
             logger.info("Telegram本地服务执行文件权限设置完成")
-
+            
+            # 检查并创建数据目录
+            telegram_data_path = Path(self._telegram_data_path)
+            if not telegram_data_path.exists():
+                try:
+                    telegram_data_path.mkdir(parents=True, exist_ok=True)
+                    logger.info(f"Telegram数据目录已创建: {telegram_data_path}")
+                except Exception as e:
+                    logger.error(f"创建Telegram数据目录失败: {str(e)}", exc_info=True)
+                    return False
+            else:
+                logger.info(f"Telegram数据目录已存在: {telegram_data_path}")
+            
             # 构造启动命令
             cmd = [
                 str(telegram_executable),
@@ -539,7 +554,6 @@ class MusicSaverBot(_PluginBase):
                 "--api-hash=" + str(self._telegram_api_hash),
                 "--local",
                 "--http-ip-address=127.0.0.1",
-                "--filter=0/"+ str(self._bot_token),
                 "--http-port=" + str(self._telegram_port),
                 "--dir=" + str(self._telegram_data_path)
             ]
@@ -552,7 +566,7 @@ class MusicSaverBot(_PluginBase):
                     self._telegram_process = subprocess.Popen(cmd)
                     self._telegram_process.wait()
                 except Exception as e:
-                    logger.error(f"Telegram本地服务运行异常: {str(e)}")
+                    logger.error(f"Telegram本地服务运行异常: {str(e)}", exc_info=True)
 
             # 在新线程中运行
             self._telegram_process_thread = threading.Thread(target=run_telegram_server, daemon=True)
