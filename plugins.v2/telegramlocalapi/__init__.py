@@ -16,7 +16,7 @@ class TelegramLocalApi(_PluginBase):
     # 插件图标
     plugin_icon = "telegram.png"
     # 插件版本
-    plugin_version = "1.0.2"
+    plugin_version = "1.0.3"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -396,10 +396,30 @@ class TelegramLocalApi(_PluginBase):
                         cwd=str(plugin_dir),  # 设置工作目录
                         env=env,  # 传递环境变量
                         stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE
+                        stderr=subprocess.PIPE,
+                        bufsize=1,  # 行缓冲
+                        universal_newlines=True  # 文本模式
                     )
                     logger.debug(f"Telegram进程PID: {self._telegram_process.pid}")
+                    
+                    # 实时读取并打印日志
+                    def log_output(pipe, log_level):
+                        for line in iter(pipe.readline, ''):
+                            if line:
+                                logger.info(f"[telegram-bot-api {log_level}] {line.rstrip()}")
+                        pipe.close()
+                    
+                    # 启动线程读取stdout和stderr
+                    stdout_thread = threading.Thread(target=log_output, args=(self._telegram_process.stdout, "stdout"), daemon=True)
+                    stderr_thread = threading.Thread(target=log_output, args=(self._telegram_process.stderr, "stderr"), daemon=True)
+                    stdout_thread.start()
+                    stderr_thread.start()
+                    
                     self._telegram_process.wait()
+                    
+                    # 等待日志线程结束
+                    stdout_thread.join(timeout=1)
+                    stderr_thread.join(timeout=1)
                 except Exception as e:
                     logger.error(f"Telegram本地服务运行异常: {str(e)}", exc_info=True)
 
