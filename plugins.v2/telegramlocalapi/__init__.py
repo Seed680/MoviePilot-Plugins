@@ -16,7 +16,7 @@ class TelegramLocalApi(_PluginBase):
     # 插件图标
     plugin_icon = "telegram.png"
     # 插件版本
-    plugin_version = "1.0.7"
+    plugin_version = "1.0.8"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -34,6 +34,7 @@ class TelegramLocalApi(_PluginBase):
     _telegram_api_id = None
     _telegram_api_hash = None
     _telegram_data_path = None
+    _telegram_proxy = None
     _telegram_bot_api_version = "1.0"
     _telegram_process = None
     _telegram_process_thread = None
@@ -51,8 +52,9 @@ class TelegramLocalApi(_PluginBase):
             self._telegram_api_id = config.get("telegram_api_id", "")
             self._telegram_api_hash = config.get("telegram_api_hash", "")
             self._telegram_data_path = config.get("telegram_data_path", "")
+            self._telegram_proxy = config.get("telegram_proxy", "")
 
-            logger.debug(f"配置加载完成 - 启用: {self._enabled}, API ID设置: {bool(self._telegram_api_id)}, 数据目录: {self._telegram_data_path}")
+            logger.debug(f"配置加载完成 - 启用: {self._enabled}, API ID设置: {bool(self._telegram_api_id)}, 数据目录: {self._telegram_data_path}, 代理地址: {self._telegram_proxy}")
 
         # 如果插件启用且有必要的配置信息，则启动服务
         if self._enabled and self._telegram_api_id and self._telegram_api_hash and self._telegram_data_path:
@@ -182,6 +184,27 @@ class TelegramLocalApi(_PluginBase):
                                 ]
                             }
                         ]
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'telegram_proxy',
+                                            'label': '代理地址',
+                                            'placeholder': '例如：http://127.0.0.1:1080（可选）',
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
                     }
                 ]
             }
@@ -190,7 +213,8 @@ class TelegramLocalApi(_PluginBase):
             "telegram_port": self._telegram_port,
             "telegram_api_id": self._telegram_api_id,
             "telegram_api_hash": self._telegram_api_hash,
-            "telegram_data_path": self._telegram_data_path
+            "telegram_data_path": self._telegram_data_path,
+            "telegram_proxy": self._telegram_proxy
         }
 
     def get_page(self) -> List[dict]:
@@ -380,11 +404,13 @@ class TelegramLocalApi(_PluginBase):
                 "--local",
                 "--http-ip-address=127.0.0.1",
                 "--http-port=" + str(self._telegram_port),
-                "--dir=" + str(self._telegram_data_path),
-                f"--log={str(self._telegram_data_path)}/log.txt",
-                "--verbosity=4"
-
+                "--dir=" + str(self._telegram_data_path)
             ]
+            
+            # 如果配置了代理地址，则添加代理参数
+            if self._telegram_proxy:
+                cmd.append("--proxy=" + str(self._telegram_proxy))
+                logger.info(f"使用代理地址: {self._telegram_proxy}")
 
             logger.info(f"启动Telegram本地服务: {' '.join(cmd)}")
 
