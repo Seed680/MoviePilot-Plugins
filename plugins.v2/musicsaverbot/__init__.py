@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.25"
+    plugin_version = "1.0.26"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -222,7 +222,7 @@ class MusicSaverBot(_PluginBase):
                 self._bot_app = ApplicationBuilder().token(self._bot_token).base_url(self._custom_api_url).build()
             else:
                 logger.debug("使用默认API地址")
-                if self._custom_api_url:
+                #if self._custom_api_url:
                     # 当使用自定义API时，不需要执行log_out操作
                     # 因为log_out仅适用于官方API
                     # 如果需要切换到自定义API，只需直接构建应用即可
