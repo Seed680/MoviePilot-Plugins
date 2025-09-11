@@ -16,7 +16,7 @@ class TelegramLocalApi(_PluginBase):
     # 插件图标
     plugin_icon = "telegram.png"
     # 插件版本
-    plugin_version = "1.0.6"
+    plugin_version = "1.0.7"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -66,6 +66,7 @@ class TelegramLocalApi(_PluginBase):
             self._stop_telegram_local_server()
             if config:
                 self._enabled = False
+        self.update_config(config=config)
 
     def get_api(self) -> List[Dict[str, Any]]:
         pass
@@ -376,7 +377,7 @@ class TelegramLocalApi(_PluginBase):
                 str(telegram_executable),
                 "--api-id=" + str(self._telegram_api_id),
                 "--api-hash=" + str(self._telegram_api_hash),
-                "--local"
+                "--local",
                 "--http-ip-address=127.0.0.1",
                 "--http-port=" + str(self._telegram_port),
                 "--dir=" + str(self._telegram_data_path),
