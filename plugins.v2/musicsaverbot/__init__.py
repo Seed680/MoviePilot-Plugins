@@ -6,7 +6,7 @@ from typing import List, Tuple, Dict, Any, Optional
 from app.log import logger
 from app.plugins import _PluginBase
 from app.schemas.types import SystemConfigKey
-
+import requests
 # 检查是否安装了 python-telegram-bot
 try:
     from telegram import Update
@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.24"
+    plugin_version = "1.0.25"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -199,22 +199,33 @@ class MusicSaverBot(_PluginBase):
             # 创建机器人应用
             if self._enable_custom_api and self._custom_api_url:
                 logger.debug(f"使用自定义API地址: {self._custom_api_url}")
-                bot = ExtBot(token=self._bot_token)
-                bot.initialize()
-                success = bot.log_out()
-                logger.info("从官方服务器退出成功")
-                self._bot_app = ApplicationBuilder().token(self._bot_token).base_url(f"{self._custom_api_url}").base_file_url(f"{self._custom_api_url}").build()
+                # 根据Telegram官方文档，使用自定义API地址前需要先logout官方服务
+                logger.debug("尝试注销机器人官方服务")
+                try:
+                    
+                    # 使用GET请求手动完成logout
+                    base_url = "https://api.telegram.org"
+                    logout_url = f"{base_url}/bot{self._bot_token}/logOut"
+                    response = requests.get(logout_url, timeout=10)
+                    if response.status_code == 200:
+                        result = response.json()
+                        if result.get("ok"):
+                            logger.debug("机器人已从官方服务注销")
+                        else:
+                            logger.warning(f"注销机器人失败: {result.get('description')}")
+                    else:
+                        logger.warning(f"注销机器人请求失败，状态码: {response.status_code}")
+                except Exception as logout_err:
+                    logger.warning(f"注销机器人时出现错误: {str(logout_err)}，将继续使用自定义API")
+                
+                # 使用自定义API地址
+                self._bot_app = ApplicationBuilder().token(self._bot_token).base_url(self._custom_api_url).build()
             else:
                 logger.debug("使用默认API地址")
                 if self._custom_api_url:
-                    bot = ExtBot(
-                        token=self._bot_token,
-                        base_url=f"{self._custom_api_url}",
-                        base_file_url=f"{self._custom_api_url}",
-                    )
-                    bot.initialize()
-                    success = bot.log_out()
-                    logger.info(f"从自定义API地址: {self._custom_api_url} 退出成功")
+                    # 当使用自定义API时，不需要执行log_out操作
+                    # 因为log_out仅适用于官方API
+                    # 如果需要切换到自定义API，只需直接构建应用即可
                 self._bot_app = ApplicationBuilder().token(self._bot_token).build()
             
             # 添加消息处理器
