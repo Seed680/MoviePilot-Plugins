@@ -62,7 +62,7 @@ class MusicSaverBot(_PluginBase):
             self._whitelist = config.get("whitelist")
             
         logger.debug(f"插件配置详情 - 启用: {self._enable}, 自定义API: {self._enable_custom_api}, Token设置: {bool(self._bot_token)}")
-            
+        self.stop_service()
         # 如果启用了插件并且配置了bot token，则启动机器人
         if self._enable and self._bot_token and TELEGRAM_MODULE_AVAILABLE:
             logger.info("插件已启用且配置完整，准备启动机器人")
