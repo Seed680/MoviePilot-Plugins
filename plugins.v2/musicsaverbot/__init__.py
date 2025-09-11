@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.26"
+    plugin_version = "1.0.27"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -219,7 +219,8 @@ class MusicSaverBot(_PluginBase):
                     logger.warning(f"注销机器人时出现错误: {str(logout_err)}，将继续使用自定义API")
                 
                 # 使用自定义API地址
-                self._bot_app = ApplicationBuilder().token(self._bot_token).base_url(self._custom_api_url).build()
+                logger.debug(f"使用自定义API地址: {self._custom_api_url}")
+                self._bot_app = ApplicationBuilder().token(self._bot_token).base_url(self._custom_api_url).base_file_url(self._custom_api_url).build()
             else:
                 logger.debug("使用默认API地址")
                 #if self._custom_api_url:
