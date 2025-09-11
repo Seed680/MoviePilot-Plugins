@@ -16,7 +16,7 @@ class TelegramLocalApi(_PluginBase):
     # 插件图标
     plugin_icon = "telegram.png"
     # 插件版本
-    plugin_version = "1.0.4"
+    plugin_version = "1.0.5"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -378,7 +378,10 @@ class TelegramLocalApi(_PluginBase):
                 "--api-hash=" + str(self._telegram_api_hash),
                 "--http-ip-address=127.0.0.1",
                 "--http-port=" + str(self._telegram_port),
-                "--dir=" + str(self._telegram_data_path)
+                "--dir=" + str(self._telegram_data_path),
+                f"--log={str(self._telegram_data_path)}/log.txt",
+                "--verbosity=4"
+
             ]
 
             logger.info(f"启动Telegram本地服务: {' '.join(cmd)}")
