@@ -16,7 +16,7 @@ class TelegramLocalApi(_PluginBase):
     # 插件图标
     plugin_icon = "telegram.png"
     # 插件版本
-    plugin_version = "1.0.9"
+    plugin_version = "1.0.10"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -411,7 +411,7 @@ class TelegramLocalApi(_PluginBase):
             
             # 如果配置了代理地址，则添加代理参数
             if self._telegram_proxy:
-                cmd.append("--proxy=" + str(self._telegram_proxy))
+                cmd.append("--http-proxy-server=" + str(self._telegram_proxy))
                 logger.info(f"使用代理地址: {self._telegram_proxy}")
 
             logger.info(f"启动Telegram本地服务: {' '.join(cmd)}")
