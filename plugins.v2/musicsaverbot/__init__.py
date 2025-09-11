@@ -12,6 +12,7 @@ try:
     from telegram import Update
     from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
     from telegram.error import TelegramError
+    from telegram.ext import ExtBot
     TELEGRAM_MODULE_AVAILABLE = True
 except ImportError:
     TELEGRAM_MODULE_AVAILABLE = False
@@ -26,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.23"
+    plugin_version = "1.0.24"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
