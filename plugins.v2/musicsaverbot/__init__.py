@@ -26,7 +26,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.22"
+    plugin_version = "1.0.23"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -199,8 +199,8 @@ class MusicSaverBot(_PluginBase):
             if self._enable_custom_api and self._custom_api_url:
                 logger.debug(f"使用自定义API地址: {self._custom_api_url}")
                 bot = ExtBot(token=self._bot_token)
-                await bot.initialize()
-                success = await bot.log_out()
+                bot.initialize()
+                success = bot.log_out()
                 logger.info("从官方服务器退出成功")
                 self._bot_app = ApplicationBuilder().token(self._bot_token).base_url(f"{self._custom_api_url}").base_file_url(f"{self._custom_api_url}").build()
             else:
@@ -211,8 +211,8 @@ class MusicSaverBot(_PluginBase):
                         base_url=f"{self._custom_api_url}",
                         base_file_url=f"{self._custom_api_url}",
                     )
-                    await bot.initialize()
-                    success = await bot.log_out()
+                    bot.initialize()
+                    success = bot.log_out()
                     logger.info(f"从自定义API地址: {self._custom_api_url} 退出成功")
                 self._bot_app = ApplicationBuilder().token(self._bot_token).build()
             
