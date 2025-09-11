@@ -250,7 +250,7 @@
         "name": "TG Music Saver Bot",
         "description": "接收Telegram发送的音乐文件并保存到本地",
         "labels": "Music",
-        "version": "1.0.27",
+        "version": "1.0.28",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1
