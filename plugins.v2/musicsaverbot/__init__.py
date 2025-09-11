@@ -30,7 +30,7 @@ class MusicSaverBot(_PluginBase):
     # 插件作者
     plugin_author = "your_name"
     # 作者主页
-    author_url = "https://github.com/your_name"
+    author_url = "https://github.com/Seed"
     # 插件配置项ID前缀
     plugin_config_prefix = "musicsaverbot_"
     # 加载顺序
