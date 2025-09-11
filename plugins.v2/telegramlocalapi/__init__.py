@@ -16,7 +16,7 @@ class TelegramLocalApi(_PluginBase):
     # 插件图标
     plugin_icon = "telegram.png"
     # 插件版本
-    plugin_version = "1.0"
+    plugin_version = "1.0.1"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -205,6 +205,14 @@ class TelegramLocalApi(_PluginBase):
         """
         self._stop_telegram_local_server()
 
+    @staticmethod
+    def get_render_mode() -> Tuple[str, str]:
+        """
+        获取插件渲染模式
+        :return: 1、渲染模式，支持：vue/vuetify，默认vuetify
+        :return: 2、组件路径，默认 dist/assets
+        """
+        return "vuetify"
     def _stop_telegram_local_server(self):
         """
         停止Telegram本地服务
