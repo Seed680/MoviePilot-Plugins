@@ -259,7 +259,7 @@
         "name": "Telegram本地API服务",
         "description": "提供Telegram本地API服务支持",
         "labels": "提供Telegram本地API服务支持",
-        "version": "1.0.3",
+        "version": "1.0.4",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1
