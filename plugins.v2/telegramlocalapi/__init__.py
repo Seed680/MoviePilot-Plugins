@@ -6,6 +6,8 @@ from typing import List, Tuple, Dict, Any, Optional
 import requests
 from app.log import logger
 from app.plugins import _PluginBase
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.executors.pool import ThreadPoolExecutor
 
 
 class TelegramLocalApi(_PluginBase):
@@ -16,7 +18,7 @@ class TelegramLocalApi(_PluginBase):
     # 插件图标
     plugin_icon = "telegram.png"
     # 插件版本
-    plugin_version = "1.0.11"
+    plugin_version = "1.0.12"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -40,9 +42,11 @@ class TelegramLocalApi(_PluginBase):
     _telegram_proxy_username = None
     _telegram_proxy_password = None
     _telegram_enable_log = False
+    _telegram_clean_cache_cron = None
     _telegram_bot_api_version = "1.0"
     _telegram_process = None
     _telegram_process_thread = None
+    _scheduler = None
 
     def init_plugin(self, config: dict = None):
         """
@@ -51,7 +55,7 @@ class TelegramLocalApi(_PluginBase):
         logger.debug(f"初始化TelegramLocalApi插件，配置: {config}")
 
         if config:
-            self.stop_service()
+
             self._enabled = config.get("enable", False)
             self._telegram_port = config.get("telegram_port", "")
             self._telegram_api_id = config.get("telegram_api_id", "")
@@ -63,9 +67,11 @@ class TelegramLocalApi(_PluginBase):
             self._telegram_proxy_username = config.get("telegram_proxy_username", "")
             self._telegram_proxy_password = config.get("telegram_proxy_password", "")
             self._telegram_enable_log = config.get("telegram_enable_log", False)
+            self._telegram_clean_cache_cron = config.get("telegram_clean_cache_cron", "")
 
             logger.debug(f"配置加载完成 - 启用: {self._enabled}, API ID设置: {bool(self._telegram_api_id)}, 数据目录: {self._telegram_data_path}")
 
+        self.stop_service()
         # 如果插件启用且有必要的配置信息，则启动服务
         if self._enabled and self._telegram_api_id and self._telegram_api_hash and self._telegram_data_path:
             if self._start_telegram_local_server():
@@ -79,12 +85,39 @@ class TelegramLocalApi(_PluginBase):
             if config:
                 self._enabled = False
         self.update_config(config=config)
+        
 
     def get_api(self) -> List[Dict[str, Any]]:
         pass
 
     def get_command(self):
         pass
+    
+    def get_service(self) -> List[Dict[str, Any]]:
+        """
+        注册插件公共服务
+        [{
+            "id": "服务ID",
+            "name": "服务名称",
+            "trigger": "触发器：cron/interval/date/CronTrigger.from_crontab()",
+            "func": self.xxx,
+            "kwargs": {} # 定时器参数
+        }]
+        """
+        if self._telegram_clean_cache_cron:
+            try:
+                from apscheduler.triggers.cron import CronTrigger
+                return [{
+                    "id": "TelegramLocalApiCacheCleanup",
+                    "name": "Telegram本地API缓存清理服务",
+                    "trigger": CronTrigger.from_crontab(self._telegram_clean_cache_cron),
+                    "func": self._clean_cache,
+                    "kwargs": {}
+                }]
+            except Exception as e:
+                logger.error(f"注册定时清理缓存任务失败: {str(e)}")
+        return []
+
     def get_form(self) -> Tuple[Optional[List[dict]], Dict[str, Any]]:
         """
         拼装插件配置页面，需要返回两块数据：1、页面配置；2、数据结构
@@ -318,6 +351,28 @@ class TelegramLocalApi(_PluginBase):
                                 ]
                             }
                         ]
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'telegram_clean_cache_cron',
+                                            'label': '定时清理缓存',
+                                            'placeholder': '请输入cron表达式，例如：0 2 * * *（每天凌晨2点清理）',
+                                            'hint': '使用cron表达式设置定时清理缓存的时间，留空则不启用定时清理'
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
                     }
                 ]
             }
@@ -332,7 +387,8 @@ class TelegramLocalApi(_PluginBase):
             "telegram_proxy_port": self._telegram_proxy_port,
             "telegram_proxy_username": self._telegram_proxy_username,
             "telegram_proxy_password": self._telegram_proxy_password,
-            "telegram_enable_log": self._telegram_enable_log
+            "telegram_enable_log": self._telegram_enable_log,
+            "telegram_clean_cache_cron": self._telegram_clean_cache_cron
         }
 
     def get_page(self) -> List[dict]:
@@ -352,6 +408,16 @@ class TelegramLocalApi(_PluginBase):
         退出插件
         """
         self._stop_telegram_local_server()
+        
+        # 停止调度器
+        try:
+            if self._scheduler:
+                self._scheduler.remove_all_jobs()
+                if self._scheduler.running:
+                    self._scheduler.shutdown()
+                self._scheduler = None
+        except Exception as e:
+            logger.error(f"停止调度器失败: {str(e)}")
 
     def _stop_telegram_local_server(self):
         """
@@ -635,3 +701,58 @@ class TelegramLocalApi(_PluginBase):
         except Exception as e:
             logger.error(f"启动Telegram本地服务失败: {str(e)}", exc_info=True)
             return False
+
+
+    def _shutdown_scheduler(self):
+        """
+        关闭调度器
+        """
+        try:
+            if self._scheduler:
+                self._scheduler.shutdown()
+                logger.info("调度器已关闭")
+                self._scheduler = None
+        except Exception as e:
+            logger.error(f"关闭调度器失败: {str(e)}")
+
+
+    def _clean_cache(self):
+        """
+        清理缓存文件
+        """
+        try:
+            import os
+            import shutil
+            from pathlib import Path
+            
+            if not self._telegram_data_path:
+                logger.warn("未设置Telegram数据目录，无法清理缓存")
+                return
+                
+            telegram_data_path = Path(self._telegram_data_path)
+            if not telegram_data_path.exists():
+                logger.warn(f"Telegram数据目录不存在: {telegram_data_path}")
+                return
+                
+            logger.info(f"开始清理Telegram缓存目录: {telegram_data_path}")
+            cleaned_count = 0
+            
+            # 遍历数据目录下的所有bot token目录
+            for bot_dir in telegram_data_path.iterdir():
+                if bot_dir.is_dir():
+                    # 遍历bot目录下的所有缓存文件夹
+                    for cache_dir in bot_dir.iterdir():
+                        if cache_dir.is_dir() and cache_dir.name not in ["log.txt"]:  # 排除日志文件
+                            try:
+                                # 清理缓存目录中的所有文件
+                                for cache_file in cache_dir.iterdir():
+                                    if cache_file.is_file():
+                                        cache_file.unlink()
+                                        cleaned_count += 1
+                                logger.debug(f"已清理缓存文件夹: {cache_dir}")
+                            except Exception as e:
+                                logger.error(f"清理缓存文件夹 {cache_dir} 失败: {str(e)}")
+            
+            logger.info(f"Telegram缓存清理完成，共清理 {cleaned_count} 个缓存文件")
+        except Exception as e:
+            logger.error(f"清理Telegram缓存时发生错误: {str(e)}")
