@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.32"
+    plugin_version = "1.0.33"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -257,17 +257,21 @@ class MusicSaverBot(_PluginBase):
             # 异步关闭机器人应用
             if self._bot_app:
                 import asyncio
-                # 创建新的事件循环来执行异步关闭操作
-                # 避免在没有事件循环的线程中尝试获取事件循环
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
                 
                 async def stop_app():
                     await self._bot_app.stop()
                     await self._bot_app.shutdown()
                 
-                loop.run_until_complete(stop_app())
-                loop.close()
+                # 检查是否有正在运行的事件循环
+                try:
+                    loop = asyncio.get_running_loop()
+                    # 如果在事件循环中，创建任务而不是运行直到完成
+                    loop.create_task(stop_app())
+                except RuntimeError:
+                    # 没有正在运行的事件循环，可以安全使用run_until_complete
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(stop_app())
             
             self._bot_running = False
             logger.info("音乐保存机器人已停止")
@@ -345,15 +349,21 @@ class MusicSaverBot(_PluginBase):
             
             # 下载文件
             logger.debug(f"开始下载文件，文件ID: {file_id}")
-            file = await context.bot.get_file(file_id)
+            
+            # 使用当前事件循环执行异步操作
+            import asyncio
+            loop = asyncio.get_event_loop()
+            
+            # 创建异步任务来获取文件和下载
+            file = await loop.create_task(context.bot.get_file(file_id))
             save_file_path = os.path.join(save_path, file_name)
             logger.debug(f"文件将保存至: {save_file_path}")
-            await file.download_to_drive(save_file_path)
+            await loop.create_task(file.download_to_drive(save_file_path))
             
             logger.info(f"音乐文件已保存: {save_file_path}")
             
             # 发送确认消息
-            await message.reply_text(f"音乐文件已保存: {file_name}")
+            await loop.create_task(message.reply_text(f"音乐文件已保存: {file_name}"))
         except TelegramError as e:
             logger.error(f"处理音频消息时发生Telegram错误: {str(e)}", exc_info=True)
         except Exception as e:
