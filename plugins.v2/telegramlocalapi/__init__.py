@@ -16,7 +16,7 @@ class TelegramLocalApi(_PluginBase):
     # 插件图标
     plugin_icon = "telegram.png"
     # 插件版本
-    plugin_version = "1.0.10"
+    plugin_version = "1.0.11"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -34,7 +34,12 @@ class TelegramLocalApi(_PluginBase):
     _telegram_api_id = None
     _telegram_api_hash = None
     _telegram_data_path = None
-    _telegram_proxy = None
+    _telegram_proxy_type = None
+    _telegram_proxy_server = None
+    _telegram_proxy_port = None
+    _telegram_proxy_username = None
+    _telegram_proxy_password = None
+    _telegram_enable_log = False
     _telegram_bot_api_version = "1.0"
     _telegram_process = None
     _telegram_process_thread = None
@@ -52,9 +57,14 @@ class TelegramLocalApi(_PluginBase):
             self._telegram_api_id = config.get("telegram_api_id", "")
             self._telegram_api_hash = config.get("telegram_api_hash", "")
             self._telegram_data_path = config.get("telegram_data_path", "")
-            self._telegram_proxy = config.get("telegram_proxy", "")
+            self._telegram_proxy_type = config.get("telegram_proxy_type", "")
+            self._telegram_proxy_server = config.get("telegram_proxy_server", "")
+            self._telegram_proxy_port = config.get("telegram_proxy_port", "")
+            self._telegram_proxy_username = config.get("telegram_proxy_username", "")
+            self._telegram_proxy_password = config.get("telegram_proxy_password", "")
+            self._telegram_enable_log = config.get("telegram_enable_log", False)
 
-            logger.debug(f"配置加载完成 - 启用: {self._enabled}, API ID设置: {bool(self._telegram_api_id)}, 数据目录: {self._telegram_data_path}, 代理地址: {self._telegram_proxy}")
+            logger.debug(f"配置加载完成 - 启用: {self._enabled}, API ID设置: {bool(self._telegram_api_id)}, 数据目录: {self._telegram_data_path}")
 
         # 如果插件启用且有必要的配置信息，则启动服务
         if self._enabled and self._telegram_api_id and self._telegram_api_hash and self._telegram_data_path:
@@ -191,15 +201,118 @@ class TelegramLocalApi(_PluginBase):
                             {
                                 'component': 'VCol',
                                 'props': {
+                                    'cols': 12,
+                                    'md': 6
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VSelect',
+                                        'props': {
+                                            'model': 'telegram_proxy_type',
+                                            'label': '代理类型',
+                                            'items': [
+                                                {'title': 'HTTP', 'value': 'http'},
+                                                {'title': 'SOCKS5', 'value': 'socks5'}
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 6
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'telegram_proxy_server',
+                                            'label': '代理地址',
+                                            'placeholder': '请输入代理服务器IP地址',
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 6
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'telegram_proxy_port',
+                                            'label': '代理端口',
+                                            'placeholder': '请输入代理端口',
+                                            'type': 'number'
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 6
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'telegram_proxy_username',
+                                            'label': '代理用户名',
+                                            'placeholder': '请输入代理用户名（可选）',
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {
                                     'cols': 12
                                 },
                                 'content': [
                                     {
                                         'component': 'VTextField',
                                         'props': {
-                                            'model': 'telegram_proxy',
-                                            'label': '代理地址',
-                                            'placeholder': '例如：http://127.0.0.1:1080（可选）',
+                                            'model': 'telegram_proxy_password',
+                                            'label': '代理密码',
+                                            'placeholder': '请输入代理密码（可选）'
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VSwitch',
+                                        'props': {
+                                            'model': 'telegram_enable_log',
+                                            'label': '启用服务日志',
+                                            'hint': '开启后将在数据目录下生成log.txt日志文件'
                                         }
                                     }
                                 ]
@@ -214,7 +327,12 @@ class TelegramLocalApi(_PluginBase):
             "telegram_api_id": self._telegram_api_id,
             "telegram_api_hash": self._telegram_api_hash,
             "telegram_data_path": self._telegram_data_path,
-            "telegram_proxy": self._telegram_proxy
+            "telegram_proxy_type": self._telegram_proxy_type,
+            "telegram_proxy_server": self._telegram_proxy_server,
+            "telegram_proxy_port": self._telegram_proxy_port,
+            "telegram_proxy_username": self._telegram_proxy_username,
+            "telegram_proxy_password": self._telegram_proxy_password,
+            "telegram_enable_log": self._telegram_enable_log
         }
 
     def get_page(self) -> List[dict]:
@@ -404,15 +522,30 @@ class TelegramLocalApi(_PluginBase):
                 "--local",
                 "--http-ip-address=127.0.0.1",
                 "--http-port=" + str(self._telegram_port),
-                "--dir=" + str(self._telegram_data_path),
-                f"--log={str(self._telegram_data_path)}/log.txt",
-                "--verbosity=4"
+                "--dir=" + str(self._telegram_data_path)
             ]
             
-            # 如果配置了代理地址，则添加代理参数
-            if self._telegram_proxy:
-                cmd.append("--http-proxy-server=" + str(self._telegram_proxy))
-                logger.info(f"使用代理地址: {self._telegram_proxy}")
+            # 如果配置了代理，则添加代理相关参数
+            if self._telegram_proxy_type and self._telegram_proxy_server and self._telegram_proxy_port:
+                logger.info(f"使用{self._telegram_proxy_type.upper()}代理: {self._telegram_proxy_server}:{self._telegram_proxy_port}")
+                cmd.append("--proxy-server=" + str(self._telegram_proxy_server))
+                cmd.append("--proxy-port=" + str(self._telegram_proxy_port))
+                cmd.append("--tdlib-proxy-type=" + str(self._telegram_proxy_type))
+                
+                # 如果配置了代理用户名和密码，则添加认证信息
+                if self._telegram_proxy_username:
+                    cmd.append("--proxy-login=" + str(self._telegram_proxy_username))
+                    
+                if self._telegram_proxy_password:
+                    cmd.append("--proxy-password=" + str(self._telegram_proxy_password))
+            
+            # 如果启用了服务日志，则添加日志相关参数
+            if self._telegram_enable_log:
+                import os
+                log_file_path = os.path.join(str(self._telegram_data_path), "log.txt")
+                cmd.append(f"--log={log_file_path}")
+                cmd.append("--verbosity=4")
+                logger.info(f"已启用服务日志，日志文件路径: {log_file_path}")
 
             logger.info(f"启动Telegram本地服务: {' '.join(cmd)}")
 
