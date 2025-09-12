@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.31"
+    plugin_version = "1.0.32"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -257,13 +257,17 @@ class MusicSaverBot(_PluginBase):
             # 异步关闭机器人应用
             if self._bot_app:
                 import asyncio
-                loop = asyncio.get_event_loop()
+                # 创建新的事件循环来执行异步关闭操作
+                # 避免在没有事件循环的线程中尝试获取事件循环
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
                 
                 async def stop_app():
                     await self._bot_app.stop()
                     await self._bot_app.shutdown()
                 
                 loop.run_until_complete(stop_app())
+                loop.close()
             
             self._bot_running = False
             logger.info("音乐保存机器人已停止")
