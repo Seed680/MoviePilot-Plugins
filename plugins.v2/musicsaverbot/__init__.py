@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.30"
+    plugin_version = "1.0.31"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -292,7 +292,7 @@ class MusicSaverBot(_PluginBase):
             self._bot_running = False
             logger.info("机器人轮询线程已结束")
 
-    def _handle_audio_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def _handle_audio_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         处理音频消息
         """
@@ -341,28 +341,15 @@ class MusicSaverBot(_PluginBase):
             
             # 下载文件
             logger.debug(f"开始下载文件，文件ID: {file_id}")
-            
-            # 异步获取文件信息并下载
-            import asyncio
-            loop = asyncio.get_event_loop()
-            
-            async def download_file():
-                file = await context.bot.get_file(file_id)
-                save_file_path = os.path.join(save_path, file_name)
-                logger.debug(f"文件将保存至: {save_file_path}")
-                await file.download_to_drive(save_file_path)
-                return save_file_path
-            
-            # 在现有事件循环中执行异步操作
-            save_file_path = loop.run_until_complete(download_file())
+            file = await context.bot.get_file(file_id)
+            save_file_path = os.path.join(save_path, file_name)
+            logger.debug(f"文件将保存至: {save_file_path}")
+            await file.download_to_drive(save_file_path)
             
             logger.info(f"音乐文件已保存: {save_file_path}")
             
             # 发送确认消息
-            async def send_reply():
-                await message.reply_text(f"音乐文件已保存: {file_name}")
-            
-            loop.run_until_complete(send_reply())
+            await message.reply_text(f"音乐文件已保存: {file_name}")
         except TelegramError as e:
             logger.error(f"处理音频消息时发生Telegram错误: {str(e)}", exc_info=True)
         except Exception as e:
