@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.36"
+    plugin_version = "1.0.37"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -424,7 +424,7 @@ class MusicSaverBot(_PluginBase):
                     file_extension = os.path.splitext(original_filename)[1]
                 
                 # 生成新文件名并保持后缀
-                new_filename = f"{title} - {performer}{file_extension}"
+                new_filename = f"{title}-{performer}{file_extension}"
                 logger.debug(f"使用title和performer生成文件名: {new_filename}")
                 return new_filename
             
