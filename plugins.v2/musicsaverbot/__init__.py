@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.35"
+    plugin_version = "1.0.36"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -320,14 +320,19 @@ class MusicSaverBot(_PluginBase):
                     
             message = update.message
             logger.debug(f"消息类型 - 音频: {bool(message.audio)}, 语音: {bool(message.voice)}, 文档: {bool(message.document)}")
-            logger.debug(f"消息原文 {message}")
+            
             # 获取文件信息
             file_id = None
             file_name = None
             
             if message.audio:
                 file_id = message.audio.file_id
-                file_name = message.audio.file_name or f"audio_{file_id}.mp3"
+                # 根据title和performer生成文件名
+                file_name = self._generate_filename(
+                    title=message.audio.title,
+                    performer=message.audio.performer,
+                    original_filename=message.audio.file_name
+                )
                 logger.debug(f"音频文件 - ID: {file_id}, 文件名: {file_name}, 大小: {message.audio.file_size}")
             elif message.voice:
                 file_id = message.voice.file_id
@@ -349,11 +354,11 @@ class MusicSaverBot(_PluginBase):
             
             # 下载文件
             logger.debug(f"开始下载文件，文件ID: {file_id}")
+            save_file_path = os.path.join(save_path, file_name)
+            logger.debug(f"文件将保存至: {save_file_path}")
             
             # 直接使用await调用异步方法，避免手动处理事件循环
             file = await context.bot.get_file(file_id)
-            save_file_path = os.path.join(save_path, file_name)
-            logger.debug(f"文件将保存至: {save_file_path}")
             await file.download_to_drive(save_file_path)
             
             logger.info(f"音乐文件已保存: {save_file_path}")
@@ -397,3 +402,56 @@ class MusicSaverBot(_PluginBase):
                 os.chmod(path, 0o777 & ~mask)
             except Exception as e:
                 logger.warn(f"设置目录 {path} 的umask权限失败: {str(e)}")
+
+    def _generate_filename(self, title=None, performer=None, original_filename=None):
+        """
+        根据title和performer生成文件名，保持原有文件后缀
+        
+        Args:
+            title: 音频标题
+            performer: 表演者
+            original_filename: 原始文件名
+            
+        Returns:
+            生成的文件名
+        """
+        try:
+            # 如果title和performer都存在，则使用"title - performer"格式
+            if title and performer:
+                # 获取原始文件的后缀
+                file_extension = ""
+                if original_filename:
+                    file_extension = os.path.splitext(original_filename)[1]
+                
+                # 生成新文件名并保持后缀
+                new_filename = f"{title} - {performer}{file_extension}"
+                logger.debug(f"使用title和performer生成文件名: {new_filename}")
+                return new_filename
+            
+            # 如果只有title，则使用title作为文件名
+            if title:
+                # 获取原始文件的后缀
+                file_extension = ""
+                if original_filename:
+                    file_extension = os.path.splitext(original_filename)[1]
+                
+                # 生成新文件名并保持后缀
+                new_filename = f"{title}{file_extension}"
+                logger.debug(f"使用title生成文件名: {new_filename}")
+                return new_filename
+                
+            # 如果无法根据title和performer生成文件名，则使用原始文件名
+            if original_filename:
+                logger.debug(f"使用原始文件名: {original_filename}")
+                return original_filename
+            
+            # 如果都没有，则生成默认文件名
+            default_filename = f"audio_{int(time.time())}.mp3"
+            logger.debug(f"使用默认文件名: {default_filename}")
+            return default_filename
+        except Exception as e:
+            logger.error(f"生成文件名时发生错误: {str(e)}")
+            # 出现异常时返回原始文件名或默认文件名
+            if original_filename:
+                return original_filename
+            return f"audio_{int(time.time())}.mp3"
