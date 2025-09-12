@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.34"
+    plugin_version = "1.0.35"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -320,7 +320,7 @@ class MusicSaverBot(_PluginBase):
                     
             message = update.message
             logger.debug(f"消息类型 - 音频: {bool(message.audio)}, 语音: {bool(message.voice)}, 文档: {bool(message.document)}")
-            
+            logger.debug(f"消息原文 {message}")
             # 获取文件信息
             file_id = None
             file_name = None
