@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.43"
+    plugin_version = "1.0.44"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -389,6 +389,10 @@ class MusicSaverBot(_PluginBase):
             message = update.message
             logger.debug(f"消息类型 - 音频: {bool(message.audio)}, 语音: {bool(message.voice)}, 文档: {bool(message.document)}")
             
+            # 发送"处理中"提示消息
+            logger.debug("发送处理中提示")
+            processing_message = await message.reply_text("🔄 正在处理您的文件，请稍候...")
+            
             # 获取文件信息
             file_id = None
             file_name = None
@@ -564,14 +568,17 @@ class MusicSaverBot(_PluginBase):
                     # 非音频文件使用简单的回复消息
                     reply_message = await message.reply_text(f"文件已保存: {file_name}")
                 
-                # 删除用户发送的原始消息
+                # 删除用户发送的原始消息和"处理中"提示消息
                 if reply_message:
                     try:
                         from telegram.constants import ChatAction
+                        # 删除原始消息
                         await message.delete()
-                        logger.debug("已删除用户发送的原始消息")
+                        # 删除处理中提示消息
+                        await processing_message.delete()
+                        logger.debug("已删除用户发送的原始消息和处理中提示消息")
                     except Exception as e:
-                        logger.warning(f"删除用户原始消息失败: {str(e)}")
+                        logger.warning(f"删除消息失败: {str(e)}")
         except TelegramError as e:
             logger.error(f"处理消息时发生Telegram错误: {str(e)}", exc_info=True)
             try:
