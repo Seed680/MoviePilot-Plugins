@@ -168,7 +168,11 @@ plugins.v2/*/dist/assets/__federation_shared_*/
 plugins.v2/*/dist/assets/index-*
 plugins.v2/*/dist/assets/date-*
 plugins.v2/*/dist/assets/runtime-*
+plugins.v2/*/yarn.lock
+plugins.v2/*/*/yarn.lock
+plugins.v2/test
 # Allow only specific files
 !plugins.v2/*/dist/assets/__federation_*
 !plugins.v2/*/dist/assets/_plugin-vue_export-helper-*
 !plugins.v2/*/dist/assets/remoteEntry.js
+.lingma/rules/project_rule.md
