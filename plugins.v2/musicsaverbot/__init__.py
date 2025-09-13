@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.38"
+    plugin_version = "1.0.39"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -376,9 +376,11 @@ class MusicSaverBot(_PluginBase):
             # 获取文件信息
             file_id = None
             file_name = None
+            thumbnail = None
             
             if message.audio:
                 file_id = message.audio.file_id
+                thumbnail = message.audio.thumbnail
                 # 根据title和performer生成文件名
                 file_name = self._generate_filename(
                     title=message.audio.title,
@@ -402,12 +404,36 @@ class MusicSaverBot(_PluginBase):
             # 确保保存目录存在
             save_path = self._save_path or "./music_files"
             logger.debug(f"目标保存路径: {save_path}")
-            self._ensure_directory(save_path)
+            
+            # 如果是音频文件，构建新的目录结构
+            if message.audio:
+                # 提取专辑名
+                album_name = self._extract_album_name(message.caption)
+                if not album_name:
+                    album_name = "Unknown Album"
+                
+                # 获取表演者
+                performer = message.audio.performer or "Unknown Artist"
+                
+                # 构建新的保存路径: save_path/performer/专辑名/
+                album_path = os.path.join(save_path, performer, album_name)
+                self._ensure_directory(album_path)
+                
+                # 更新文件保存路径
+                save_file_path = os.path.join(album_path, file_name)
+                logger.debug(f"音频文件将保存至: {save_file_path}")
+                
+                # 检查并保存封面图片
+                cover_path = self._save_cover_image(thumbnail, album_path)
+            else:
+                # 非音频文件保持原有逻辑
+                self._ensure_directory(save_path)
+                save_file_path = os.path.join(save_path, file_name)
+                logger.debug(f"文件将保存至: {save_file_path}")
+                cover_path = None
             
             # 下载文件
             logger.debug(f"开始下载文件，文件ID: {file_id}")
-            save_file_path = os.path.join(save_path, file_name)
-            logger.debug(f"文件将保存至: {save_file_path}")
             
             # 直接使用await调用异步方法，避免手动处理事件循环
             # 添加重试机制，最多重试3次
@@ -425,6 +451,28 @@ class MusicSaverBot(_PluginBase):
                     else:
                         # 最后一次尝试仍然失败
                         raise e
+            
+            # 如果是音频文件且需要保存封面图片
+            if message.audio and cover_path and thumbnail:
+                try:
+                    logger.debug(f"开始下载封面图片，文件ID: {thumbnail.file_id}")
+                    # 添加重试机制，最多重试3次
+                    for attempt in range(max_retries):
+                        try:
+                            thumb_file = await context.bot.get_file(thumbnail.file_id)
+                            await thumb_file.download_to_drive(cover_path)
+                            logger.info(f"封面图片已保存: {cover_path}")
+                            break  # 成功下载则跳出循环
+                        except Exception as e:
+                            if attempt < max_retries - 1:  # 如果不是最后一次尝试
+                                logger.warning(f"第{attempt + 1}次下载封面图片失败，准备重试: {str(e)}")
+                                await asyncio.sleep(2 ** attempt)  # 指数退避策略
+                            else:
+                                # 最后一次尝试仍然失败
+                                logger.error(f"下载封面图片失败: {str(e)}")
+                                break
+                except Exception as e:
+                    logger.error(f"保存封面图片时发生错误: {str(e)}")
             
             logger.info(f"文件已保存: {save_file_path}")
             
@@ -520,3 +568,61 @@ class MusicSaverBot(_PluginBase):
             if original_filename:
                 return original_filename
             return f"audio_{int(time.time())}.mp3"
+
+    def _extract_album_name(self, caption):
+        """
+        从消息caption中提取专辑名
+        
+        Args:
+            caption: 消息的caption文本
+            
+        Returns:
+            提取到的专辑名，如果未找到则返回None
+        """
+        if not caption:
+            return None
+            
+        try:
+            # 查找"专辑："和"\n"之间的内容
+            import re
+            album_pattern = r'专辑：(.*?)\n'
+            match = re.search(album_pattern, caption)
+            if match:
+                album_name = match.group(1).strip()
+                logger.debug(f"提取到专辑名: {album_name}")
+                return album_name
+            else:
+                logger.debug("未在caption中找到专辑名")
+                return None
+        except Exception as e:
+            logger.error(f"提取专辑名时发生错误: {str(e)}")
+            return None
+
+    def _save_cover_image(self, thumbnail, album_path):
+        """
+        保存封面图片到专辑目录
+        
+        Args:
+            thumbnail: 音频文件的缩略图对象
+            album_path: 专辑目录路径
+        """
+        if not thumbnail:
+            logger.debug("没有缩略图可保存")
+            return
+            
+        try:
+            # 检查专辑目录下是否已存在cover.jpg
+            cover_path = os.path.join(album_path, "cover.jpg")
+            if os.path.exists(cover_path):
+                logger.debug(f"封面图片已存在: {cover_path}")
+                return
+                
+            # 确保专辑目录存在
+            self._ensure_directory(album_path)
+            
+            # 注意：这里只是记录需要保存封面图片，实际保存操作需要在_handle_audio_message中进行
+            # 因为需要context.bot来获取和下载文件
+            logger.debug(f"需要保存封面图片到: {cover_path}")
+            return cover_path
+        except Exception as e:
+            logger.error(f"保存封面图片时发生错误: {str(e)}")
