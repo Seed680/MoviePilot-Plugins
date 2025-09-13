@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.40"
+    plugin_version = "1.0.41"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -368,6 +368,7 @@ class MusicSaverBot(_PluginBase):
                 logger.debug(f"白名单用户列表: {whitelist_ids}")
                 if str(user_id) not in whitelist_ids:
                     logger.info(f"用户 {user_id} ({user_name}) 不在白名单中，拒绝处理")
+                    await update.message.reply_text("您没有权限使用此功能。")
                     return
                     
             message = update.message
@@ -399,11 +400,45 @@ class MusicSaverBot(_PluginBase):
                 
             if not file_id:
                 logger.warning("无法获取文件ID")
+                await message.reply_text("无法获取文件信息，请稍后重试。")
                 return
                 
             # 确保保存目录存在
             save_path = self._save_path or "./music_files"
             logger.debug(f"目标保存路径: {save_path}")
+            
+            # 检查是否为歌词文件（.lrc 或 .txt）
+            is_lyric_file = False
+            if message.document and file_name:
+                file_ext = os.path.splitext(file_name)[1].lower()
+                if file_ext in ['.lrc', '.txt']:
+                    is_lyric_file = True
+                    logger.debug(f"检测到歌词文件: {file_name}")
+            
+            # 如果是歌词文件，特殊处理
+            if is_lyric_file:
+                # 解析歌词文件名获取歌曲名和歌手名
+                song_name, artist_name = self._parse_lyric_filename(file_name)
+                
+                if song_name and artist_name:
+                    # 查找对应的歌曲目录
+                    song_directory = self._find_song_directory(save_path, song_name, artist_name)
+                    
+                    if song_directory:
+                        # 找到对应目录，保存歌词文件
+                        lyric_save_path = os.path.join(song_directory, file_name)
+                        logger.debug(f"歌词文件将保存至: {lyric_save_path}")
+                    else:
+                        # 未找到对应歌曲目录，保存到默认目录
+                        logger.info(f"未找到歌曲 {song_name} by {artist_name} 的目录，将保存到默认目录")
+                        await message.reply_text(f"未找到歌曲 {song_name} by {artist_name}，将保存到默认目录。")
+                        self._ensure_directory(save_path)
+                        lyric_save_path = os.path.join(save_path, file_name)
+                else:
+                    # 无法解析文件名，保存到默认目录
+                    logger.info(f"无法从文件名 {file_name} 解析出歌曲名和歌手名，将保存到默认目录")
+                    self._ensure_directory(save_path)
+                    lyric_save_path = os.path.join(save_path, file_name)
             
             # 如果是音频文件，构建新的目录结构
             album_name = None
@@ -430,6 +465,9 @@ class MusicSaverBot(_PluginBase):
                 
                 # 检查并保存封面图片
                 cover_path = self._save_cover_image(thumbnail, album_path)
+            elif is_lyric_file and 'lyric_save_path' in locals():
+                # 使用之前确定的歌词保存路径
+                save_file_path = lyric_save_path
             else:
                 # 非音频文件保持原有逻辑
                 self._ensure_directory(save_path)
@@ -666,3 +704,75 @@ class MusicSaverBot(_PluginBase):
             return cover_path
         except Exception as e:
             logger.error(f"保存封面图片时发生错误: {str(e)}")
+
+    def _parse_lyric_filename(self, filename):
+        """
+        解析歌词文件名，提取歌曲名和歌手名
+        
+        Args:
+            filename: 歌词文件名
+            
+        Returns:
+            tuple: (歌曲名, 歌手名) 或 (None, None) 如果解析失败
+        """
+        try:
+            # 移除文件扩展名
+            name_without_ext = os.path.splitext(filename)[0]
+            
+            # 按照"-"分割文件名
+            parts = name_without_ext.split('-')
+            if len(parts) >= 2:
+                # 第一部分是歌曲名，第二部分是歌手名
+                song_name = parts[0].strip()
+                artist_name = parts[1].strip()
+                
+                if song_name and artist_name:
+                    logger.debug(f"从文件名解析出歌曲名: {song_name}, 歌手名: {artist_name}")
+                    return song_name, artist_name
+                    
+            logger.debug(f"无法从文件名 {filename} 解析出歌曲名和歌手名")
+            return None, None
+        except Exception as e:
+            logger.error(f"解析歌词文件名时发生错误: {str(e)}")
+            return None, None
+
+    def _find_song_directory(self, save_path, song_name, artist_name):
+        """
+        查找歌曲对应的目录
+        
+        Args:
+            save_path: 音乐保存根目录
+            song_name: 歌曲名
+            artist_name: 歌手名
+            
+        Returns:
+            str: 歌曲所在目录路径，如果未找到则返回None
+        """
+        try:
+            # 检查歌手目录是否存在
+            artist_path = os.path.join(save_path, artist_name)
+            if not os.path.exists(artist_path):
+                logger.debug(f"歌手目录不存在: {artist_path}")
+                return None
+                
+            # 遍历歌手目录下的所有专辑目录
+            for album_dir in os.listdir(artist_path):
+                album_path = os.path.join(artist_path, album_dir)
+                if os.path.isdir(album_path):
+                    # 检查专辑目录中是否存在对应的歌曲文件
+                    try:
+                        for file in os.listdir(album_path):
+                            # 检查文件名是否包含歌曲名（忽略扩展名）
+                            file_name_without_ext = os.path.splitext(file)[0]
+                            if song_name in file_name_without_ext or file_name_without_ext.startswith(song_name):
+                                logger.debug(f"找到匹配的歌曲目录: {album_path}")
+                                return album_path
+                    except Exception as e:
+                        logger.warning(f"检查专辑目录 {album_path} 时发生错误: {str(e)}")
+                        continue
+                        
+            logger.debug(f"未找到歌曲 {song_name} by {artist_name} 的目录")
+            return None
+        except Exception as e:
+            logger.error(f"查找歌曲目录时发生错误: {str(e)}")
+            return None
