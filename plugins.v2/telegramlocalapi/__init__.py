@@ -20,7 +20,7 @@ class TelegramLocalApi(_PluginBase):
     # 插件版本
     plugin_version = "1.0.12"
     # 插件作者
-    plugin_author = "Seed"
+    plugin_author = "Seed680"
     # 作者主页
     author_url = "https://github.com/Seed"
     # 插件配置项ID前缀
