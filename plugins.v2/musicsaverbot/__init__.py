@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.42"
+    plugin_version = "1.0.43"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -50,6 +50,8 @@ class MusicSaverBot(_PluginBase):
     _bot_app = None
     _bot_thread = None
     _bot_running = False
+    _timeout_count = 0  # 添加超时计数器
+    _max_timeout_count = 5  # 设置最大超时次数
 
     def init_plugin(self, config: dict = None):
         logger.debug(f"初始化音乐保存机器人插件，配置参数: {config}")
@@ -195,6 +197,9 @@ class MusicSaverBot(_PluginBase):
             logger.warning("检测到可能正在运行的机器人实例，尝试强制停止")
             self._stop_bot()
             
+        # 重置超时计数器
+        self._timeout_count = 0
+            
         try:
             logger.info("正在创建机器人应用")
             # 创建机器人应用
@@ -321,6 +326,8 @@ class MusicSaverBot(_PluginBase):
             self._bot_running = False
             self._bot_app = None
             logger.error(f"停止机器人失败: {str(e)}", exc_info=True)
+        config.update({"_enable": False})
+        self.update_config(config=config)
 
     def _run_bot(self):
         """
@@ -338,6 +345,14 @@ class MusicSaverBot(_PluginBase):
         except asyncio.TimeoutError as e:
             logger.error(f"机器人连接超时，请检查网络连接、Bot Token和API地址配置")
             logger.error(f"详细错误信息: {str(e)}")
+            # 增加超时计数
+            self._timeout_count += 1
+            logger.info(f"连接超时次数: {self._timeout_count}/{self._max_timeout_count}")
+            
+            # 如果超时次数达到最大值，则停止机器人
+            if self._timeout_count >= self._max_timeout_count:
+                logger.error(f"连接超时次数达到 {self._max_timeout_count} 次，机器人将自动退出")
+                self._stop_bot()
         except Exception as e:
             logger.error(f"机器人运行出错: {str(e)}", exc_info=True)
         finally:

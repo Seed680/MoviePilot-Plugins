@@ -250,11 +250,12 @@
         "name": "TG Music Saver Bot",
         "description": "接收Telegram发送的音乐文件并保存到本地",
         "labels": "Music",
-        "version": "1.0.42",
+        "version": "1.0.43",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.0.43": "Bot连接超时后自动退出",
             "v1.0.42": "保存成功后，删除源消息",
             "v1.0.41": "增加歌词保存功能，歌词以歌曲名-歌手名格式保存，如：xxx-xxx.lrc",
             "v1.0.40": "按歌手/专辑名/歌曲名-歌手保存音乐文件，并尝试下载cover图片;增加异常提示"
