@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.39"
+    plugin_version = "1.0.40"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -406,14 +406,19 @@ class MusicSaverBot(_PluginBase):
             logger.debug(f"目标保存路径: {save_path}")
             
             # 如果是音频文件，构建新的目录结构
+            album_name = None
+            performer = None
+            title = None
+            
             if message.audio:
                 # 提取专辑名
                 album_name = self._extract_album_name(message.caption)
                 if not album_name:
                     album_name = "Unknown Album"
                 
-                # 获取表演者
+                # 获取表演者和标题
                 performer = message.audio.performer or "Unknown Artist"
+                title = message.audio.title
                 
                 # 构建新的保存路径: save_path/performer/专辑名/
                 album_path = os.path.join(save_path, performer, album_name)
@@ -438,18 +443,22 @@ class MusicSaverBot(_PluginBase):
             # 直接使用await调用异步方法，避免手动处理事件循环
             # 添加重试机制，最多重试3次
             max_retries = 3
+            download_success = False
             for attempt in range(max_retries):
                 try:
                     file = await context.bot.get_file(file_id)
                     await file.download_to_drive(save_file_path)
+                    download_success = True
                     break  # 成功下载则跳出循环
                 except Exception as e:
                     if attempt < max_retries - 1:  # 如果不是最后一次尝试
-                        logger.warning(f"第{attempt + 1}次下载文件失败，准备重试: {str(e)}")
+                        logger.debug(f"第{attempt + 1}次下载文件失败，准备重试: {str(e)}")
                         import asyncio
                         await asyncio.sleep(2 ** attempt)  # 指数退避策略
                     else:
                         # 最后一次尝试仍然失败
+                        logger.error(f"文件下载失败: {str(e)}")
+                        await message.reply_text(f"文件下载失败，请稍后重试。\n错误信息: {str(e)}")
                         raise e
             
             # 如果是音频文件且需要保存封面图片
@@ -457,31 +466,62 @@ class MusicSaverBot(_PluginBase):
                 try:
                     logger.debug(f"开始下载封面图片，文件ID: {thumbnail.file_id}")
                     # 添加重试机制，最多重试3次
+                    cover_success = False
                     for attempt in range(max_retries):
                         try:
                             thumb_file = await context.bot.get_file(thumbnail.file_id)
                             await thumb_file.download_to_drive(cover_path)
                             logger.info(f"封面图片已保存: {cover_path}")
+                            cover_success = True
                             break  # 成功下载则跳出循环
                         except Exception as e:
                             if attempt < max_retries - 1:  # 如果不是最后一次尝试
-                                logger.warning(f"第{attempt + 1}次下载封面图片失败，准备重试: {str(e)}")
+                                logger.debug(f"第{attempt + 1}次下载封面图片失败，准备重试: {str(e)}")
+                                import asyncio
                                 await asyncio.sleep(2 ** attempt)  # 指数退避策略
                             else:
                                 # 最后一次尝试仍然失败
                                 logger.error(f"下载封面图片失败: {str(e)}")
+                                await message.reply_text(f"封面图片下载失败。\n错误信息: {str(e)}")
                                 break
+                    
+                    # 如果封面下载成功，记录日志
+                    if cover_success:
+                        logger.info(f"封面图片已保存: {cover_path}")
                 except Exception as e:
                     logger.error(f"保存封面图片时发生错误: {str(e)}")
+                    await message.reply_text(f"保存封面图片时发生错误。\n错误信息: {str(e)}")
             
-            logger.info(f"文件已保存: {save_file_path}")
-            
-            # 发送确认消息
-            await message.reply_text(f"文件已保存: {file_name}")
+            # 如果文件下载成功，发送成功消息
+            if download_success:
+                logger.info(f"文件已保存: {save_file_path}")
+                # 构建回复消息，复用之前提取的信息
+                if message.audio:
+                    # 构建详细的音频文件回复消息
+                    reply_msg = f"🎵 文件已保存:\n"
+                    if performer:
+                        reply_msg += f"歌手: {performer}\n"
+                    if album_name and album_name != "Unknown Album":
+                        reply_msg += f"专辑: {album_name}\n"
+                    if title:
+                        reply_msg += f"歌曲: {title}\n"
+                    reply_msg += f"文件名: {file_name}"
+                    await message.reply_text(reply_msg)
+                else:
+                    # 非音频文件使用简单的回复消息
+                    await message.reply_text(f"文件已保存: {file_name}")
         except TelegramError as e:
             logger.error(f"处理消息时发生Telegram错误: {str(e)}", exc_info=True)
+            try:
+                await message.reply_text(f"处理文件时发生Telegram错误，请稍后重试。\n错误信息: {str(e)}")
+            except:
+                pass
         except Exception as e:
             logger.error(f"处理消息时发生错误: {str(e)}", exc_info=True)
+            try:
+                await message.reply_text(f"处理文件时发生错误，请稍后重试。\n错误信息: {str(e)}")
+            except:
+                pass
 
     def _ensure_directory(self, path):
         """
