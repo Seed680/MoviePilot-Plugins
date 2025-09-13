@@ -509,7 +509,6 @@ class MusicSaverBot(_PluginBase):
                         try:
                             thumb_file = await context.bot.get_file(thumbnail.file_id)
                             await thumb_file.download_to_drive(cover_path)
-                            logger.info(f"封面图片已保存: {cover_path}")
                             cover_success = True
                             break  # 成功下载则跳出循环
                         except Exception as e:
