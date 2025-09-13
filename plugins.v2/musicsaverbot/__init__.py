@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.41"
+    plugin_version = "1.0.42"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -533,6 +533,7 @@ class MusicSaverBot(_PluginBase):
             if download_success:
                 logger.info(f"文件已保存: {save_file_path}")
                 # 构建回复消息，复用之前提取的信息
+                reply_message = None
                 if message.audio:
                     # 构建详细的音频文件回复消息
                     reply_msg = f"🎵 文件已保存:\n"
@@ -543,10 +544,19 @@ class MusicSaverBot(_PluginBase):
                     if title:
                         reply_msg += f"歌曲: {title}\n"
                     reply_msg += f"文件名: {file_name}"
-                    await message.reply_text(reply_msg)
+                    reply_message = await message.reply_text(reply_msg)
                 else:
                     # 非音频文件使用简单的回复消息
-                    await message.reply_text(f"文件已保存: {file_name}")
+                    reply_message = await message.reply_text(f"文件已保存: {file_name}")
+                
+                # 删除用户发送的原始消息
+                if reply_message:
+                    try:
+                        from telegram.constants import ChatAction
+                        await message.delete()
+                        logger.debug("已删除用户发送的原始消息")
+                    except Exception as e:
+                        logger.warning(f"删除用户原始消息失败: {str(e)}")
         except TelegramError as e:
             logger.error(f"处理消息时发生Telegram错误: {str(e)}", exc_info=True)
             try:
