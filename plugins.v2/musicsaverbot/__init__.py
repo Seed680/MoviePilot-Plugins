@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.37"
+    plugin_version = "1.0.38"
     # 插件作者
     plugin_author = "Seed"
     # 作者主页
@@ -190,9 +190,10 @@ class MusicSaverBot(_PluginBase):
             logger.error("未安装 python-telegram-bot 库，无法启动机器人")
             return
             
-        if self._bot_running:
-            logger.debug("机器人已在运行中，无需重复启动")
-            return
+        # 强制停止任何可能正在运行的机器人实例
+        if self._bot_running or self._bot_app:
+            logger.warning("检测到可能正在运行的机器人实例，尝试强制停止")
+            self._stop_bot()
             
         try:
             logger.info("正在创建机器人应用")
@@ -231,18 +232,30 @@ class MusicSaverBot(_PluginBase):
             
             # 添加消息处理器
             logger.debug("注册消息处理器")
-            self._bot_app.add_handler(MessageHandler(filters.AUDIO | filters.VOICE | filters.Document.Category("audio"), self._handle_audio_message))
+            self._bot_app.add_handler(MessageHandler(
+                filters.AUDIO | 
+                filters.VOICE | 
+                filters.Document.Category("audio") |
+                filters.Document.MimeType("text/plain") |
+                filters.Document.FileExtension("lrc") |
+                filters.Document.FileExtension("txt"), 
+                self._handle_audio_message))
             
             # 在单独的线程中运行机器人
             logger.debug("启动机器人线程")
             self._bot_thread = threading.Thread(target=self._run_bot, daemon=True)
             self._bot_thread.start()
             
+            # 等待一小段时间确保线程启动
+            import time
+            time.sleep(0.1)
+            
             self._bot_running = True
             logger.info("音乐保存机器人已启动")
         except Exception as e:
             logger.error(f"启动机器人失败: {str(e)}", exc_info=True)
             self._bot_running = False
+            self._bot_app = None
 
     def _stop_bot(self):
         """
@@ -259,23 +272,54 @@ class MusicSaverBot(_PluginBase):
                 import asyncio
                 
                 async def stop_app():
-                    await self._bot_app.stop()
-                    await self._bot_app.shutdown()
+                    try:
+                        if hasattr(self._bot_app, 'stop'):
+                            await self._bot_app.stop()
+                        else:
+                            logger.debug("机器人应用没有stop方法或尚未初始化")
+                    except Exception as stop_err:
+                        logger.debug(f"停止机器人应用时出现错误（可能是应用未运行）: {str(stop_err)}")
+                    
+                    try:
+                        if hasattr(self._bot_app, 'shutdown'):
+                            await self._bot_app.shutdown()
+                        else:
+                            logger.debug("机器人应用没有shutdown方法或尚未初始化")
+                    except Exception as shutdown_err:
+                        logger.debug(f"关闭机器人应用时出现错误（可能是应用未运行）: {str(shutdown_err)}")
                 
                 # 检查是否有正在运行的事件循环
                 try:
                     loop = asyncio.get_running_loop()
                     # 如果在事件循环中，创建任务而不是运行直到完成
-                    loop.create_task(stop_app())
+                    task = loop.create_task(stop_app())
+                    # 等待任务完成，最多等待5秒
+                    async def wait_for_task():
+                        try:
+                            await asyncio.wait_for(task, timeout=5.0)
+                        except asyncio.TimeoutError:
+                            logger.warning("等待机器人停止超时")
+                    
+                    loop.create_task(wait_for_task())
                 except RuntimeError:
                     # 没有正在运行的事件循环，可以安全使用run_until_complete
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
-                    loop.run_until_complete(stop_app())
+                    try:
+                        loop.run_until_complete(asyncio.wait_for(stop_app(), timeout=5.0))
+                    except asyncio.TimeoutError:
+                        logger.warning("等待机器人停止超时")
+                    finally:
+                        loop.close()
             
+            # 无论停止操作是否成功，都标记机器人未运行以避免冲突
             self._bot_running = False
+            self._bot_app = None  # 清理应用引用
             logger.info("音乐保存机器人已停止")
         except Exception as e:
+            # 即使出现异常，也要确保状态被重置以避免冲突
+            self._bot_running = False
+            self._bot_app = None
             logger.error(f"停止机器人失败: {str(e)}", exc_info=True)
 
     def _run_bot(self):
@@ -297,7 +341,15 @@ class MusicSaverBot(_PluginBase):
         except Exception as e:
             logger.error(f"机器人运行出错: {str(e)}", exc_info=True)
         finally:
+            # 确保在任何情况下都正确清理状态
+            try:
+                if 'loop' in locals():
+                    loop.close()
+            except Exception as e:
+                logger.warning(f"关闭事件循环时出错: {str(e)}")
+                
             self._bot_running = False
+            self._bot_app = None
             logger.info("机器人轮询线程已结束")
 
     async def _handle_audio_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -358,17 +410,30 @@ class MusicSaverBot(_PluginBase):
             logger.debug(f"文件将保存至: {save_file_path}")
             
             # 直接使用await调用异步方法，避免手动处理事件循环
-            file = await context.bot.get_file(file_id)
-            await file.download_to_drive(save_file_path)
+            # 添加重试机制，最多重试3次
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    file = await context.bot.get_file(file_id)
+                    await file.download_to_drive(save_file_path)
+                    break  # 成功下载则跳出循环
+                except Exception as e:
+                    if attempt < max_retries - 1:  # 如果不是最后一次尝试
+                        logger.warning(f"第{attempt + 1}次下载文件失败，准备重试: {str(e)}")
+                        import asyncio
+                        await asyncio.sleep(2 ** attempt)  # 指数退避策略
+                    else:
+                        # 最后一次尝试仍然失败
+                        raise e
             
-            logger.info(f"音乐文件已保存: {save_file_path}")
+            logger.info(f"文件已保存: {save_file_path}")
             
             # 发送确认消息
-            await message.reply_text(f"音乐文件已保存: {file_name}")
+            await message.reply_text(f"文件已保存: {file_name}")
         except TelegramError as e:
-            logger.error(f"处理音频消息时发生Telegram错误: {str(e)}", exc_info=True)
+            logger.error(f"处理消息时发生Telegram错误: {str(e)}", exc_info=True)
         except Exception as e:
-            logger.error(f"处理音频消息时发生错误: {str(e)}", exc_info=True)
+            logger.error(f"处理消息时发生错误: {str(e)}", exc_info=True)
 
     def _ensure_directory(self, path):
         """
