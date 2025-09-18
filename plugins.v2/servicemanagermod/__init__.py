@@ -25,7 +25,7 @@ class ServiceManagerMod(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/InfinityPacer/MoviePilot-Plugins/main/icons/servicemanager.png"
     # 插件版本
-    plugin_version = "1.7"
+    plugin_version = "1.8"
     # 插件作者
     plugin_author = "InfinityPacer,Seed680"
     # 作者主页
@@ -69,10 +69,10 @@ class ServiceManagerMod(_PluginBase):
         self._random_wallpager = config.get("random_wallpager")
         self._subscribe_tmdb = config.get("subscribe_tmdb")
         if self._enabled:
-            # 延迟清除系统服务
-            logger.info("插件已启用，30秒后清除系统服务")
+            # 延迟清除系统服务并添加自定义服务
+            logger.info("插件已启用，30秒后清除系统服务并添加自定义服务")
             self._scheduler = BackgroundScheduler(timezone=settings.TZ)
-            self._scheduler.add_job(func=self.clear_default_service, trigger='date',
+            self._scheduler.add_job(func=self.update_services, trigger='date',
                                         run_date=datetime.datetime.now(
                                             tz=pytz.timezone(settings.TZ)) + datetime.timedelta(seconds=30)
                                         )
@@ -329,84 +329,26 @@ class ServiceManagerMod(_PluginBase):
     def get_page(self) -> List[dict]:
         pass
 
-    def get_service(self) -> List[Dict[str, Any]]:
-        """
-        注册插件公共服务
-        [{
-            "id": "服务ID",
-            "name": "服务名称",
-            "trigger": "触发器：cron/interval/date/CronTrigger.from_crontab()",
-            "func": self.xxx,
-            "kwargs": {} # 定时器参数,
-            "func_kwargs": {} # 方法参数
-        }]
-        """
-        logger.info("注册插件公共服务开始")
-        if not self._enabled:
-            return []
-
-        services = []
-        if self._sitedata_refresh:
-            services.append({
-                "id": "sitedata_refresh",
-                "name": "站点数据刷新",
-                "trigger": CronTrigger.from_crontab(self._sitedata_refresh),
-                "func": SiteChain().refresh_userdatas
-            })
-
-        # 订阅搜索补全服务
-        if settings.SUBSCRIBE_SEARCH and self._subscribe_search:
-            services.append({
-                "id": "subscribe_search",
-                "name": "订阅搜索补全",
-                "trigger": CronTrigger.from_crontab(self._subscribe_search),
-                "func": SubscribeChain().search,
-                "func_kwargs": {
-                    "state": "R"
-                }
-            })
-
-        # 缓存清理服务
-        if self._clear_cache:
-            services.append({
-                "id": "clear_cache",
-                "name": "缓存清理",
-                "trigger": CronTrigger.from_crontab(self._clear_cache),
-                "func": self.clear_cache
-            })
-
-        # 壁纸缓存更新服务
-        if self._random_wallpager:
-            services.append({
-                "id": "random_wallpager",
-                "name": "壁纸缓存",
-                "trigger": CronTrigger.from_crontab(self._random_wallpager),
-                "func": TmdbChain().get_trending_wallpapers
-            })
-
-        # 订阅元数据更新服务
-        if self._subscribe_tmdb:
-            try:
-                subscribe_tmdb = max(int(self._subscribe_tmdb or 1), 1)
-            except (ValueError, TypeError):
-                subscribe_tmdb = 1
-            services.append({
-                "id": "subscribe_tmdb",
-                "name": "订阅元数据更新",
-                "trigger": "interval",
-                "func": SubscribeChain().check,
-                "kwargs": {
-                    "hours": subscribe_tmdb
-                }
-            })
-        logger.info(f"注册插件公共服务结束 services: {services}")
-        return services
-
     def stop_service(self):
         """
-        退出插件
+        退出插件，恢复系统默认的定时任务
         """
-        pass
+        logger.info("正在停止服务管理魔改版插件，恢复系统默认定时任务...")
+        
+        # 获取Scheduler实例
+        scheduler_instance = Scheduler()
+        
+        # 移除插件添加的所有自定义服务
+        job_ids = ["sitedata_refresh", "subscribe_search", "clear_cache", "random_wallpager", "subscribe_tmdb"]
+        for job_id in job_ids:
+            try:
+                scheduler_instance.remove_plugin_job(pid=self.__class__.__name__, job_id=job_id)
+            except Exception as e:
+                logger.debug(f"移除任务 {job_id} 时出错: {str(e)}")
+        
+        # 重新初始化系统默认任务
+        scheduler_instance.init()
+        logger.info("已恢复系统默认定时任务")
 
     @staticmethod
     def clear_cache():
@@ -415,16 +357,137 @@ class ServiceManagerMod(_PluginBase):
         """
         Scheduler().clear_cache()
 
-    def clear_default_service(self):
+    def update_services(self):
+        """
+        更新服务，直接操作Scheduler的_jobs和_scheduler
+        """
+        # 获取Scheduler实例
+        scheduler_instance = Scheduler()
+        
+        # 移除默认服务
         if self._sitedata_refresh:
-            Scheduler().remove_plugin_job(pid="None", job_id="sitedata_refresh")
+            scheduler_instance.remove_plugin_job(pid="None", job_id="sitedata_refresh")
         if settings.SUBSCRIBE_SEARCH and self._subscribe_search:
-            Scheduler().remove_plugin_job(pid="None", job_id="subscribe_search")
+            scheduler_instance.remove_plugin_job(pid="None", job_id="subscribe_search")
         if self._clear_cache:
-            Scheduler().remove_plugin_job(pid="None", job_id="clear_cache")
+            scheduler_instance.remove_plugin_job(pid="None", job_id="clear_cache")
         if self._random_wallpager:
-            Scheduler().remove_plugin_job(pid="None", job_id="random_wallpager")
+            scheduler_instance.remove_plugin_job(pid="None", job_id="random_wallpager")
         if self._subscribe_tmdb:
-            Scheduler().remove_plugin_job(pid="None", job_id="subscribe_tmdb")
-        Scheduler().update_plugin_job('ServiceManagerMod')
+            scheduler_instance.remove_plugin_job(pid="None", job_id="subscribe_tmdb")
+        
+        # 添加自定义服务
+        self.add_custom_services(scheduler_instance)
         logger.info("插件重新注册服务")
+
+    def add_custom_services(self, scheduler_instance):
+        """
+        添加自定义服务到Scheduler
+        """
+        # 站点数据刷新服务
+        if self._sitedata_refresh:
+            job_id = "sitedata_refresh"
+            scheduler_instance._jobs[job_id] = {
+                "func": SiteChain().refresh_userdatas,
+                "name": "站点数据刷新",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._sitedata_refresh),
+                id=job_id,
+                name="站点数据刷新",
+                kwargs={"job_id": job_id},
+                replace_existing=True
+            )
+
+        # 订阅搜索补全服务
+        if settings.SUBSCRIBE_SEARCH and self._subscribe_search:
+            job_id = "subscribe_search"
+            scheduler_instance._jobs[job_id] = {
+                "func": SubscribeChain().search,
+                "name": "订阅搜索补全",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {"state": "R"},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._subscribe_search),
+                id=job_id,
+                name="订阅搜索补全",
+                kwargs={"job_id": job_id, "state": "R"},
+                replace_existing=True
+            )
+
+        # 缓存清理服务
+        if self._clear_cache:
+            job_id = "clear_cache"
+            scheduler_instance._jobs[job_id] = {
+                "func": self.clear_cache,
+                "name": "缓存清理",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._clear_cache),
+                id=job_id,
+                name="缓存清理",
+                kwargs={"job_id": job_id},
+                replace_existing=True
+            )
+
+        # 壁纸缓存更新服务
+        if self._random_wallpager:
+            job_id = "random_wallpager"
+            scheduler_instance._jobs[job_id] = {
+                "func": TmdbChain().get_trending_wallpapers,
+                "name": "壁纸缓存",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._random_wallpager),
+                id=job_id,
+                name="壁纸缓存",
+                kwargs={"job_id": job_id},
+                replace_existing=True
+            )
+
+        # 订阅元数据更新服务
+        if self._subscribe_tmdb:
+            try:
+                subscribe_tmdb = max(int(self._subscribe_tmdb or 1), 1)
+            except (ValueError, TypeError):
+                subscribe_tmdb = 1
+                
+            job_id = "subscribe_tmdb"
+            scheduler_instance._jobs[job_id] = {
+                "func": SubscribeChain().check,
+                "name": "订阅元数据更新",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                "interval",
+                id=job_id,
+                name="订阅元数据更新",
+                hours=subscribe_tmdb,
+                kwargs={"job_id": job_id},
+                replace_existing=True
+            )
+
+        logger.info("自定义服务添加完成")
