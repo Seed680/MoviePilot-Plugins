@@ -27,7 +27,7 @@ class ServiceManagerMod(_PluginBase):
     # 插件版本
     plugin_version = "1.8"
     # 插件作者
-    plugin_author = "InfinityPacer,Seed680"
+    plugin_author = "Seed680"
     # 作者主页
     author_url = "https://github.com/InfinityPacer"
     # 插件配置项ID前缀

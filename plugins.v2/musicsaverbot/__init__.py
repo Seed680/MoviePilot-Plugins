@@ -27,7 +27,7 @@ class MusicSaverBot(_PluginBase):
     # 插件图标
     plugin_icon = "music.png"
     # 插件版本
-    plugin_version = "1.0.44"
+    plugin_version = "1.0.45"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -51,7 +51,7 @@ class MusicSaverBot(_PluginBase):
     _bot_thread = None
     _bot_running = False
     _timeout_count = 0  # 添加超时计数器
-    _max_timeout_count = 5  # 设置最大超时次数
+    _max_timeout_count = 10  # 设置最大超时次数，从5增加到10
 
     def init_plugin(self, config: dict = None):
         logger.debug(f"初始化音乐保存机器人插件，配置参数: {config}")
@@ -212,7 +212,7 @@ class MusicSaverBot(_PluginBase):
                     # 使用GET请求手动完成logout
                     base_url = "https://api.telegram.org"
                     logout_url = f"{base_url}/bot{self._bot_token}/logOut"
-                    response = requests.get(logout_url, timeout=10)
+                    response = requests.get(logout_url, timeout=30)
                     if response.status_code == 200:
                         result = response.json()
                         if result.get("ok"):
@@ -311,7 +311,7 @@ class MusicSaverBot(_PluginBase):
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     try:
-                        loop.run_until_complete(asyncio.wait_for(stop_app(), timeout=5.0))
+                        loop.run_until_complete(asyncio.wait_for(stop_app(), timeout=15.0))
                     except asyncio.TimeoutError:
                         logger.warning("等待机器人停止超时")
                     finally:
@@ -498,8 +498,8 @@ class MusicSaverBot(_PluginBase):
             logger.debug(f"开始下载文件，文件ID: {file_id}")
             
             # 直接使用await调用异步方法，避免手动处理事件循环
-            # 添加重试机制，最多重试3次
-            max_retries = 3
+            # 添加重试机制，最多重试5次
+            max_retries = 5
             download_success = False
             for attempt in range(max_retries):
                 try:
@@ -511,18 +511,18 @@ class MusicSaverBot(_PluginBase):
                     if attempt < max_retries - 1:  # 如果不是最后一次尝试
                         logger.debug(f"第{attempt + 1}次下载文件失败，准备重试: {str(e)}")
                         import asyncio
-                        await asyncio.sleep(2 ** attempt)  # 指数退避策略
+                        await asyncio.sleep(2 ** attempt * 2)  # 增加指数退避策略的等待时间
                     else:
                         # 最后一次尝试仍然失败
                         logger.error(f"文件下载失败: {str(e)}")
-                        await message.reply_text(f"文件下载失败，请稍后重试。\n错误信息: {str(e)}")
+                        await message.reply_text(f"文件下载失败，请稍后重试。\n文件名: {file_name}\n错误信息: {str(e)}")
                         raise e
             
             # 如果是音频文件且需要保存封面图片
             if message.audio and cover_path and thumbnail:
                 try:
                     logger.debug(f"开始下载封面图片，文件ID: {thumbnail.file_id}")
-                    # 添加重试机制，最多重试3次
+                    # 添加重试机制，最多重试5次
                     cover_success = False
                     for attempt in range(max_retries):
                         try:
@@ -534,11 +534,11 @@ class MusicSaverBot(_PluginBase):
                             if attempt < max_retries - 1:  # 如果不是最后一次尝试
                                 logger.debug(f"第{attempt + 1}次下载封面图片失败，准备重试: {str(e)}")
                                 import asyncio
-                                await asyncio.sleep(2 ** attempt)  # 指数退避策略
+                                await asyncio.sleep(2 ** attempt * 2)  # 增加指数退避策略的等待时间
                             else:
                                 # 最后一次尝试仍然失败
                                 logger.error(f"下载封面图片失败: {str(e)}")
-                                await message.reply_text(f"封面图片下载失败。\n错误信息: {str(e)}")
+                                await message.reply_text(f"封面图片下载失败。\n封面文件: cover.jpg\n错误信息: {str(e)}")
                                 break
                     
                     # 如果封面下载成功，记录日志
@@ -692,17 +692,29 @@ class MusicSaverBot(_PluginBase):
             return None
             
         try:
-            # 查找"专辑："和"\n"之间的内容
+            # 查找"专辑："和换行符之间的内容，支持多种换行符
             import re
-            album_pattern = r'专辑：(.*?)\n'
+            # 改进的正则表达式，使用\S+匹配非空白字符，支持多种换行符
+            album_pattern = r'专辑[：:]\s*(.*?)(?:\r?\n|$)'
             match = re.search(album_pattern, caption)
             if match:
                 album_name = match.group(1).strip()
-                logger.debug(f"提取到专辑名: {album_name}")
-                return album_name
-            else:
-                logger.debug("未在caption中找到专辑名")
-                return None
+                # 如果提取到的专辑名不为空
+                if album_name:
+                    logger.debug(f"提取到专辑名: {album_name}")
+                    return album_name
+            
+            # 如果上面的方法没有匹配到，尝试更宽松的匹配方式
+            album_pattern_fallback = r'专辑[：:]\s*(\S+)'
+            match = re.search(album_pattern_fallback, caption)
+            if match:
+                album_name = match.group(1).strip()
+                if album_name:
+                    logger.debug(f"通过备用方法提取到专辑名: {album_name}")
+                    return album_name
+                    
+            logger.debug("未在caption中找到专辑名")
+            return None
         except Exception as e:
             logger.error(f"提取专辑名时发生错误: {str(e)}")
             return None

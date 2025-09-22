@@ -217,7 +217,7 @@
     },
     "ServiceManagerMod":{
         "name": "服务管理魔改版",
-        "description": "(基于InfinityPacer魔改版)实现自定义服务管理。",
+        "description": "实现自定义服务管理。",
         "labels": "服务管理",
         "version": "1.8",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
@@ -251,11 +251,12 @@
         "name": "TG Music Saver Bot",
         "description": "接收Telegram发送的音乐文件并保存到本地",
         "labels": "Music",
-        "version": "1.0.44",
+        "version": "1.0.45",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.0.45": "保存失败后提示失败文件名",
             "v1.0.44": "增加处理提示",
             "v1.0.43": "Bot连接超时后自动退出",
             "v1.0.42": "保存成功后，删除源消息",
