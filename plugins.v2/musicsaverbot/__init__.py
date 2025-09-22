@@ -372,6 +372,8 @@ class MusicSaverBot(_PluginBase):
         处理音频消息
         """
         logger.debug(f"收到音频消息，更新ID: {update.update_id}")
+        # 打印消息原文用于调试
+        logger.debug(f"消息原文: {update}")
         try:
             # 检查用户是否在白名单中
             user_id = update.effective_user.id
