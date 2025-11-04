@@ -219,11 +219,12 @@
         "name": "服务管理魔改版",
         "description": "实现自定义服务管理。",
         "labels": "服务管理",
-        "version": "1.8",
+        "version": "1.9",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.9": "增加订阅刷新任务",
             "v1.8": "更改实现方式，修复开启补全订阅后无法手动搜索订阅的问题",
             "v1.7": "修复重启后服务没有正常注册的问题",
             "v1.3": "兼容MoviePilot v2.5.0，启动后移除系统原有的相关服务"

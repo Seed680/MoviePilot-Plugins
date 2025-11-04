@@ -9,6 +9,7 @@ from apscheduler.triggers.cron import CronTrigger
 from app.chain.site import SiteChain
 from app.chain.subscribe import SubscribeChain
 from app.chain.tmdb import TmdbChain
+from app.chain.subscribe import SubscribeChain
 from app.core.config import settings
 from app.log import logger
 from app.plugins import _PluginBase
@@ -23,13 +24,13 @@ class ServiceManagerMod(_PluginBase):
     # 插件描述
     plugin_desc = "实现自定义服务管理。"
     # 插件图标
-    plugin_icon = "https://raw.githubusercontent.com/InfinityPacer/MoviePilot-Plugins/main/icons/servicemanager.png"
+    plugin_icon = "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png"
     # 插件版本
-    plugin_version = "1.8"
+    plugin_version = "1.9"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
-    author_url = "https://github.com/InfinityPacer"
+    author_url = "https://github.com/Seed680"
     # 插件配置项ID前缀
     plugin_config_prefix = "servicemanagermod_"
     # 加载顺序
@@ -37,7 +38,7 @@ class ServiceManagerMod(_PluginBase):
     # 可使用的用户级别
     auth_level = 1
     # 日志前缀
-    LOG_TAG = "[ServiceManager]"
+    LOG_TAG = "[ServiceManagerMod]"
 
     # region 私有属性
     # 是否开启
@@ -54,6 +55,8 @@ class ServiceManagerMod(_PluginBase):
     _random_wallpager = ""
     # 订阅元数据更新（小时）
     _subscribe_tmdb = ""
+    # 订阅刷新（cron 表达式）
+    _subscribe_refresh = ""
     _scheduler = None
     # endregion
 
@@ -68,6 +71,7 @@ class ServiceManagerMod(_PluginBase):
         self._clear_cache = config.get("clear_cache")
         self._random_wallpager = config.get("random_wallpager")
         self._subscribe_tmdb = config.get("subscribe_tmdb")
+        self._subscribe_refresh = config.get("subscribe_refresh")
         if self._enabled:
             # 延迟清除系统服务并添加自定义服务
             logger.info("插件已启用，30秒后清除系统服务并添加自定义服务")
@@ -253,6 +257,25 @@ class ServiceManagerMod(_PluginBase):
                                         }
                                     }
                                 ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 6
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VCronField',
+                                        'props': {
+                                            'model': 'subscribe_refresh',
+                                            'label': '订阅刷新',
+                                            'placeholder': '5位cron表达式',
+                                            'hint': '设置订阅刷新的周期，如 0 */6 * * * 表示每6小时执行一次',
+                                            'persistent-hint': True
+                                        }
+                                    }
+                                ]
                             }
                         ]
                     },
@@ -339,7 +362,7 @@ class ServiceManagerMod(_PluginBase):
         scheduler_instance = Scheduler()
         
         # 移除插件添加的所有自定义服务
-        job_ids = ["sitedata_refresh", "subscribe_search", "clear_cache", "random_wallpager", "subscribe_tmdb"]
+        job_ids = ["sitedata_refresh", "subscribe_search", "clear_cache", "random_wallpager", "subscribe_tmdb", "subscribe_refresh"]
         for job_id in job_ids:
             try:
                 scheduler_instance.remove_plugin_job(pid=self.__class__.__name__, job_id=job_id)
@@ -375,6 +398,25 @@ class ServiceManagerMod(_PluginBase):
             scheduler_instance.remove_plugin_job(pid="None", job_id="random_wallpager")
         if self._subscribe_tmdb:
             scheduler_instance.remove_plugin_job(pid="None", job_id="subscribe_tmdb")
+        
+        # 移除订阅刷新服务
+        if self._subscribe_refresh:
+            # 在spider模式下，需要移除所有以subscribe_refresh开头的任务
+            if settings.SUBSCRIBE_MODE == "spider":
+                # 获取所有任务并移除subscribe_refresh相关的任务
+                jobs = scheduler_instance._scheduler.get_jobs()
+                for job in jobs:
+                    if job.id.startswith("subscribe_refresh|"):
+                        try:
+                            scheduler_instance.remove_plugin_job(pid="None", job_id=job.id)
+                        except Exception as e:
+                            logger.debug(f"移除任务 {job.id} 时出错: {str(e)}")
+            else:
+                # RSS模式下直接移除subscribe_refresh任务
+                try:
+                    scheduler_instance.remove_plugin_job(pid="None", job_id="subscribe_refresh")
+                except Exception as e:
+                    logger.debug(f"移除任务 subscribe_refresh 时出错: {str(e)}")
         
         # 添加自定义服务
         self.add_custom_services(scheduler_instance)
@@ -486,6 +528,26 @@ class ServiceManagerMod(_PluginBase):
                 id=job_id,
                 name="订阅元数据更新",
                 hours=subscribe_tmdb,
+                kwargs={"job_id": job_id},
+                replace_existing=True
+            )
+
+        # 订阅刷新服务
+        if self._subscribe_refresh:
+            job_id = "subscribe_refresh"
+            scheduler_instance._jobs[job_id] = {
+                "func": SubscribeChain().refresh,
+                "name": "订阅刷新",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._subscribe_refresh),
+                id=job_id,
+                name="订阅刷新",
                 kwargs={"job_id": job_id},
                 replace_existing=True
             )
