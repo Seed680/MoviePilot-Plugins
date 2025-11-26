@@ -172,6 +172,7 @@
       </v-card-text>
       <v-card-actions>
         <v-btn color="secondary" @click="resetForm">重置</v-btn>
+        <v-btn color="warning" @click="resetCategories" v-if="!config.rename_type">重置二级分类</v-btn>
         <v-spacer></v-spacer>
         <v-btn color="primary" :disabled="!isFormValid" @click="saveConfig" :loading="saving">保存配置</v-btn>
       </v-card-actions>
@@ -258,6 +259,23 @@ function resetForm() {
 
   if (form.value) {
     form.value.resetValidation()
+  }
+}
+
+// 重置二级分类
+async function resetCategories() {
+  try {
+    const response = await props.api.post(`plugin/${config.id}/reset_categories`);
+    if (response?.all_cat_rename) {
+      config.all_cat_rename = [...response.all_cat_rename];
+    }
+    if (response?.all_cat) {
+      config.all_cat = [...response.all_cat];
+    }
+    error.value = response?.message || '二级分类已重置';
+  } catch (err) {
+    console.error('重置二级分类失败:', err);
+    error.value = err.message || '重置二级分类失败';
   }
 }
 

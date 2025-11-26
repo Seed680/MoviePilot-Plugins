@@ -257,6 +257,28 @@ class DownloadSiteTagModNew(_PluginBase):
 
             # 返回最终状态
             return {"message": "配置已成功保存", "saved_config": self._get_config()}
+            
+    def _reset_categories(self) -> Dict[str, Any]:
+        """
+        重置二级分类
+        """
+        # 重置为默认分类
+        self._all_cat = [*self.category_helper.tv_categorys, *self.category_helper.movie_categorys]
+        self._all_cat_rename = self._all_cat
+        # 更新配置
+        config = self.get_config()
+        config.all_cat_rename = self._all_cat_rename
+        config.all_cat = self._all_cat
+        self.update_config(config)
+
+        logger.info(f"{self.plugin_name}: 二级分类已重置")
+        
+        # 返回更新后的配置
+        return return {
+            "all_cat_rename": self._all_cat_rename,
+            "all_cat": self._all_cat
+        }
+
     @property
     def service_infos(self) -> Optional[Dict[str, ServiceInfo]]:
         """
@@ -315,6 +337,13 @@ class DownloadSiteTagModNew(_PluginBase):
                 "methods": ["POST"],
                 "auth": "bear",
                 "summary": "保存配置"
+            },
+            {
+                "path": "/reset_categories",
+                "endpoint": self._reset_categories,
+                "methods": ["POST"],
+                "auth": "bear",
+                "summary": "重置二级分类"
             }
         ]
 
