@@ -94,6 +94,23 @@ function resetForm() {
   }
 }
 
+// 重置二级分类
+async function resetCategories() {
+  try {
+    const response = await props.api.post(`plugin/${config.id}/reset_categories`);
+    if (response?.all_cat_rename) {
+      config.all_cat_rename = [...response.all_cat_rename];
+    }
+    if (response?.all_cat) {
+      config.all_cat = [...response.all_cat];
+    }
+    error.value = response?.message || '二级分类已重置';
+  } catch (err) {
+    console.error('重置二级分类失败:', err);
+    error.value = err.message || '重置二级分类失败';
+  }
+}
+
 // 通知主应用关闭组件
 function notifyClose() {
   emit('close');
@@ -460,6 +477,18 @@ return (_ctx, _cache) => {
               ])),
               _: 1
             }),
+            (!config.rename_type)
+              ? (_openBlock(), _createBlock(_component_v_btn, {
+                  key: 0,
+                  color: "warning",
+                  onClick: resetCategories
+                }, {
+                  default: _withCtx(() => _cache[18] || (_cache[18] = [
+                    _createTextVNode("重置二级分类")
+                  ])),
+                  _: 1
+                }))
+              : _createCommentVNode("", true),
             _createVNode(_component_v_spacer),
             _createVNode(_component_v_btn, {
               color: "primary",
@@ -467,7 +496,7 @@ return (_ctx, _cache) => {
               onClick: saveConfig,
               loading: saving.value
             }, {
-              default: _withCtx(() => _cache[18] || (_cache[18] = [
+              default: _withCtx(() => _cache[19] || (_cache[19] = [
                 _createTextVNode("保存配置")
               ])),
               _: 1
