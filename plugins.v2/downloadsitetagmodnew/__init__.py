@@ -274,7 +274,7 @@ class DownloadSiteTagModNew(_PluginBase):
         logger.info(f"{self.plugin_name}: 二级分类已重置")
         
         # 返回更新后的配置
-        return return {
+        return {
             "all_cat_rename": self._all_cat_rename,
             "all_cat": self._all_cat
         }

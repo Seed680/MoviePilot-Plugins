@@ -1,7 +1,5 @@
 import { importShared } from './__federation_fn_import-JrT3xvdd.js';
-import _sfc_main$1 from './__federation_expose_Page-BPA85eq8.js';
-import _sfc_main$2 from './__federation_expose_Config-BlqsGvck.js';
-import _sfc_main$3 from './__federation_expose_Dashboard-LxSR5UkF.js';
+import _sfc_main$1 from './__federation_expose_Config-BlqsGvck.js';
 import { p as propsFactory, i as includes, a as isOn, e as eventName, g as genericComponent, b as getCurrentInstance, c as provideTheme, d as createLayout, u as useRtl, m as makeThemeProps, f as makeLayoutProps, h as provideDefaults, j as convertToUnit, k as destructComputed, l as isCssColor, n as isParsableColor, o as parseColor, q as getForeground, r as getCurrentInstanceName, S as SUPPORTS_INTERSECTION, s as clamp, t as consoleWarn, v as useProxiedModel, w as useToggleScope, x as useLayoutItem, y as makeLayoutItemProps, z as getUid, A as deepEqual, B as wrapInArray, C as findChildrenWithProvide, D as useIcon, I as IconValue, E as flattenFragments, F as useResizeObserver, G as IN_BROWSER, H as hasEvent, J as isObject, K as keyCodes, L as useLocale, M as EventProp, N as filterInputAttrs, O as matchesSelector, P as omit, Q as only, R as useDisplay, T as useGoTo, U as makeDisplayProps, V as focusableChildren, W as consoleError, X as defineComponent, Y as deprecate, Z as getPropertyFromItem, _ as focusChild, $ as defer, a0 as templateRef, a1 as isClickInsideElement, a2 as getNextElement, a3 as pick, a4 as callEvent, a5 as debounce, a6 as ensureValidVNode, a7 as checkPrintable, a8 as noop, a9 as useTheme, aa as pickWithRest, ab as keys, ac as getEventCoordinates, ad as HexToHSV, ae as HSVtoHex, af as HSLtoHSV, ag as HSVtoHSL, ah as RGBtoHSV, ai as HSVtoRGB, aj as has, ak as getDecimals, al as createRange, am as keyValues, an as SUPPORTS_EYE_DROPPER, ao as HSVtoCSS, ap as RGBtoCSS, aq as getContrast, ar as isComposingIgnoreKey, as as getObjectValueByPath, at as isEmpty, au as defineFunctionalComponent, av as breakpoints, aw as useDate, ax as getWeek, ay as humanReadableFileSize, az as provideLocale, aA as useLayout, aB as CircularBuffer, aC as VuetifyLayoutKey, aD as refElement, aE as VClassIcon, aF as VComponentIcon, aG as VLigatureIcon, aH as VSvgIcon } from './date--mM7W7--.js';
 
 true&&(function polyfill() {
@@ -55,11 +53,10 @@ const {createTextVNode:_createTextVNode$7,resolveComponent:_resolveComponent,wit
 
 const _hoisted_1 = { class: "app-container" };
 const _hoisted_2 = { class: "component-preview" };
-const _hoisted_3 = { class: "component-preview" };
-const _hoisted_4 = { class: "component-preview" };
-const _hoisted_5 = { class: "text-white" };
+const _hoisted_3 = { class: "text-white" };
 
 const {ref: ref$Q,reactive: reactive$3} = await importShared('vue');
+
 
 
 // 活动标签页
@@ -77,16 +74,7 @@ const initialConfig = {
 
 };
 console.log(initialConfig.id.value);
-// 仪表板配置
-const dashboardConfig = reactive$3({
-  id: 'test_plugin',
-  name: '测试插件',
-  attrs: {
-    title: '仪表板示例',
-    subtitle: '插件数据展示',
-    border: true,
-  },
-});
+
 
 // 通知状态
 const snackbar = reactive$3({
@@ -103,11 +91,6 @@ function showNotification(text, color = 'success') {
   snackbar.show = true;
 }
 
-// 处理详情页面操作
-function handleAction() {
-  showNotification('Page组件触发了action事件');
-}
-
 // 处理配置保存
 function handleConfigSave(config) {
   console.log('配置已保存:', config);
@@ -120,7 +103,6 @@ return (_ctx, _cache) => {
   const _component_v_tab = _resolveComponent("v-tab");
   const _component_v_tabs = _resolveComponent("v-tabs");
   const _component_v_window_item = _resolveComponent("v-window-item");
-  const _component_v_switch = _resolveComponent("v-switch");
   const _component_v_window = _resolveComponent("v-window");
   const _component_v_container = _resolveComponent("v-container");
   const _component_v_main = _resolveComponent("v-main");
@@ -138,8 +120,8 @@ return (_ctx, _cache) => {
         }, {
           default: _withCtx(() => [
             _createVNode$2h(_component_v_app_bar_title, null, {
-              default: _withCtx(() => _cache[5] || (_cache[5] = [
-                _createTextVNode$7("MoviePilot插件组件示例")
+              default: _withCtx(() => _cache[4] || (_cache[4] = [
+                _createTextVNode$7("下载任务分类与标签魔改VUE版")
               ])),
               _: 1
             })
@@ -156,21 +138,9 @@ return (_ctx, _cache) => {
                   "bg-color": "primary"
                 }, {
                   default: _withCtx(() => [
-                    _createVNode$2h(_component_v_tab, { value: "page" }, {
-                      default: _withCtx(() => _cache[6] || (_cache[6] = [
-                        _createTextVNode$7("详情页面")
-                      ])),
-                      _: 1
-                    }),
                     _createVNode$2h(_component_v_tab, { value: "config" }, {
-                      default: _withCtx(() => _cache[7] || (_cache[7] = [
+                      default: _withCtx(() => _cache[5] || (_cache[5] = [
                         _createTextVNode$7("配置页面")
-                      ])),
-                      _: 1
-                    }),
-                    _createVNode$2h(_component_v_tab, { value: "dashboard" }, {
-                      default: _withCtx(() => _cache[8] || (_cache[8] = [
-                        _createTextVNode$7("仪表板")
                       ])),
                       _: 1
                     })
@@ -179,51 +149,19 @@ return (_ctx, _cache) => {
                 }, 8, ["modelValue"]),
                 _createVNode$2h(_component_v_window, {
                   modelValue: activeTab.value,
-                  "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((activeTab).value = $event)),
+                  "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((activeTab).value = $event)),
                   class: "mt-4"
                 }, {
                   default: _withCtx(() => [
-                    _createVNode$2h(_component_v_window_item, { value: "page" }, {
-                      default: _withCtx(() => [
-                        _cache[9] || (_cache[9] = _createElementVNode("h2", { class: "text-h5 mb-4" }, "Page组件", -1)),
-                        _createElementVNode("div", _hoisted_2, [
-                          _createVNode$2h(_sfc_main$1, {
-                            api: _ctx.api,
-                            onAction: handleAction
-                          }, null, 8, ["api"])
-                        ])
-                      ]),
-                      _: 1
-                    }),
                     _createVNode$2h(_component_v_window_item, { value: "config" }, {
                       default: _withCtx(() => [
-                        _cache[10] || (_cache[10] = _createElementVNode("h2", { class: "text-h5 mb-4" }, "Config组件", -1)),
-                        _createElementVNode("div", _hoisted_3, [
-                          _createVNode$2h(_sfc_main$2, {
+                        _cache[6] || (_cache[6] = _createElementVNode("h2", { class: "text-h5 mb-4" }, "Config组件", -1)),
+                        _createElementVNode("div", _hoisted_2, [
+                          _createVNode$2h(_sfc_main$1, {
                             api: _ctx.api,
                             "initial-config": initialConfig,
                             onSave: handleConfigSave
                           }, null, 8, ["api"])
-                        ])
-                      ]),
-                      _: 1
-                    }),
-                    _createVNode$2h(_component_v_window_item, { value: "dashboard" }, {
-                      default: _withCtx(() => [
-                        _cache[11] || (_cache[11] = _createElementVNode("h2", { class: "text-h5 mb-4" }, "Dashboard组件", -1)),
-                        _createVNode$2h(_component_v_switch, {
-                          modelValue: dashboardConfig.attrs.border,
-                          "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((dashboardConfig.attrs.border) = $event)),
-                          label: "显示边框",
-                          color: "primary",
-                          class: "mb-4"
-                        }, null, 8, ["modelValue"]),
-                        _createElementVNode("div", _hoisted_4, [
-                          _createVNode$2h(_sfc_main$3, {
-                            api: _ctx.api,
-                            config: dashboardConfig,
-                            "allow-refresh": true
-                          }, null, 8, ["api", "config"])
                         ])
                       ]),
                       _: 1
@@ -243,7 +181,7 @@ return (_ctx, _cache) => {
           class: "text-center d-flex justify-center"
         }, {
           default: _withCtx(() => [
-            _createElementVNode("span", _hoisted_5, "MoviePilot 模块联邦示例 ©" + _toDisplayString(new Date().getFullYear()), 1)
+            _createElementVNode("span", _hoisted_3, "下载任务分类与标签魔改VUE版 ©" + _toDisplayString(new Date().getFullYear()), 1)
           ]),
           _: 1
         })
@@ -252,16 +190,16 @@ return (_ctx, _cache) => {
     }),
     _createVNode$2h(_component_v_snackbar, {
       modelValue: snackbar.show,
-      "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((snackbar.show) = $event)),
+      "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((snackbar.show) = $event)),
       color: snackbar.color,
       timeout: snackbar.timeout
     }, {
       actions: _withCtx(() => [
         _createVNode$2h(_component_v_btn, {
           variant: "text",
-          onClick: _cache[3] || (_cache[3] = $event => (snackbar.show = false))
+          onClick: _cache[2] || (_cache[2] = $event => (snackbar.show = false))
         }, {
-          default: _withCtx(() => _cache[12] || (_cache[12] = [
+          default: _withCtx(() => _cache[7] || (_cache[7] = [
             _createTextVNode$7(" 关闭 ")
           ])),
           _: 1
@@ -277,7 +215,7 @@ return (_ctx, _cache) => {
 }
 
 };
-const App = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-80102c4d"]]);
+const App = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-2407c4d1"]]);
 
 // Utilities
 // Composables

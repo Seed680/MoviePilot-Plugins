@@ -2,37 +2,20 @@
   <div class="app-container">
     <v-app>
       <v-app-bar color="primary" app>
-        <v-app-bar-title>MoviePilot插件组件示例</v-app-bar-title>
+        <v-app-bar-title>下载任务分类与标签魔改VUE版</v-app-bar-title>
       </v-app-bar>
 
       <v-main>
         <v-container>
           <v-tabs v-model="activeTab" bg-color="primary">
-            <v-tab value="page">详情页面</v-tab>
             <v-tab value="config">配置页面</v-tab>
-            <v-tab value="dashboard">仪表板</v-tab>
           </v-tabs>
 
           <v-window v-model="activeTab" class="mt-4">
-            <v-window-item value="page">
-              <h2 class="text-h5 mb-4">Page组件</h2>
-              <div class="component-preview">
-                <page-component :api="api" @action="handleAction"></page-component>
-              </div>
-            </v-window-item>
-
             <v-window-item value="config">
               <h2 class="text-h5 mb-4">Config组件</h2>
               <div class="component-preview">
                 <config-component :api="api" :initial-config="initialConfig" @save="handleConfigSave"></config-component>
-              </div>
-            </v-window-item>
-
-            <v-window-item value="dashboard">
-              <h2 class="text-h5 mb-4">Dashboard组件</h2>
-              <v-switch v-model="dashboardConfig.attrs.border" label="显示边框" color="primary" class="mb-4"></v-switch>
-              <div class="component-preview">
-                <dashboard-component :api="api" :config="dashboardConfig" :allow-refresh="true"></dashboard-component>
               </div>
             </v-window-item>
           </v-window>
@@ -40,7 +23,7 @@
       </v-main>
 
       <v-footer app color="primary" class="text-center d-flex justify-center">
-        <span class="text-white">MoviePilot 模块联邦示例 ©{{ new Date().getFullYear() }}</span>
+        <span class="text-white">下载任务分类与标签魔改VUE版 ©{{ new Date().getFullYear() }}</span>
       </v-footer>
     </v-app>
 
@@ -56,9 +39,8 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import PageComponent from './components/Page.vue'
 import ConfigComponent from './components/Config.vue'
-import DashboardComponent from './components/Dashboard.vue'
+
 
 
 // 活动标签页
@@ -71,16 +53,7 @@ const initialConfig = {
 
 }
 console.log(initialConfig.id.value);
-// 仪表板配置
-const dashboardConfig = reactive({
-  id: 'test_plugin',
-  name: '测试插件',
-  attrs: {
-    title: '仪表板示例',
-    subtitle: '插件数据展示',
-    border: true,
-  },
-})
+
 
 // 通知状态
 const snackbar = reactive({
@@ -95,11 +68,6 @@ function showNotification(text, color = 'success') {
   snackbar.text = text
   snackbar.color = color
   snackbar.show = true
-}
-
-// 处理详情页面操作
-function handleAction() {
-  showNotification('Page组件触发了action事件')
 }
 
 // 处理配置保存

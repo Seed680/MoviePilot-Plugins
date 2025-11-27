@@ -9,9 +9,7 @@ export default defineConfig({
       name: 'MyPlugin',
       filename: 'remoteEntry.js',
       exposes: {
-        './Page': './src/components/Page.vue',
-        './Config': './src/components/Config.vue',
-        './Dashboard': './src/components/Dashboard.vue',
+        './Config': './src/components/Config.vue'
       },
       shared: {
         vue: {
