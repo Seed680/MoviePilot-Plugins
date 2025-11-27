@@ -30,7 +30,7 @@ class TrackerSpeedLimit(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png"
     # 插件版本
-    plugin_version = "0.7"
+    plugin_version = "0.8"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -166,8 +166,19 @@ class TrackerSpeedLimit(_PluginBase):
         """API Endpoint: Returns current plugin configuration."""
         return self._all_downloaders
 
-    def _get_all_site(self) -> List[Any]:
-        return self.site_oper.list_order_by_pri()
+    def _get_all_site(self) -> List[dict[str, Any]]:
+        sites = self.site_oper.list_order_by_pri()
+        # 手动转换为字典格式
+        result = []
+        if sites:
+            for site in sites:
+                result.append({
+                    'id': site.id,
+                    'name': site.name,
+                    'url': site.url
+                })
+        return result
+
 
     def _save_config(self, config_payload: dict) -> Dict[str, Any]:
         # Update instance variables directly from payload, defaulting to current values if key is missing
