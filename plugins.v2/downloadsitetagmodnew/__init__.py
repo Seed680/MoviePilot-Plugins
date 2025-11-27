@@ -33,7 +33,7 @@ class DownloadSiteTagModNew(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "1.3.1"
+    plugin_version = "1.3.2"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -238,25 +238,43 @@ class DownloadSiteTagModNew(_PluginBase):
         }
 
     def _save_config(self, config_payload: dict) -> Dict[str, Any]:
-        # Update instance variables directly from payload, defaulting to current values if key is missing
-            self.load_config(config_payload)
-            # 忽略onlyonce参数
-            config_payload.onlyonce = False
+        self.load_config(config_payload)
+        # 忽略onlyonce参数
+        config_payload.onlyonce = False
 
-            # Prepare config to save
-            # config_to_save = self._get_config()
+        # 保存配置
+        self.update_config(config_payload)
 
-            # 保存配置
-            self.update_config(config_payload)
+        # 重新初始化插件
+        self.stop_service()
+        self.init_plugin(self.get_config())
 
-            # 重新初始化插件
-            self.stop_service()
-            self.init_plugin(self.get_config())
+        logger.info(f"{self.plugin_name}: 配置已保存并通过 init_plugin 重新初始化。当前内存状态: enable={self._enable}")
 
-            logger.info(f"{self.plugin_name}: 配置已保存并通过 init_plugin 重新初始化。当前内存状态: enable={self._enable}")
+        # 返回最终状态
+        return {"message": "配置已成功保存", "saved_config": self._get_config()}
+            
+    def _reset_categories(self) -> Dict[str, Any]:
+        """
+        重置二级分类
+        """
+        # 重置为默认分类
+        self._all_cat = [*self.category_helper.tv_categorys, *self.category_helper.movie_categorys]
+        self._all_cat_rename = self._all_cat
+        # 更新配置
+        config = self.get_config()
+        config["all_cat_rename"] = self._all_cat_rename
+        config["all_cat"] = self._all_cat
+        self.update_config(config)
 
-            # 返回最终状态
-            return {"message": "配置已成功保存", "saved_config": self._get_config()}
+        logger.info(f"{self.plugin_name}: 二级分类已重置")
+        
+        # 返回更新后的配置
+        return {
+            "all_cat_rename": self._all_cat_rename,
+            "all_cat": self._all_cat
+        }
+
     @property
     def service_infos(self) -> Optional[Dict[str, ServiceInfo]]:
         """
@@ -315,6 +333,13 @@ class DownloadSiteTagModNew(_PluginBase):
                 "methods": ["POST"],
                 "auth": "bear",
                 "summary": "保存配置"
+            },
+            {
+                "path": "/reset_categories",
+                "endpoint": self._reset_categories,
+                "methods": ["POST"],
+                "auth": "bear",
+                "summary": "重置二级分类"
             }
         ]
 
@@ -847,4 +872,3 @@ class DownloadSiteTagModNew(_PluginBase):
             logger.debug(f'增加自定义分类前缀:{self._catprefix}')
             _cat = self._catprefix + _cat
             logger.debug(f'本剧集类别:{_cat}')
-        return _cat
