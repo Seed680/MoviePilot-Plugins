@@ -208,11 +208,12 @@
         "name": "带宽速度限制",
         "description": "带宽速度限制",
         "labels": "",
-        "version": "0.8",
+        "version": "0.8.1",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v0.8.1": "未设置的tracker跳过处理，而不是设置为不限速",
             "v0.1": "初始版本"
         }
     },

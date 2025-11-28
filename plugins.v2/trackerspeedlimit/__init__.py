@@ -30,7 +30,7 @@ class TrackerSpeedLimit(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png"
     # 插件版本
-    plugin_version = "0.8"
+    plugin_version = "0.8.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -368,8 +368,8 @@ class TrackerSpeedLimit(_PluginBase):
                                                            downloader_obj)
                             break
                         else:
-                            logger.debug(f"未获取到{domain}的设置 设置为不限速...")
-                            self.torrents_set_upload_limit(_hash, -1, downloader_obj)
+                            logger.debug(f"未获取到{domain}的设置 跳过处理...")
+                            # self.torrents_set_upload_limit(_hash, -1, downloader_obj)
                 except Exception as e:
                     logger.error(
                         f"{self.LOG_TAG}分析种子信息时发生了错误: {str(e)}", exc_info=True)
@@ -552,8 +552,8 @@ class TrackerSpeedLimit(_PluginBase):
                                                        downloader_obj)
                         break
                     else:
-                        logger.debug(f"未获取到{domain}的设置 设置为不限速...")
-                        self.torrents_set_upload_limit(_hash, -1, downloader_obj)
+                        logger.debug(f"未获取到{domain}的设置 跳过处理...")
+                        # self.torrents_set_upload_limit(_hash, -1, downloader_obj)
         except Exception as e:
             logger.error(
                 f"{self.LOG_TAG}分析下载事件时发生了错误: {str(e)}", exc_info=True)
