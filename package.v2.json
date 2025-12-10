@@ -275,5 +275,17 @@
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1
+    },
+    "RenameTorrentVue": { 
+        "name": "重命名种子文件Vue版",
+        "description": "重命名种子文件Vue版",
+        "labels": "重命名",
+        "version": "0.0.1",
+        "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
+        "author": "Seed680",
+        "level": 1,
+        "history": {
+            "v0.0.1": "初始版本"
+        }
     }
 }
