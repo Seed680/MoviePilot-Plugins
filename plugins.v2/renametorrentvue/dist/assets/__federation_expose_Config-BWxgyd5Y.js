@@ -46,7 +46,13 @@ const defaultConfig = {
   include_tags: '',
   exclude_dirs: '',
   hash_white_list: '',
-  add_tag_after_rename: false
+  add_tag_after_rename: false,
+  event_enabled: false,
+  cron_enabled: false,
+  onlyonce: false,
+  recovery: false,
+  retry: false,
+  cron: ''
 };
 
 // 合并默认配置和初始配置
@@ -113,8 +119,8 @@ return (_ctx, _cache) => {
   const _component_v_col = _resolveComponent("v-col");
   const _component_v_row = _resolveComponent("v-row");
   const _component_v_select = _resolveComponent("v-select");
-  const _component_v_textarea = _resolveComponent("v-textarea");
   const _component_v_text_field = _resolveComponent("v-text-field");
+  const _component_v_textarea = _resolveComponent("v-textarea");
   const _component_v_divider = _resolveComponent("v-divider");
   const _component_v_form = _resolveComponent("v-form");
   const _component_v_card_text = _resolveComponent("v-card-text");
@@ -135,7 +141,7 @@ return (_ctx, _cache) => {
             }, {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, null, {
-                  default: _withCtx(() => [...(_cache[10] || (_cache[10] = [
+                  default: _withCtx(() => [...(_cache[16] || (_cache[16] = [
                     _createTextVNode("mdi-close", -1)
                   ]))]),
                   _: 1
@@ -172,11 +178,11 @@ return (_ctx, _cache) => {
               ref_key: "form",
               ref: form,
               modelValue: isFormValid.value,
-              "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((isFormValid).value = $event)),
+              "onUpdate:modelValue": _cache[15] || (_cache[15] = $event => ((isFormValid).value = $event)),
               onSubmit: _withModifiers(saveConfig, ["prevent"])
             }, {
               default: _withCtx(() => [
-                _cache[12] || (_cache[12] = _createElementVNode("div", { class: "text-subtitle-1 font-weight-bold mt-4 mb-2" }, "基本设置", -1)),
+                _cache[18] || (_cache[18] = _createElementVNode("div", { class: "text-subtitle-1 font-weight-bold mt-4 mb-2" }, "基本设置", -1)),
                 _createVNode(_component_v_row, null, {
                   default: _withCtx(() => [
                     _createVNode(_component_v_col, {
@@ -226,17 +232,105 @@ return (_ctx, _cache) => {
                         }, null, 8, ["modelValue"])
                       ]),
                       _: 1
+                    }),
+                    _createVNode(_component_v_col, {
+                      cols: "12",
+                      md: "6"
+                    }, {
+                      default: _withCtx(() => [
+                        _createVNode(_component_v_switch, {
+                          modelValue: config.event_enabled,
+                          "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((config.event_enabled) = $event)),
+                          label: "启用事件监听",
+                          color: "primary",
+                          "persistent-hint": "",
+                          inset: ""
+                        }, null, 8, ["modelValue"])
+                      ]),
+                      _: 1
                     })
                   ]),
                   _: 1
                 }),
                 _createVNode(_component_v_row, null, {
                   default: _withCtx(() => [
-                    _createVNode(_component_v_col, { cols: "12" }, {
+                    _createVNode(_component_v_col, {
+                      cols: "12",
+                      md: "6"
+                    }, {
+                      default: _withCtx(() => [
+                        _createVNode(_component_v_switch, {
+                          modelValue: config.cron_enabled,
+                          "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((config.cron_enabled) = $event)),
+                          label: "启用定时任务",
+                          color: "primary",
+                          "persistent-hint": "",
+                          inset: ""
+                        }, null, 8, ["modelValue"])
+                      ]),
+                      _: 1
+                    }),
+                    _createVNode(_component_v_col, {
+                      cols: "12",
+                      md: "6"
+                    }, {
+                      default: _withCtx(() => [
+                        _createVNode(_component_v_switch, {
+                          modelValue: config.onlyonce,
+                          "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((config.onlyonce) = $event)),
+                          label: "立即运行一次",
+                          color: "primary",
+                          "persistent-hint": "",
+                          inset: ""
+                        }, null, 8, ["modelValue"])
+                      ]),
+                      _: 1
+                    }),
+                    _createVNode(_component_v_col, {
+                      cols: "12",
+                      md: "6"
+                    }, {
+                      default: _withCtx(() => [
+                        _createVNode(_component_v_switch, {
+                          modelValue: config.recovery,
+                          "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.recovery) = $event)),
+                          label: "恢复重命名",
+                          color: "primary",
+                          "persistent-hint": "",
+                          inset: ""
+                        }, null, 8, ["modelValue"])
+                      ]),
+                      _: 1
+                    }),
+                    _createVNode(_component_v_col, {
+                      cols: "12",
+                      md: "6"
+                    }, {
+                      default: _withCtx(() => [
+                        _createVNode(_component_v_switch, {
+                          modelValue: config.retry,
+                          "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.retry) = $event)),
+                          label: "尝试失败",
+                          color: "primary",
+                          "persistent-hint": "",
+                          inset: ""
+                        }, null, 8, ["modelValue"])
+                      ]),
+                      _: 1
+                    })
+                  ]),
+                  _: 1
+                }),
+                _createVNode(_component_v_row, null, {
+                  default: _withCtx(() => [
+                    _createVNode(_component_v_col, {
+                      cols: "12",
+                      md: "6"
+                    }, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_select, {
                           modelValue: config.downloader,
-                          "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((config.downloader) = $event)),
+                          "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.downloader) = $event)),
                           items: config.all_downloaders,
                           label: "下载器",
                           placeholder: "请选择下载器",
@@ -244,6 +338,20 @@ return (_ctx, _cache) => {
                           "item-value": "value",
                           chips: ""
                         }, null, 8, ["modelValue", "items"])
+                      ]),
+                      _: 1
+                    }),
+                    _createVNode(_component_v_col, {
+                      cols: "12",
+                      md: "6"
+                    }, {
+                      default: _withCtx(() => [
+                        _createVNode(_component_v_text_field, {
+                          modelValue: config.cron,
+                          "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.cron) = $event)),
+                          label: "执行周期",
+                          placeholder: "0 8 * * *"
+                        }, null, 8, ["modelValue"])
                       ]),
                       _: 1
                     })
@@ -256,7 +364,7 @@ return (_ctx, _cache) => {
                       default: _withCtx(() => [
                         _createVNode(_component_v_textarea, {
                           modelValue: config.format_torrent_name,
-                          "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((config.format_torrent_name) = $event)),
+                          "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.format_torrent_name) = $event)),
                           label: "种子标题重命名格式",
                           rows: "2",
                           "auto-grow": "",
@@ -278,7 +386,7 @@ return (_ctx, _cache) => {
                       default: _withCtx(() => [
                         _createVNode(_component_v_text_field, {
                           modelValue: config.exclude_tags,
-                          "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((config.exclude_tags) = $event)),
+                          "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.exclude_tags) = $event)),
                           label: "排除标签",
                           placeholder: "注意: 空白字符会排除所有未设置标签的种子",
                           hint: "多个标签用, 分割，空格表示没有标签",
@@ -294,7 +402,7 @@ return (_ctx, _cache) => {
                       default: _withCtx(() => [
                         _createVNode(_component_v_text_field, {
                           modelValue: config.include_tags,
-                          "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.include_tags) = $event)),
+                          "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.include_tags) = $event)),
                           label: "包含标签",
                           placeholder: "注意: 空白字符会包含所有未设置标签的种子",
                           hint: "多个标签用, 分割，空格表示没有标签，排除标签优先级更高",
@@ -312,7 +420,7 @@ return (_ctx, _cache) => {
                       default: _withCtx(() => [
                         _createVNode(_component_v_textarea, {
                           modelValue: config.hash_white_list,
-                          "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.hash_white_list) = $event)),
+                          "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.hash_white_list) = $event)),
                           label: "指定种子hash",
                           rows: "2",
                           "auto-grow": "",
@@ -331,7 +439,7 @@ return (_ctx, _cache) => {
                       default: _withCtx(() => [
                         _createVNode(_component_v_textarea, {
                           modelValue: config.exclude_dirs,
-                          "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.exclude_dirs) = $event)),
+                          "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.exclude_dirs) = $event)),
                           label: "排除目录",
                           rows: "3",
                           "auto-grow": "",
@@ -353,7 +461,7 @@ return (_ctx, _cache) => {
                           type: "info",
                           variant: "tonal"
                         }, {
-                          default: _withCtx(() => [...(_cache[11] || (_cache[11] = [
+                          default: _withCtx(() => [...(_cache[17] || (_cache[17] = [
                             _createTextVNode(" 种子重命名: 重命名种子在下载器显示的名称,qBittorrent 不会影响保存路径和种子内容布局; Transmission 不支持 ", -1)
                           ]))]),
                           _: 1
@@ -377,7 +485,7 @@ return (_ctx, _cache) => {
               color: "secondary",
               onClick: resetForm
             }, {
-              default: _withCtx(() => [...(_cache[13] || (_cache[13] = [
+              default: _withCtx(() => [...(_cache[19] || (_cache[19] = [
                 _createTextVNode("重置", -1)
               ]))]),
               _: 1
@@ -389,7 +497,7 @@ return (_ctx, _cache) => {
               onClick: saveConfig,
               loading: saving.value
             }, {
-              default: _withCtx(() => [...(_cache[14] || (_cache[14] = [
+              default: _withCtx(() => [...(_cache[20] || (_cache[20] = [
                 _createTextVNode("保存配置", -1)
               ]))]),
               _: 1

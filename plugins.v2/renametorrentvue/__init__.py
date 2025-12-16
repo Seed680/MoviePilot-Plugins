@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import re
-from typing import List, Tuple, Dict, Any, Optional, Union
+from typing import List, Tuple, Dict, Any, Optional, Union, Set
 import pytz
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -82,7 +82,7 @@ class RenameHistory:
 class QbittorrentDownloader():
     def __init__(self, qbc: Qbittorrent):
         self.qbc = qbc.qbc
-        
+
     def torrents_rename(self, torrent_hash: str, new_torrent_name: str) -> None:
         self.qbc.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=new_torrent_name)
 
@@ -163,11 +163,11 @@ class RenameTorrentVue(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.1"
+    plugin_version = "0.1"
     # 插件作者
-    plugin_author = "Ling"
+    plugin_author = "Seed680"
     # 作者主页
-    author_url = "https://github.com/ling"
+    author_url = "https://github.com/Seed680"
     # 插件配置项ID前缀
     plugin_config_prefix = "renametorrentvue_"
     # 加载顺序
@@ -179,6 +179,10 @@ class RenameTorrentVue(_PluginBase):
     _scheduler = None
 
     # 配置属性
+    # 启用插件
+    _enabled: bool = False
+    # 启用通知
+    _notify: bool = False
     # cron表达式
     _cron: str = ""
     # 启用定时任务
@@ -186,7 +190,7 @@ class RenameTorrentVue(_PluginBase):
     # 启用事件监听
     _event_enabled: bool = False
     # 格式化字符
-    _format_torrent_name: str = ""
+    _format_torrent_name: str = "{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %}.{{original_name}}"
     # 下载器
     _downloader: list = []
     # 排除标签
@@ -204,9 +208,11 @@ class RenameTorrentVue(_PluginBase):
     # 尝试失败
     _retry = False
     # 成功后添加标签
-    _add_tag_flag = False
-    # 成功后添加标签（Vue版）
     _add_tag_after_rename: bool = False
+    # 重命名历史记录索引缓存
+    _rename_history_index: Optional[Dict[str, Dict[str, Union[str, List[str]]]]] = None
+    # 已重命名的种子名称缓存
+    _renamed_names_cache: Optional[Set[str]] = None
     
     downloader_helper = None
     downloadhis = None
@@ -220,40 +226,52 @@ class RenameTorrentVue(_PluginBase):
         self.downloadhis = DownloadHistoryOper()
         # 停止现有任务
         self.stop_service()
-        if self._onlyonce:
-            self._onlyonce = False
-            config.update({"onlyonce": False})
+        
+        # 如果启用插件
+        if not self._enabled:
             self.update_config(config=config)
+            return
+            
+        if not self._onlyonce:
+            self.update_config(config=config)
+            return
+            
+        self._onlyonce = False
+        config.update({"onlyonce": False})
+        self.update_config(config=config)
 
-            if self._recovery:
-                self._recovery = False
-                config.update({"recovery": False})
-                logger.info("立即恢复重命名下载器种子任务")
-                self._scheduler = BackgroundScheduler(timezone=settings.TZ)
-                self._scheduler.add_job(self.recoveryTorrent, 'date',
-                                        run_date=datetime.now(
-                                            tz=pytz.timezone(settings.TZ)
-                                        ) + timedelta(seconds=3),
-                                        name="恢复重命名下载器种子")
-            else:
-                logger.info("立即运行一次重命名下载器种子任务")
-                self._scheduler = BackgroundScheduler(timezone=settings.TZ)
-                self._scheduler.add_job(self.cron_process_main, 'date',
-                                        run_date=datetime.now(
-                                            tz=pytz.timezone(settings.TZ)
-                                        ) + timedelta(seconds=3),
-                                        name="重命名下载器种子")
+        if self._recovery:
+            self._recovery = False
+            config.update({"recovery": False})
+            logger.info("立即恢复重命名下载器种子任务")
+            self._scheduler = BackgroundScheduler(timezone=settings.TZ)
+            self._scheduler.add_job(self.recoveryTorrent, 'date',
+                                    run_date=datetime.now(
+                                        tz=pytz.timezone(settings.TZ)
+                                    ) + timedelta(seconds=3),
+                                    name="恢复重命名下载器种子")
+        else:
+            logger.info("立即运行一次重命名下载器种子任务")
+            self._scheduler = BackgroundScheduler(timezone=settings.TZ)
+            self._scheduler.add_job(self.cron_process_main, 'date',
+                                    run_date=datetime.now(
+                                        tz=pytz.timezone(settings.TZ)
+                                    ) + timedelta(seconds=3),
+                                    name="重命名下载器种子")
 
-            if self._scheduler.get_jobs():
-                # 启动服务
-                self._scheduler.print_jobs()
-                self._scheduler.start()
-
+        if self._scheduler.get_jobs():
+            # 启动服务
+            self._scheduler.print_jobs()
+            self._scheduler.start()
     def load_config(self, config: dict):
         """加载配置"""
-        if config:
-            # 遍历配置中的键并设置相应的属性
-            for key in (
+        if not config:
+            return
+            
+        # 遍历配置中的键并设置相应的属性
+        for key in (
+                "enabled",
+                "notify",
                 "cron",
                 "cron_enabled",
                 "event_enabled",
@@ -266,13 +284,25 @@ class RenameTorrentVue(_PluginBase):
                 "onlyonce",
                 "recovery",
                 "retry",
-                "add_tag_flag",
                 "add_tag_after_rename"
-            ):
+        ):
+            # 特殊处理downloader，确保始终是列表
+            if key == "downloader":
+                downloader_value = config.get(key, getattr(self, f"_{key}"))
+                if isinstance(downloader_value, str):
+                    # 如果是字符串，转换为列表
+                    setattr(self, f"_{key}", [downloader_value] if downloader_value else [])
+                elif isinstance(downloader_value, list):
+                    # 如果已经是列表，直接赋值
+                    setattr(self, f"_{key}", downloader_value)
+                else:
+                    # 其他情况，设置为空列表
+                    setattr(self, f"_{key}", [])
+            else:
                 setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
 
     def get_state(self) -> bool:
-        return self._event_enabled or self._cron_enabled
+        return self._enabled
 
     @staticmethod
     def get_command() -> List[Dict[str, Any]]:
@@ -297,314 +327,62 @@ class RenameTorrentVue(_PluginBase):
         return [{
             "path": "/list_torrents",
             "endpoint": self.list_torrents,
+            "auth": "bear",
             "methods": ["GET"],
             "summary": "获取种子列表",
             "description": "获取下载器中的种子列表"
         }, {
             "path": "/rename_torrent",
             "endpoint": self.rename_torrent,
+            "auth": "bear",
             "methods": ["POST"],
             "summary": "重命名单个种子",
             "description": "重命名单个种子文件"
         }, {
             "path": "/batch_rename_torrents",
             "endpoint": self.batch_rename_torrents,
+            "auth": "bear",
             "methods": ["POST"],
             "summary": "批量重命名种子",
             "description": "批量重命名种子文件"
         }, {
             "path": "/get_config",
             "endpoint": self._get_config,
+            "auth": "bear",
             "methods": ["GET"],
             "summary": "获取插件配置",
             "description": "获取插件当前配置"
         }, {
             "path": "/rename_history",
             "endpoint": self.get_rename_history,
+            "auth": "bear",
             "methods": ["GET"],
             "summary": "获取重命名历史",
             "description": "获取种子重命名历史记录"
+        }, {
+            "path": "/rename_index",
+            "endpoint": self.get_rename_index,
+            "auth": "bear",
+            "methods": ["GET"],
+            "summary": "获取重命名索引",
+            "description": "获取重命名历史记录索引缓存"
+        }, {
+            "path": "/update_rename_index",
+            "endpoint": self.update_rename_index,
+            "auth": "bear",
+            "methods": ["POST"],
+            "summary": "更新重命名索引",
+            "description": "更新重命名历史记录索引缓存并应用重命名"
         }]
 
-    def get_form(self) -> Tuple[List[dict], Dict[str, Any]]:
+    def get_form(self):
         """
         拼装插件配置页面，需要返回两块数据：1、页面配置；2、数据结构
         """
-        # 获取系统中已启用的下载器
-        _downloaders = [
-            {"title": d.get("name"), "value": [d.get("name")]} 
-            for d in SystemConfigOper().get(SystemConfigKey.Downloaders) or [] 
-            if d.get("enabled")
-        ]
-        
-        return [
-            {
-                'component': 'VForm',
-                'content': [
-                    {
-                        'component': 'VRow',
-                        'content': [
-                            {
-                                'component': 'VCol',
-                                'props': {'cols': 6, 'md': 3},
-                                'content': [
-                                    {
-                                        'component': 'VSwitch',
-                                        'props': {
-                                            'model': 'event_enabled',
-                                            'label': '启用事件监听',
-                                        }
-                                    }
-                                ]
-                            },
-                            {
-                                'component': 'VCol',
-                                'props': {'cols': 6, 'md': 3},
-                                'content': [
-                                    {
-                                        'component': 'VSwitch',
-                                        'props': {
-                                            'model': 'cron_enabled',
-                                            'label': '启用定时任务',
-                                        }
-                                    }
-                                ]
-                            },
-                            {
-                                'component': 'VCol',
-                                'props': {'cols': 6, 'md': 3},
-                                'content': [
-                                    {
-                                        'component': 'VSwitch',
-                                        'props': {
-                                            'model': 'onlyonce',
-                                            'label': '立即运行一次',
-                                        }
-                                    }
-                                ]
-                            },
-                            {
-                                'component': 'VCol',
-                                'props': {'cols': 6, 'md': 3},
-                                'content': [
-                                    {
-                                        'component': 'VSwitch',
-                                        'props': {
-                                            'model': 'recovery',
-                                            'label': '恢复重命名',
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        'component': 'VRow',
-                        'content': [
-                            {
-                                'component': 'VCol',
-                                'props': {'cols': 6, 'md': 3},
-                                'content': [
-                                    {
-                                        'component': 'VSwitch',
-                                        'props': {
-                                            'model': 'retry',
-                                            'label': '尝试失败',
-                                        }
-                                    }
-                                ]
-                            },
-                            {
-                                'component': 'VCol',
-                                'props': {'cols': 6, 'md': 3},
-                                'content': [
-                                    {
-                                        'component': 'VSwitch',
-                                        'props': {
-                                            'model': 'add_tag_flag',
-                                            'label': '成功后添加标签',
-                                        }
-                                    }
-                                ]
-                            },
-                            {
-                                'component': 'VCol',
-                                'props': {'cols': 6, 'md': 3},
-                                'content': [
-                                    {
-                                        'component': 'VSwitch',
-                                        'props': {
-                                            'model': 'add_tag_after_rename',
-                                            'label': '重命名后添加标签',
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        'component': 'VRow',
-                        'content': [
-                            {
-                                'component': 'VCol',
-                                'props': {'cols': 6, 'md': 3},
-                                'content': [
-                                    {
-                                        'component': 'VSelect',
-                                        'props': {
-                                            'model': 'downloader',
-                                            'label': '启用下载器',
-                                            'multiple': False,
-                                            'clearable': True,
-                                            'items': _downloaders,
-                                        }
-                                    }
-                                ]
-                            },
-                            {
-                                'component': 'VCol',
-                                'props': {'cols': 6, 'md': 3},
-                                'content': [
-                                    {
-                                        'component': 'VTextField',
-                                        'props': {
-                                            'model': 'cron',
-                                            'label': '执行周期',
-                                            'placeholder': '0 8 * * *',
-                                        }
-                                    }
-                                ]
-                            },
-                            {
-                                'component': 'VCol',
-                                'props': {'cols': 6, 'md': 3},
-                                'content': [
-                                    {
-                                        'component': 'VTextField',
-                                        'props': {
-                                            'model': 'exclude_tags',
-                                            'label': '排除标签',
-                                            'placeholder': '注意: 空白字符会排除所有未设置标签的种子',
-                                            'hint': '多个标签用, 分割，空格表示没有标签',
-                                            'clearable': True,
-                                            'persistent-hint': True,
-                                        }
-                                    }
-                                ]
-                            },
-                            {
-                                'component': 'VCol',
-                                'props': {'cols': 6, 'md': 3},
-                                'content': [
-                                    {
-                                        'component': 'VTextField',
-                                        'props': {
-                                            'model': 'include_tags',
-                                            'label': '包含标签',
-                                            'placeholder': '注意: 空白字符会包含所有未设置标签的种子',
-                                            'hint': '多个标签用, 分割，空格表示没有标签，排除标签优先级更高',
-                                            'clearable': True,
-                                            'persistent-hint': True,
-                                        }
-                                    }
-                                ]
-                            },
-                        ]
-                    },
-                    {
-                        'component': 'VRow',
-                        'content': [
-                            {
-                                'component': 'VCol',
-                                'props': {'cols': 12},
-                                'content': [
-                                    {
-                                        'component': 'VTextarea',
-                                        'props': {
-                                            'rows': 2,
-                                            'auto-grow': True,
-                                            'model': 'hash_white_list',
-                                            'label': '指定种子hash',
-                                            'hint': '指定种子hash, 一行一个,',
-                                            'clearable': True,
-                                            'persistent-hint': True,
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        'component': 'VRow',
-                        'content': [
-                            {
-                                'component': 'VCol',
-                                'props': {'cols': 12},
-                                'content': [
-                                    {
-                                        'component': 'VTextarea',
-                                        'props': {
-                                            'rows': 3,
-                                            'auto-grow': True,
-                                            'model': 'exclude_dirs',
-                                            'label': '排除目录',
-                                            'hint': '排除目录, 一行一个, 路径深度不能超过保存路径',
-                                            'placeholder': r' 例如:\n /mnt/download \n E:\download',
-                                            'clearable': True,
-                                            'persistent-hint': True,
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        'component': 'VRow',
-                        'content': [
-                            {
-                                'component': 'VCol',
-                                'props': {'cols': 12},
-                                'content': [
-                                    {
-                                        'component': 'VTextarea',
-                                        'props': {
-                                            'rows': 2,
-                                            'auto-grow': True,
-                                            'model': 'format_torrent_name',
-                                            'label': '种子标题重命名格式',
-                                            'hint': '使用Jinja2语法, 所用变量与主程序相同',
-                                            'clearable': True,
-                                            'persistent-hint': True,
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        'component': 'VRow',
-                        'content': [
-                            {
-                                'component': 'VCol',
-                                'props': {
-                                    'cols': 12,
-                                },
-                                'content': [
-                                    {
-                                        'component': 'VAlert',
-                                        'props': {
-                                            'type': 'info',
-                                            'variant': 'tonal',
-                                            'text': '种子重命名: 重命名种子在下载器显示的名称,qBittorrent 不会影响保存路径和种子内容布局; Transmission 不支持'
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            }
-        ], {
+
+        return None, {
+            "enabled": False,
+            "notify": False,
             "cron_enabled": False,
             "downloader": [],
             "exclude_dirs": "",
@@ -613,17 +391,23 @@ class RenameTorrentVue(_PluginBase):
             "include_tags": "",
             "cron": "",
             "retry": False,
-            "add_tag_flag": False,
             "event_enabled": False,
             "format_torrent_name": "{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %}.{{original_name}}",
             "add_tag_after_rename": False
         }
 
-    def get_page(self) -> List[dict]:
+    @staticmethod
+    def get_render_mode() -> Tuple[str, str]:
         """
-        拼装插件详情页面，需要返回页面配置，同时附带数据
+        获取插件渲染模式
+        :return: 1、渲染模式，支持：vue/vuetify，默认vuetify
+        :return: 2、组件路径，默认 dist/assets
         """
-        pass
+        return "vue", "dist/assets"
+
+    def get_page(self) -> Optional[List[dict]]:
+        """Vue mode doesn't use Vuetify page definitions."""
+        return None
 
     def get_dashboard(self, **kwargs) -> Tuple[Dict[str, Any], Dict[str, Any], List[dict]]:
         """
@@ -635,7 +419,7 @@ class RenameTorrentVue(_PluginBase):
         """
         注册插件公共服务
         """
-        if self._cron_enabled:
+        if self._enabled and self._cron_enabled:
             return [
                 {
                     "id": "RenameTorrentVue",
@@ -663,23 +447,31 @@ class RenameTorrentVue(_PluginBase):
         获取插件配置
         """
         # 获取系统中已启用的下载器
+        downloaders_config = SystemConfigOper().get(SystemConfigKey.Downloaders) or []
         _downloaders = [
-            {"title": d.get("name"), "value": d.get("name")} 
-            for d in SystemConfigOper().get(SystemConfigKey.Downloaders) or [] 
-            if d.get("enabled")
+            {"title": d.get("name"), "value": d.get("name")}
+            for d in downloaders_config if d.get("enabled")
         ]
-        
+
         return {
-            "enabled": self._event_enabled or self._cron_enabled,
-            "notify": False,  # 兼容Vue前端
-            "downloader": self._downloader[0] if self._downloader else "",  # 兼容Vue前端
+            "id": "RenameTorrentVue",
+            "name": "重命名种子文件Vue版",
+            "enabled": self._enabled,
+            "notify": self._notify,
+            "event_enabled": self._event_enabled,
+            "cron_enabled": self._cron_enabled,
+            "downloader": self._downloader,  # 兼容Vue前端
             "all_downloaders": _downloaders,
             "format_torrent_name": self._format_torrent_name,
             "exclude_tags": self._exclude_tags,
             "include_tags": self._include_tags,
             "exclude_dirs": self._exclude_dirs,
             "hash_white_list": self._hash_white_list,
-            "add_tag_after_rename": self._add_tag_after_rename
+            "add_tag_after_rename": self._add_tag_after_rename,
+            "onlyonce": self._onlyonce,
+            "recovery": self._recovery,
+            "retry": self._retry,
+            "cron": self._cron
         }
 
     def get_rename_history(self):
@@ -692,6 +484,18 @@ class RenameTorrentVue(_PluginBase):
         history.sort(key=lambda x: x.get("date", ""), reverse=True)
         return history
 
+    def get_rename_index(self):
+        """
+        获取重命名历史记录索引缓存
+        """
+        # 获取索引缓存
+        index = self.__get_rename_history_index()
+        # 转换为列表格式便于前端显示
+        return [
+            {"original_name": k, "after_name": v.get("after_name", "") if isinstance(v, dict) else ""}
+            for k, v in index.items()
+        ]
+
     def list_torrents(self):
         """
         获取种子列表
@@ -699,24 +503,25 @@ class RenameTorrentVue(_PluginBase):
         if not self._downloader:
             return []
 
-        # 获取下载器实例
-        downloader_instance = self.__get_downloader_instance(self._downloader[0] if isinstance(self._downloader, list) else self._downloader)
-        if not downloader_instance:
-            logger.warn(f"下载器 {self._downloader} 未找到或未启用")
-            return []
-
-        # 获取种子列表
-        torrents = downloader_instance.get_torrents()
-        if not torrents:
-            return []
-
-        # 转换为前端需要的格式
+        # 获取所有下载器实例
         torrent_list = []
-        for torrent in torrents:
-            # 获取种子信息
-            torrent_info = self.__convert_torrent_info(torrent, downloader_instance.type)
-            if torrent_info:
-                torrent_list.append(torrent_info)
+        for downloader_name in (self._downloader if isinstance(self._downloader, list) else [self._downloader]):
+            downloader_instance = self.__get_downloader_instance(downloader_name)
+            if not downloader_instance:
+                logger.warn(f"下载器 {downloader_name} 未找到或未启用")
+                continue
+
+            # 获取种子列表
+            torrents = downloader_instance.get_torrents()
+            if not torrents:
+                continue
+
+            # 转换为前端需要的格式
+            for torrent in torrents:
+                # 获取种子信息
+                torrent_info = self.__convert_torrent_info(torrent, downloader_instance.type)
+                if torrent_info:
+                    torrent_list.append(torrent_info)
 
         return torrent_list
 
@@ -732,42 +537,50 @@ class RenameTorrentVue(_PluginBase):
                 "message": "未配置下载器"
             }
 
-        # 获取下载器实例
-        downloader_instance = self.__get_downloader_instance(self._downloader[0] if isinstance(self._downloader, list) else self._downloader)
-        if not downloader_instance:
+        # 遍历所有下载器查找种子
+        downloader_instance = None
+        downloader_name = None
+        torrent_info = None
+        
+        for name in (self._downloader if isinstance(self._downloader, list) else [self._downloader]):
+            instance = self.__get_downloader_instance(name)
+            if not instance:
+                continue
+                
+            # 获取种子信息
+            torrents = instance.torrents_info(torrent_hash=hash)
+            if torrents:
+                downloader_instance = instance
+                downloader_name = name
+                torrent_info = torrents[0]
+                break
+
+        if not downloader_instance or not torrent_info:
             return {
                 "success": False,
-                "message": f"下载器 {self._downloader} 未找到或未启用"
+                "message": "未找到指定种子"
             }
 
         try:
-            # 获取种子当前信息
-            torrents = downloader_instance.torrents_info(torrent_hash=hash)
-            if not torrents:
-                return {
-                    "success": False,
-                    "message": "未找到指定种子"
-                }
-            
-            torrent_info = torrents[0]
             original_name = torrent_info.name
-            
+
             # 执行重命名操作
             success = downloader_instance.rename_torrent(hash, new_name)
-            
+
             # 记录历史
             self.__record_rename_history(
                 hash=hash,
                 original_name=original_name,
                 after_name=new_name if success else original_name,
-                success=success
+                success=success,
+                downloader_name=downloader_name
             )
-            
+
             if success:
                 # 如果设置了添加标签，则添加标签
-                if self._add_tag_after_rename or self._add_tag_flag:
+                if self._add_tag_after_rename:
                     downloader_instance.add_torrent_tag(hash, "已重命名")
-                    
+
                 return {
                     "success": True,
                     "message": "重命名成功"
@@ -784,7 +597,8 @@ class RenameTorrentVue(_PluginBase):
                 hash=hash,
                 original_name=original_name if 'original_name' in locals() else "Unknown",
                 after_name=new_name,
-                success=False
+                success=False,
+                downloader_name=downloader_name
             )
             return {
                 "success": False,
@@ -802,93 +616,96 @@ class RenameTorrentVue(_PluginBase):
                 "message": "未配置下载器"
             }
 
-        # 获取下载器实例
-        downloader_instance = self.__get_downloader_instance(self._downloader[0] if isinstance(self._downloader, list) else self._downloader)
-        if not downloader_instance:
-            return {
-                "success": False,
-                "message": f"下载器 {self._downloader} 未找到或未启用"
-            }
-
         success_count = 0
         failed_count = 0
         failed_details = []
 
-        # 获取所有种子信息
-        all_torrents = downloader_instance.get_torrents()
-        torrent_dict = {t.hash: t for t in all_torrents} if all_torrents else {}
+        # 遍历所有下载器
+        for downloader_name in (self._downloader if isinstance(self._downloader, list) else [self._downloader]):
+            # 获取下载器实例
+            downloader_instance = self.__get_downloader_instance(downloader_name)
+            if not downloader_instance:
+                logger.warn(f"下载器 {downloader_name} 未找到或未启用")
+                continue
 
-        # 遍历要重命名的种子
-        for hash_value in hashes:
-            try:
+            # 获取所有种子信息
+            all_torrents = downloader_instance.get_torrents()
+            torrent_dict = {t.hash: t for t in all_torrents} if all_torrents else {}
+
+            # 遍历要重命名的种子
+            for hash_value in hashes:
+                # 检查该种子是否属于当前下载器
                 if hash_value not in torrent_dict:
-                    failed_count += 1
-                    failed_details.append(f"种子 {hash_value} 未找到")
                     continue
 
-                torrent = torrent_dict[hash_value]
-                original_name = torrent.name
-                
-                # 获取元数据和媒体信息
-                meta = MetaInfo(torrent.name)
-                media_info = self.chain.recognize_media(meta=meta)
-                
-                if not media_info:
-                    failed_count += 1
-                    failed_details.append(f"种子 {torrent.name} 无法识别媒体信息")
-                    # 记录失败历史
-                    self.__record_rename_history(
-                        hash=hash_value,
-                        original_name=original_name,
-                        after_name=original_name,
-                        success=False
-                    )
-                    continue
+                try:
+                    torrent = torrent_dict[hash_value]
+                    original_name = torrent.name
 
-                # 格式化新名称
-                new_name = self.__format_torrent_name(meta, media_info)
-                if not new_name or new_name == torrent.name:
-                    failed_count += 1
-                    failed_details.append(f"种子 {torrent.name} 格式化名称失败或名称未改变")
-                    # 记录失败历史
-                    self.__record_rename_history(
-                        hash=hash_value,
-                        original_name=original_name,
-                        after_name=original_name,
-                        success=False
-                    )
-                    continue
+                    # 获取元数据和媒体信息
+                    meta = MetaInfo(torrent.name)
+                    media_info = self.chain.recognize_media(meta=meta)
 
-                # 执行重命名操作
-                success = downloader_instance.rename_torrent(hash_value, new_name)
-                if success:
-                    # 如果设置了添加标签，则添加标签
-                    if self._add_tag_after_rename or self._add_tag_flag:
-                        downloader_instance.add_torrent_tag(hash_value, "已重命名")
-                    success_count += 1
-                    
-                    # 记录成功历史
-                    self.__record_rename_history(
-                        hash=hash_value,
-                        original_name=original_name,
-                        after_name=new_name,
-                        success=True
-                    )
-                else:
+                    if not media_info:
+                        failed_count += 1
+                        failed_details.append(f"种子 {torrent.name} 无法识别媒体信息")
+                        # 记录失败历史
+                        self.__record_rename_history(
+                            hash=hash_value,
+                            original_name=original_name,
+                            after_name=original_name,
+                            success=False,
+                            downloader_name=downloader_name
+                        )
+                        continue
+
+                    # 格式化新名称
+                    new_name = self.__format_torrent_name(meta, media_info)
+                    if not new_name or new_name == torrent.name:
+                        failed_count += 1
+                        failed_details.append(f"种子 {torrent.name} 格式化名称失败或名称未改变")
+                        # 记录失败历史
+                        self.__record_rename_history(
+                            hash=hash_value,
+                            original_name=original_name,
+                            after_name=original_name,
+                            success=False,
+                            downloader_name=downloader_name
+                        )
+                        continue
+
+                    # 执行重命名操作
+                    success = downloader_instance.rename_torrent(hash_value, new_name)
+                    if success:
+                        # 如果设置了添加标签，则添加标签
+                        if self._add_tag_after_rename:
+                            downloader_instance.add_torrent_tag(hash_value, "已重命名")
+                        success_count += 1
+
+                        # 记录成功历史
+                        self.__record_rename_history(
+                            hash=hash_value,
+                            original_name=original_name,
+                            after_name=new_name,
+                            success=True,
+                            downloader_name=downloader_name
+                        )
+                    else:
+                        failed_count += 1
+                        failed_details.append(f"种子 {torrent.name} 重命名失败")
+
+                        # 记录失败历史
+                        self.__record_rename_history(
+                            hash=hash_value,
+                            original_name=original_name,
+                            after_name=new_name,
+                            success=False,
+                            downloader_name=downloader_name
+                        )
+
+                except Exception as e:
                     failed_count += 1
-                    failed_details.append(f"种子 {torrent.name} 重命名失败")
-                    
-                    # 记录失败历史
-                    self.__record_rename_history(
-                        hash=hash_value,
-                        original_name=original_name,
-                        after_name=new_name,
-                        success=False
-                    )
-                    
-            except Exception as e:
-                failed_count += 1
-                failed_details.append(f"种子 {hash_value} 处理异常：{str(e)}")
+                    failed_details.append(f"种子 {hash_value} 处理异常：{str(e)}")
 
         return {
             "success": True,
@@ -900,31 +717,133 @@ class RenameTorrentVue(_PluginBase):
             }
         }
 
-    def __record_rename_history(self, hash: str, original_name: str, after_name: str, success: bool):
+    def __record_rename_history(self, hash: str, original_name: str, after_name: str, success: bool, downloader_name: str = None):
         """
         记录重命名历史
         """
         # 获取现有历史记录
         history = self.get_data(key="rename_history") or []
-        
+
         # 创建新的历史记录
         record = {
             "hash": hash,
             "original_name": original_name,
             "after_name": after_name,
             "success": success,
+            "downloader": downloader_name or "",
             "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-        
+
         # 添加到历史记录开头
         history.insert(0, record)
-        
-        # 限制历史记录数量，只保留最近的100条
-        if len(history) > 100:
-            history = history[:100]
-        
+
         # 保存历史记录
         self.save_data(key="rename_history", value=history)
+        
+        # 更新索引缓存
+        if self._rename_history_index is not None:
+            if success and original_name:
+                # 如果是成功的记录，添加到索引中
+                if original_name in self._rename_history_index:
+                    # 如果已存在该原始名称，更新重命名后名称，并添加hash到列表中
+                    self._rename_history_index[original_name]["after_name"] = after_name
+                    hash_list = self._rename_history_index[original_name]["hash"]
+                    if isinstance(hash_list, list):
+                        hash_list.append(hash)
+                    else:
+                        self._rename_history_index[original_name]["hash"] = [hash_list, hash]
+                else:
+                    # 如果不存在该原始名称，创建新的条目
+                    self._rename_history_index[original_name] = {
+                        "after_name": after_name,
+                        "hash": [hash]
+                    }
+                
+                # 更新已重命名名称缓存
+                if self._renamed_names_cache is not None:
+                    self._renamed_names_cache.add(after_name)
+            elif not success and original_name and original_name in self._rename_history_index:
+                # 如果是失败的记录，且索引中有对应的项，则移除
+                self._rename_history_index.pop(original_name, None)
+
+    def __build_rename_history_index(self) -> Dict[str, Dict[str, Union[str, List[str]]]]:
+        """
+        构建重命名历史记录索引字典
+        :return: 以原始名称为键，包含重命名后名称和hash值列表的字典
+        """
+        # 获取历史记录
+        history = self.get_data(key="rename_history") or []
+        
+        # 按原始名称分组记录
+        grouped_records = {}
+        for record in history:
+            if record.get("success") and record.get("original_name"):
+                original_name = record.get("original_name")
+                grouped_records.setdefault(original_name, []).append(record)
+        
+        # 构建以原始名称为键的成功记录索引字典，包含重命名后名称和hash值列表
+        history_index = {
+            original_name: {
+                "after_name": records[-1].get("after_name"),  # 最新的一条记录的重命名后名称
+                "hash": [record.get("hash", "") for record in records]  # 所有记录的hash值列表
+            }
+            for original_name, records in grouped_records.items()
+        }
+        
+        # 重置已重命名名称缓存
+        self._renamed_names_cache = None
+        
+        return history_index
+
+    def __get_rename_history_index(self) -> Dict[str, Dict[str, Union[str, List[str]]]]:
+        """
+        获取重命名历史记录索引字典（带缓存）
+        :return: 以原始名称为键，包含重命名后名称和hash值列表的字典
+        """
+        # 如果索引尚未构建，则构建索引
+        if self._rename_history_index is None:
+            self._rename_history_index = self.__build_rename_history_index()
+        return self._rename_history_index
+
+    def __build_renamed_names_cache(self) -> Set[str]:
+        """
+        构建已重命名的种子名称缓存
+        :return: 包含所有已重命名后名称的集合
+        """
+        # 获取历史记录
+        history = self.get_data(key="rename_history") or []
+        
+        # 构建已重命名名称的集合
+        return {record.get("after_name") for record in history 
+                if record.get("success") and record.get("after_name")}
+
+    def __get_renamed_names_cache(self) -> Set[str]:
+        """
+        获取已重命名的种子名称缓存（带缓存）
+        :return: 包含所有已重命名后名称的集合
+        """
+        # 如果缓存尚未构建，则构建缓存
+        if self._renamed_names_cache is None:
+            self._renamed_names_cache = self.__build_renamed_names_cache()
+        return self._renamed_names_cache
+
+    def __get_processed_from_history(self) -> Set[str]:
+        """
+        从重命名历史记录中获取已成功处理的记录，构建processed集合
+        :return: 包含已处理的hash值的集合
+        """
+        history = self.get_data(key="rename_history") or []
+        return {record["hash"] for record in history 
+                if record.get("success") and record.get("hash")}
+
+    def __get_pending_from_history(self) -> Set[str]:
+        """
+        从重命名历史记录中获取处理失败的记录，构建pending集合
+        :return: 包含处理失败的hash值的集合
+        """
+        history = self.get_data(key="rename_history") or []
+        return {record["hash"] for record in history 
+                if not record.get("success") and record.get("hash")}
 
     def __get_downloader_instance(self, downloader_name: str):
         """
@@ -933,13 +852,13 @@ class RenameTorrentVue(_PluginBase):
         service = self.downloader_helper.get_service(downloader_name)
         if not service or not service.instance:
             return None
-            
+
         # 检查是否为Qbittorrent下载器
         if self.downloader_helper.is_downloader("qbittorrent", service.config):
             return QbittorrentDownloader(qbc=service.instance)
-        else:
-            logger.info("只支持QB下载器")
-            return None
+        
+        logger.info("只支持QB下载器")
+        return None
 
     def __convert_torrent_info(self, torrent, downloader_type: str):
         """
@@ -951,9 +870,9 @@ class RenameTorrentVue(_PluginBase):
                     "hash": torrent.hash,
                     "name": torrent.name,
                     "title": torrent.name,
-                    "size": torrent.size,
-                    "progress": torrent.progress,
-                    "state": torrent.state,
+                    "size": torrent.total_size,
+                    "progress": getattr(torrent, 'progress', 0),
+                    "state": getattr(torrent, 'state', ''),
                     "tags": torrent.tags.split(',') if torrent.tags else [],
                     "save_path": torrent.save_path
                 }
@@ -971,7 +890,7 @@ class RenameTorrentVue(_PluginBase):
         except Exception as e:
             logger.debug(f"转换种子信息失败：{str(e)}")
             return None
-            
+
         return None
 
     def __format_torrent_name(self, meta: MetaInfo, media_info) -> Optional[str]:
@@ -1018,33 +937,29 @@ class RenameTorrentVue(_PluginBase):
         else:
             self.save_data(key=key, value=value)
 
-    def format_torrent(self, torrent_info: TorrentInfoRT, meta: MetaBase, media_info: MediaInfo) -> bool:
+    def format_torrent(self, torrent_info: TorrentInfoRT, meta: MetaBase, media_info: MediaInfo, downloader: str = None) -> bool:
         _torrent_hash = torrent_info.hash
         _torrent_name = torrent_info.name
         success = True
-        
-        # 记录重命名前的名称
-        before_name = _torrent_name
-        
-        # 重命名种子名称
+
+        # 直接执行重命名逻辑，历史记录检查已在main方法中完成
         new_name = self.format_torrent_name(
-                template_string=self._format_torrent_name,
-                meta=meta,
-                mediainfo=media_info)
+            template_string=self._format_torrent_name,
+            meta=meta,
+            mediainfo=media_info)
+                
         logger.debug(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} 重命名种子名称:{new_name}")
         try:
             if None != new_name and None != _torrent_name and str(new_name) != _torrent_name :
                 self.downloader.torrents_rename(torrent_hash=_torrent_hash, new_torrent_name=str(new_name))
                 logger.info(f"种子重命名成功 hash: {_torrent_hash} {_torrent_name} ==> {new_name}")
-                # 更改记录写入数据库
-                self.update_data(_torrent_hash, _torrent_name)
-                
                 # 记录重命名历史
                 self.__record_rename_history(
                     hash=_torrent_hash,
                     original_name=torrent_info.name,  # 这里应该是种子的原始名称，但在当前上下文中我们只有当前名称
                     after_name=new_name,
-                    success=True
+                    success=True,
+                    downloader_name=downloader
                 )
             else:
                 if None == _torrent_name:
@@ -1054,34 +969,36 @@ class RenameTorrentVue(_PluginBase):
                 if str(new_name) == _torrent_name:
                     logger.debug(f"种子重命名失败 hash: {_torrent_hash} {_torrent_name} 原因：新名字与原来的名字相同")
                 success = False
-                
+
                 # 记录重命名失败历史
                 if _torrent_name is not None and new_name is not None:
                     self.__record_rename_history(
                         hash=_torrent_hash,
                         original_name=torrent_info.name,
                         after_name=new_name if new_name is not None else _torrent_name,
-                        success=False
+                        success=False,
+                        downloader_name=downloader if downloader else "未知"
                     )
         except Exception as e:
             logger.error(f"种子重命名失败 hash: {_torrent_hash} {str(e)}", exc_info=True)
             success = False
-            
+
             # 记录重命名异常历史
             self.__record_rename_history(
                 hash=_torrent_hash,
                 original_name=torrent_info.name,
                 after_name=new_name if 'new_name' in locals() else _torrent_name,
-                success=False
+                success=False,
+                downloader_name=downloader if downloader else "未知"
             )
         return success
-    
+
     @staticmethod
     def format_torrent_name(
-        template_string: str,
-        meta: MetaBase,
-        mediainfo: MediaInfo,
-        file_ext: str = None,
+            template_string: str,
+            meta: MetaBase,
+            mediainfo: MediaInfo,
+            file_ext: str = None,
     ) -> str:
         """
         根据媒体信息，返回Format字典
@@ -1096,25 +1013,22 @@ class RenameTorrentVue(_PluginBase):
                 meta=meta, mediainfo=mediainfo, file_ext=file_ext)
         # 处理mp的历史记录种子名称
         logger.debug(f"处理前的种子名称:{meta.title}")
-        if meta.title.endswith('.torrent'):
-            # mp搜索下载种子名是文件名
-            # 定义正则表达式模式 去除开始的[站点名称]
-            pattern = r'^\[.*?\]\s*'
-            # 使用 re.sub 方法替换匹配到的内容为空字符串
-            meta.title = re.sub(pattern, '', meta.title)
-        else:
-            # 因为mp默认RSS信息带有副标题，所以对舍弃副标题
-            # 定义正则表达式模式
-            pattern = r'(?<!^)\[.*\]$'
-            # 使用 re.sub 方法将匹配到的内容替换为空字符串
-            meta.title = re.sub(pattern, '', meta.title)
-            # 去除首尾的空白字符
-            meta.title = meta.title.strip()
+        # 移除可能的前缀（如 [站点名] 或 [标签]）及其后的分隔符（如空格、点等）
+        # 这个模式匹配以 [ 开头，] 结尾的标签，后面可能跟着空格或点
+        prefix_pattern = r'^\[.*?\][\s.]*'
+        processed_title = re.sub(prefix_pattern, '', meta.title)
+
+        # 移除末尾的 .torrent 后缀（如果存在）
+        processed_title = re.sub(r'\.torrent$', '', processed_title)
+
+        # 去除首尾的空白字符和可能的点（以防移除前缀后开头仍有分隔符）
+        processed_title = processed_title.strip(' .')
         logger.debug(f"处理后的种子名称:{meta.title}")
         rename_dict = format_dict(meta=meta, mediainfo=mediainfo, file_ext=file_ext)
         logger.debug(f"rename_dict： {rename_dict}")
         handler = TransHandler()
-        return handler.get_rename_path(template_string, rename_dict)
+        path = handler.get_rename_path(template_string, rename_dict)
+        return path.as_posix() if path else None
 
     def recoveryTorrent(self):
         """
@@ -1122,14 +1036,19 @@ class RenameTorrentVue(_PluginBase):
         """
         try:
             # 获取已处理数据
-            processed: dict[str, str] = self.get_data(key="processed") or {}
-            logger.debug(f"processed : {processed}")
-            if len(processed) == 0:
+            history = self.get_data(key="rename_history") or []
+            processed_records = {record["hash"]: record for record in history if record.get("success")}
+            
+            logger.debug(f"processed records count: {len(processed_records)}")
+            if len(processed_records) == 0:
                 logger.debug(f"历史记录为空，跳过恢复")
                 return
             logger.debug(f"获取已处理数据成功")
             # 从下载器获取种子信息
-            for d in self._downloader:
+            # 确保_downloader是列表格式
+            downloader_list = self._downloader if isinstance(self._downloader, list) else [self._downloader] if self._downloader else []
+            
+            for d in downloader_list:
                 self.set_downloader(d)
                 if self.downloader is None:
                     logger.warn(f"下载器: {d} 不存在或未启用")
@@ -1139,31 +1058,29 @@ class RenameTorrentVue(_PluginBase):
                     torrents_info_list = self.downloader.torrents_info(torrent_hash=self._hash_white_list.strip().split("\n"))
                     logger.debug(f"白名单内的种子 torrents_info_list{torrents_info_list}")
                 else:
-                    torrents_info_list = self.downloader.torrents_info(torrent_hash=processed.keys())
+                    torrents_info_list = self.downloader.torrents_info(torrent_hash=processed_records.keys())
                 for torrent_info in torrents_info_list:
                     if torrent_info:
                         torrent_hash = torrent_info.hash
                         torrent_name = torrent_info.name
-                        torrent_oldName = self.get_data(torrent_hash)
-                        if torrent_oldName != None :
-                            self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(torrent_oldName))
-                            logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_name} ==> {torrent_oldName}")
-                            
+                        
+                        # 从历史记录中获取原始名称
+                        original_name = processed_records.get(torrent_hash, {}).get("original_name")
+                        if original_name:
+                            self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(original_name))
+                            logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_name} ==> {original_name}")
+
                             # 记录恢复历史
                             self.__record_rename_history(
                                 hash=torrent_hash,
-                                original_name=torrent_name,  # 注意：这里我们不知道种子的原始名称
-                                after_name=torrent_oldName,
-                                success=True
+                                original_name=torrent_name,
+                                after_name=original_name,
+                                success=True,
+                                downloader_name=d.name
                             )
                         else:
-                            logger.debug(f"恢复处理记录: hash: {torrent_hash} oldName为None,")
-                        self.del_data(torrent_hash)
-                        # 恢复处理记录
-                        processed.pop(torrent_hash, None) 
-                        logger.debug(f"恢复处理记录: hash: {torrent_hash} name:{torrent_oldName}")
-            # 保存已处理数据
-            self.update_data(key="processed", value=processed)
+                            logger.debug(f"恢复处理记录: hash: {torrent_hash} 找不到原始名称,")
+            logger.info(f"恢复完成")
         except Exception as e:
             logger.error(f"恢复下载器中的种子名称失败 {str(e)}", exc_info=True)
 
@@ -1178,9 +1095,9 @@ class RenameTorrentVue(_PluginBase):
             # 失败数据列表
             _failures: dict[str, str] = {}
             # 获取待处理数据
-            pending: dict[str, str] = self.get_data(key="pending") or {}
+            pending: set[str] = self.__get_pending_from_history()
             # 获取已处理数据
-            processed: dict[str, str] = self.get_data(key="processed") or {}
+            processed: set[str] = self.__get_processed_from_history()
             _processed_num = 0
 
             def create_hash_mapping() -> Dict[str, List[str]]:
@@ -1214,7 +1131,7 @@ class RenameTorrentVue(_PluginBase):
             logger.debug(f"先生成源种子hash表")
             assist_mapping = create_hash_mapping()
             # 从下载器获取种子信息
-            for d in self._downloader:
+            for d in (self._downloader if isinstance(self._downloader, list) else [self._downloader]):
                 self.set_downloader(d)
                 if self.downloader is None:
                     logger.info(f"下载器: {d} 不存在或未启用")
@@ -1233,6 +1150,18 @@ class RenameTorrentVue(_PluginBase):
                     logger.debug(f"白名单内的种子 torrents_info：{torrents_info}")
                 if torrents_info:
                     for torrent_info in torrents_info:
+                        # 检查当前种子名称是否与历史记录中的原始名称匹配
+                        history_index = self.__get_rename_history_index()
+                        cached_entry = history_index.get(torrent_info.name)
+                        
+                        if cached_entry:
+                            success = self._apply_cached_rename(torrent_info, cached_entry, d)
+                            if success:
+                                continue
+                        renamed_names_cache = self.__get_renamed_names_cache()
+                        if torrent_info.name in renamed_names_cache:
+                            logger.info(f"种子 {torrent_info.name} 已经重命名过，跳过处理")
+                            continue
                         _hash = ""
                         if assist_mapping:
                             logger.debug(f"存在IYUU辅种数据")
@@ -1252,29 +1181,46 @@ class RenameTorrentVue(_PluginBase):
                         else:
                             logger.debug(f"未查询到下载历史记录 hash:{result_hash}")
                         # 执行处理
-                        if self.main(torrent_info=torrent_info, downloadhis=downloadhis ):
+                        if self.main(downloader=d, torrent_info=torrent_info, downloadhis=downloadhis ):
                             # 添加到已处理数据库
-                            processed[torrent_info.hash] = d
+                            processed.add(torrent_info.hash)
                             _failures.pop(torrent_info.hash, None)
                             # 本次处理成功计数
                             _processed_num += 1
                         else:
                             # 添加到失败数据库
                             _failures[torrent_info.hash] = d
-            # 更新数据库
             if _failures:
-                self.update_data("pending", _failures)
                 logger.info(f"失败 {len(_failures)} 个")
             if processed:
-                # 保存已处理数据库
-                self.update_data("processed", processed)
                 logger.info(f"成功 {_processed_num} 个, 合计 {len(processed)} 个种子已保存至历史")
             logger.info(f"运行完成")
         except Exception as e:
             logger.error(f"种子重命名失败 {str(e)}", exc_info=True)
 
+    @eventmanager.register(EventType.DownloadAdded)
+    def event_process_main(self, event: Event):
+        """
+        处理下载添加事件
+        """
+        if not self._enabled or not self._event_enabled or not event:
+            return
+            
+        if not self._downloader:
+            logger.info("下载器为空")
+            return
+            
+        event_data = event.event_data or {}
+        hash = event_data.get("hash")
+        downloader = event_data.get("downloader")
+        
+        # 获取待处理数据
+        if self._event_enabled and downloader in (self._downloader if isinstance(self._downloader, list) else [self._downloader]):
+            context: Context = event_data.get("context")
+            self.main(downloader=downloader, hash=hash, meta=context.meta_info, media_info=context.media_info)
+
     def main(self, downloader: str = None, downloadhis: DownloadHistory = None,
-             hash: str =None, torrent_info: TorrentInfoRT = None, 
+             hash: str =None, torrent_info: TorrentInfoRT = None,
              meta: MetaBase = None, media_info: MediaInfo = None) -> bool:
         """
         处理单个种子
@@ -1289,19 +1235,33 @@ class RenameTorrentVue(_PluginBase):
         if downloader:
             # 设置下载器
             self.set_downloader(downloader)
+        
         if self.downloader is None:
-            success = False
             logger.warn(f"未连接下载器")
-        if success and not torrent_info:
-            if hash:
-                torrent_info = self.downloader.torrents_info(torrent_hash=hash)
-                # 种子被手动删除或转移
-                if not torrent_info:
-                    success = False
-                    logger.warn(f"下载器 {downloader} 不存在该种子: {hash}")
-                    return True
-                # 取第一个种子
+            return False
+            
+        if not torrent_info and hash:
+            torrent_info = self.downloader.torrents_info(torrent_hash=hash)
+            # 种子被手动删除或转移
+            if not torrent_info:
+                logger.warn(f"下载器 {downloader} 不存在该种子: {hash}")
+                return True
+            # 取第一个种子
                 torrent_info = torrent_info[0]
+                
+                # 检查种子是否已经被重命名过
+                renamed_names_cache = self.__get_renamed_names_cache()
+                if torrent_info.name in renamed_names_cache:
+                    logger.info(f"种子 {torrent_info.name} 已经重命名过，跳过处理")
+                    return True
+                
+                # 通过索引字典直接查找历史记录，时间复杂度O(1)
+                history_index = self.__get_rename_history_index()
+                cached_entry = history_index.get(torrent_info.name)
+                
+                # 如果在历史记录中找到了对应的重命名后名称，则直接使用
+                if cached_entry:
+                    return self._apply_cached_rename(torrent_info, cached_entry, downloader)
         # 保存目录排除
         if success and self._exclude_dirs:
             for exclude_dir in self._exclude_dirs.split("\n"):
@@ -1311,13 +1271,13 @@ class RenameTorrentVue(_PluginBase):
                     return True
         # 标签排除
         if success and self._exclude_tags and \
-            (common_tags := {tag.strip() for tag in self._exclude_tags.split(",") if tag} & set(torrent_info.tags)):
+                (common_tags := {tag.strip() for tag in self._exclude_tags.split(",") if tag} & set(torrent_info.tags)):
             success = False
             logger.info(f"{torrent_info.tags} 命中排除标签：{common_tags}")
             return True
         # 标签包含
         if success and self._include_tags and \
-            not (common_tags := {tag.strip() for tag in self._include_tags.split(",") if tag} & set(torrent_info.tags)):
+                not (common_tags := {tag.strip() for tag in self._include_tags.split(",") if tag} & set(torrent_info.tags)):
             success = False
             logger.info(f"{torrent_info.tags} 未命中包含标签：{common_tags}")
             return True
@@ -1343,11 +1303,182 @@ class RenameTorrentVue(_PluginBase):
         if success:
             logger.debug(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} 开始执行重命名")
             logger.debug(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} torrent_info：{torrent_info} meta：{meta} media_info：{media_info}")
-            if self.format_torrent(torrent_info=torrent_info, meta=meta, media_info=media_info):
+            if self.format_torrent(torrent_info=torrent_info, meta=meta, media_info=media_info, downloader=downloader):
                 logger.info(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} 处理完成")
                 # 添加已重命名标签
-                if self._add_tag_flag or self._add_tag_after_rename:
+                if self._add_tag_after_rename:
                     self.downloader.torrents_add_tags(torrent_info.hash,["已重命名"])
                 return True
         # 处理失败
         return False
+
+    def _apply_cached_rename(self, torrent_info: TorrentInfoRT, cached_entry: dict, downloader: str) -> bool:
+        """
+        应用缓存的重命名记录到种子
+        :param torrent_info: 种子信息
+        :param cached_entry: 缓存条目
+        :param downloader: 下载器名称
+        :return: 重命名是否成功
+        """
+        cached_name = cached_entry.get("after_name")
+        logger.info(f"从历史记录中找到匹配项，直接使用历史重命名结果: {torrent_info.name} ==> {cached_name}")
+        try:
+            self.downloader.torrents_rename(torrent_hash=torrent_info.hash, new_torrent_name=str(cached_name))
+            logger.info(f"种子重命名成功 hash: {torrent_info.hash} {torrent_info.name} ==> {cached_name}")
+
+            # 添加已重命名标签
+            if self._add_tag_after_rename:
+                self.downloader.torrents_add_tags(torrent_info.hash, ["已重命名"])
+
+            # 记录重命名历史
+            self.__record_rename_history(
+                hash=torrent_info.hash,
+                original_name=torrent_info.name,
+                after_name=cached_name,
+                success=True,
+                downloader_name=downloader
+            )
+            return True
+        except Exception as e:
+            logger.error(f"种子重命名失败 hash: {torrent_info.hash} {str(e)}", exc_info=True)
+            # 记录重命名异常历史
+            self.__record_rename_history(
+                hash=torrent_info.hash,
+                original_name=torrent_info.name,
+                after_name=cached_name,
+                success=False,
+                downloader_name=downloader
+            )
+            return False
+
+    def _rename_single_torrent(self, torrent_info: TorrentInfoRT, new_name: str, downloader_name: str) -> bool:
+        """
+        重命名单个种子
+        :param torrent_info: 种子信息
+        :param new_name: 新名称
+        :param downloader_name: 下载器名称
+        :return: 重命名是否成功
+        """
+        try:
+            self.downloader.torrents_rename(torrent_hash=torrent_info.hash, new_torrent_name=str(new_name))
+            logger.info(f"种子重命名成功 hash: {torrent_info.hash} {torrent_info.name} ==> {new_name}")
+
+            # 添加已重命名标签
+            if self._add_tag_after_rename:
+                self.downloader.torrents_add_tags(torrent_hash=torrent_info.hash, tags=["已重命名"])
+
+            # 记录重命名历史
+            self.__record_rename_history(
+                hash=torrent_info.hash,
+                original_name=torrent_info.name,
+                after_name=new_name,
+                success=True,
+                downloader_name=downloader_name
+            )
+            return True
+        except Exception as e:
+            logger.error(f"种子重命名失败 hash: {torrent_info.hash} {str(e)}", exc_info=True)
+            # 记录重命名异常历史
+            self.__record_rename_history(
+                hash=torrent_info.hash,
+                original_name=torrent_info.name,
+                after_name=new_name,
+                success=False,
+                downloader_name=downloader_name
+            )
+            return False
+
+    def _rename_torrents_with_new_name(self, original_name: str, new_name: str) -> int:
+        """
+        使用新名称重命名相关种子
+        :param original_name: 原始名称
+        :param new_name: 新名称
+        :return: 成功重命名的种子数量
+        """
+        renamed_count = 0
+        if not self._downloader:
+            return renamed_count
+
+        # 从索引缓存中获取所有相关的种子hash值
+        cached_entry = self._rename_history_index.get(original_name, {})
+        related_hashes = cached_entry.get("hash", []) if cached_entry else []
+
+        # 确保related_hashes是列表格式
+        if not isinstance(related_hashes, list):
+            related_hashes = [related_hashes]
+
+        # 遍历所有配置的下载器
+        downloader_list = self._downloader if isinstance(self._downloader, list) else [self._downloader] if self._downloader else []
+        for downloader_name in downloader_list:
+            downloader_instance = self.__get_downloader_instance(downloader_name)
+            if downloader_instance and related_hashes:
+                # 直接通过hash值获取相关种子，避免遍历所有种子
+                torrents = downloader_instance.torrents_info(torrent_hash=related_hashes)
+                for torrent in torrents:
+                    try:
+                        downloader_instance.torrents_rename(torrent.hash, new_name)
+                        renamed_count += 1
+
+                        # 添加标签
+                        if self._add_tag_after_rename:
+                            downloader_instance.add_torrent_tag(torrent.hash, "已重命名")
+
+                    except Exception as e:
+                        logger.error(f"重命名种子失败: {str(e)}")
+
+        return renamed_count
+
+    def update_rename_index(self, request_body: dict):
+        """
+        更新重命名索引缓存中的条目，并对相关种子应用重命名
+        
+        :param request_body: 包含 original_name 和 after_name 的字典
+        """
+        original_name = request_body.get("original_name")
+        after_name = request_body.get("after_name")
+        try:
+            # 更新内存中的索引缓存
+            if self._rename_history_index is not None:
+                if original_name in self._rename_history_index:
+                    # 如果已存在该原始名称，更新重命名后名称
+                    self._rename_history_index[original_name]["after_name"] = after_name
+                else:
+                    # 如果不存在该原始名称，创建新的条目
+                    self._rename_history_index[original_name] = {
+                        "after_name": after_name,
+                        "hash": []  # update_rename_index 方法中不涉及具体的hash值
+                    }
+            
+            # 获取所有历史记录
+            history = self.get_data(key="rename_history") or []
+            
+            # 更新历史记录中的相关条目
+            updated_count = 0
+            for record in history:
+                if record.get("original_name") == original_name and record.get("success"):
+                    record["after_name"] = after_name
+                    updated_count += 1
+            
+            # 保存更新后的历史记录
+            self.save_data(key="rename_history", value=history)
+            
+            # 更新已重命名名称缓存
+            if self._renamed_names_cache is not None:
+                self._renamed_names_cache.add(after_name)
+            
+            # 对仍在下载器中的相关种子执行重命名操作
+            renamed_count = self._rename_torrents_with_new_name(original_name, after_name)
+            
+            return {
+                "success": True,
+                "message": f"成功更新索引并重命名了 {renamed_count} 个种子",
+                "updated_records": updated_count,
+                "renamed_torrents": renamed_count
+            }
+            
+        except Exception as e:
+            logger.error(f"更新重命名索引失败: {str(e)}")
+            return {
+                "success": False,
+                "message": f"更新重命名索引失败: {str(e)}"
+            }
