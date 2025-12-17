@@ -163,7 +163,7 @@ class RenameTorrentVue(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "0.1.2"
+    plugin_version = "0.1.3"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -1023,7 +1023,7 @@ class RenameTorrentVue(_PluginBase):
 
         # 去除首尾的空白字符和可能的点（以防移除前缀后开头仍有分隔符）
         processed_title = processed_title.strip(' .')
-        logger.debug(f"处理后的种子名称:{meta.title}")
+        logger.debug(f"处理后的种子名称:{processed_title}")
         rename_dict = format_dict(meta=meta, mediainfo=mediainfo, file_ext=file_ext)
         logger.debug(f"rename_dict： {rename_dict}")
         handler = TransHandler()
@@ -1271,13 +1271,13 @@ class RenameTorrentVue(_PluginBase):
                     return True
         # 标签排除
         if success and self._exclude_tags and \
-                (common_tags := {tag.strip() for tag in self._exclude_tags.split(",") if tag} & set(torrent_info.tags)):
+                (common_tags := {tag.strip() for tag in self._exclude_tags.split(",") if tag} & {tag.strip() for tag in torrent_info.tags}):
             success = False
             logger.info(f"{torrent_info.tags} 命中排除标签：{common_tags}")
             return True
         # 标签包含
         if success and self._include_tags and \
-                not (common_tags := {tag.strip() for tag in self._include_tags.split(",") if tag} & set(torrent_info.tags)):
+                not (common_tags := {tag.strip() for tag in self._include_tags.split(",") if tag} & {tag.strip() for tag in torrent_info.tags}):
             success = False
             logger.info(f"{torrent_info.tags} 未命中包含标签：{common_tags}")
             return True
