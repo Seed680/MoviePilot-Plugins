@@ -8,7 +8,7 @@ const _export_sfc = (sfc, props) => {
   return target;
 };
 
-const {createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createElementBlock:_createElementBlock} = await importShared('vue');
+const {createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,createElementVNode:_createElementVNode,openBlock:_openBlock,createElementBlock:_createElementBlock} = await importShared('vue');
 
 
 const _hoisted_1 = { class: "history-container" };
@@ -60,15 +60,18 @@ const indexHeaders = [
 const loading = ref(false);
 const indexLoading = ref(false);
 const savingIndex = ref(false);
+const deleting = ref(false);
 const historyRecords = ref([]);
 const indexRecords = ref([]);
 const detailDialog = ref(false);
 const editIndexDialog = ref(false);
+const deleteConfirmDialog = ref(false);
 const currentRecord = ref({});
 const editingItem = ref({
   original_name: '',
   after_name: ''
 });
+const selectedHistory = ref([]);
 
 // 筛选变量
 const filterStatus = ref('all');
@@ -207,6 +210,113 @@ function formatDate(dateString) {
   return new Date(dateString).toLocaleString('zh-CN')
 }
 
+// 删除选中的历史记录
+function deleteSelectedHistory() {
+  // 调试输出选中的记录
+  console.log('Delete button clicked. Selected history records:', selectedHistory.value);
+  
+  if (selectedHistory.value && selectedHistory.value.length > 0) {
+    deleteConfirmDialog.value = true;
+  } else {
+    alert('请先选择要删除的记录');
+  }
+}
+
+// 确认删除历史记录
+async function confirmDeleteHistory() {
+  try {
+    deleting.value = true;
+    
+    // 调试输出选中的记录
+    console.log('Confirm delete. Selected history records:', selectedHistory.value);
+    
+    // 检查是否有要删除的记录
+    if (!selectedHistory.value || selectedHistory.value.length === 0) {
+      alert('没有选中的记录');
+      deleting.value = false;
+      return;
+    }
+    
+    // 获取要删除的hash列表
+    const hashesToDelete = [];
+    
+    // 遍历选中的记录并提取hash值
+    for (let i = 0; i < selectedHistory.value.length; i++) {
+      const item = selectedHistory.value[i];
+      console.log('Processing item:', item);
+      console.log('Item type:', typeof item);
+      
+      // 如果item本身就是hash字符串（长度为40的SHA1哈希）
+      if (typeof item === 'string' && item.length === 40) {
+        hashesToDelete.push(item);
+        console.log('Direct hash found:', item);
+      } 
+      // 如果item是对象且包含hash属性
+      else if (item && typeof item === 'object' && item.hash) {
+        hashesToDelete.push(item.hash);
+        console.log('Object with hash found:', item.hash);
+      } 
+      // 特殊处理：如果item是Proxy对象，尝试访问它的值
+      else if (item && typeof item === 'object') {
+        // 尝试获取Proxy对象的实际值
+        const rawValue = item.valueOf ? item.valueOf() : item;
+        if (typeof rawValue === 'string' && rawValue.length === 40) {
+          hashesToDelete.push(rawValue);
+          console.log('Proxy hash found:', rawValue);
+        } else {
+          console.log('Item is not a valid hash or object with hash property:', item);
+        }
+      } else {
+        console.log('Item is not a valid hash or object with hash property:', item);
+      }
+    }
+    
+    // 调试输出要发送的hash
+    console.log('Hashes to delete:', hashesToDelete);
+    
+    // 检查是否有有效的hash
+    if (hashesToDelete.length === 0) {
+      alert('选中的记录中没有有效的hash值');
+      deleting.value = false;
+      return;
+    }
+    
+    // 构造要发送的记录列表
+    const recordsToSend = hashesToDelete.map(hash => ({ hash: hash }));
+    
+    // 调试输出要发送的记录
+    console.log('Records to send:', recordsToSend);
+    
+    // 发送删除请求
+    const response = await props.api.post('plugin/RenameTorrentVue/delete_rename_history', {
+      records: recordsToSend
+    });
+    
+    if (response?.success || response.data?.success) {
+      // 清空选中项
+      selectedHistory.value = [];
+      
+      // 关闭确认对话框
+      deleteConfirmDialog.value = false;
+      
+      // 刷新历史记录
+      await refreshHistory();
+      
+      // 显示成功消息
+      const message = response.message || response.data?.message || '删除成功';
+      alert(`删除成功: ${message}`);
+    } else {
+      const message = response.message || response.data?.message || '未知错误';
+      alert(`删除失败: ${message}`);
+    }
+  } catch (error) {
+    console.error('删除历史记录失败:', error);
+    alert('删除历史记录失败');
+  } finally {
+    deleting.value = false;
+  }
+}
+
 // 通知主应用切换到配置页面
 function notifySwitch() {
   emit('switch');
@@ -225,6 +335,7 @@ onMounted(() => {
 
 return (_ctx, _cache) => {
   const _component_v_card_title = _resolveComponent("v-card-title");
+  const _component_v_icon = _resolveComponent("v-icon");
   const _component_v_btn = _resolveComponent("v-btn");
   const _component_v_card_item = _resolveComponent("v-card-item");
   const _component_v_tab = _resolveComponent("v-tab");
@@ -238,7 +349,6 @@ return (_ctx, _cache) => {
   const _component_v_window_item = _resolveComponent("v-window-item");
   const _component_v_window = _resolveComponent("v-window");
   const _component_v_card_text = _resolveComponent("v-card-text");
-  const _component_v_icon = _resolveComponent("v-icon");
   const _component_v_spacer = _resolveComponent("v-spacer");
   const _component_v_card_actions = _resolveComponent("v-card-actions");
   const _component_v_card = _resolveComponent("v-card");
@@ -260,15 +370,25 @@ return (_ctx, _cache) => {
         _createVNode(_component_v_card_item, null, {
           append: _withCtx(() => [
             _createVNode(_component_v_btn, {
-              icon: "mdi-close",
+              icon: "",
               color: "primary",
               variant: "text",
               onClick: notifyClose
+            }, {
+              default: _withCtx(() => [
+                _createVNode(_component_v_icon, null, {
+                  default: _withCtx(() => [...(_cache[15] || (_cache[15] = [
+                    _createTextVNode("mdi-close", -1)
+                  ]))]),
+                  _: 1
+                })
+              ]),
+              _: 1
             })
           ]),
           default: _withCtx(() => [
             _createVNode(_component_v_card_title, null, {
-              default: _withCtx(() => [...(_cache[11] || (_cache[11] = [
+              default: _withCtx(() => [...(_cache[14] || (_cache[14] = [
                 _createTextVNode("重命名历史记录", -1)
               ]))]),
               _: 1
@@ -284,13 +404,13 @@ return (_ctx, _cache) => {
         }, {
           default: _withCtx(() => [
             _createVNode(_component_v_tab, { value: "history" }, {
-              default: _withCtx(() => [...(_cache[12] || (_cache[12] = [
+              default: _withCtx(() => [...(_cache[16] || (_cache[16] = [
                 _createTextVNode("历史记录", -1)
               ]))]),
               _: 1
             }),
             _createVNode(_component_v_tab, { value: "index" }, {
-              default: _withCtx(() => [...(_cache[13] || (_cache[13] = [
+              default: _withCtx(() => [...(_cache[17] || (_cache[17] = [
                 _createTextVNode("索引缓存", -1)
               ]))]),
               _: 1
@@ -302,7 +422,7 @@ return (_ctx, _cache) => {
           default: _withCtx(() => [
             _createVNode(_component_v_window, {
               modelValue: activeTab.value,
-              "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((activeTab).value = $event))
+              "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((activeTab).value = $event))
             }, {
               default: _withCtx(() => [
                 _createVNode(_component_v_window_item, { value: "history" }, {
@@ -316,11 +436,24 @@ return (_ctx, _cache) => {
                         class: "mr-2 mb-2",
                         size: "small"
                       }, {
-                        default: _withCtx(() => [...(_cache[14] || (_cache[14] = [
+                        default: _withCtx(() => [...(_cache[18] || (_cache[18] = [
                           _createTextVNode(" 刷新记录 ", -1)
                         ]))]),
                         _: 1
                       }, 8, ["loading"]),
+                      _createVNode(_component_VBtn, {
+                        color: "error",
+                        onClick: deleteSelectedHistory,
+                        disabled: selectedHistory.value.length === 0,
+                        "prepend-icon": "mdi-delete",
+                        class: "mr-2 mb-2",
+                        size: "small"
+                      }, {
+                        default: _withCtx(() => [
+                          _createTextVNode(" 批量删除 (" + _toDisplayString(selectedHistory.value.length) + ") ", 1)
+                        ]),
+                        _: 1
+                      }, 8, ["disabled"]),
                       _createVNode(_component_VSelect, {
                         modelValue: filterStatus.value,
                         "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((filterStatus).value = $event)),
@@ -343,12 +476,16 @@ return (_ctx, _cache) => {
                       _createVNode(_component_VSpacer)
                     ]),
                     _createVNode(_component_VDataTable, {
+                      modelValue: selectedHistory.value,
+                      "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((selectedHistory).value = $event)),
                       headers: headers,
                       items: filteredHistoryRecords.value,
                       loading: loading.value,
                       class: "elevation-1",
                       "items-per-page": 10,
-                      "items-per-page-options": [10, 20, 50, -1]
+                      "items-per-page-options": [10, 20, 50, -1],
+                      "show-select": "",
+                      "item-value": "hash"
                     }, {
                       "item.success": _withCtx(({ item }) => [
                         _createVNode(_component_v_chip, {
@@ -372,14 +509,14 @@ return (_ctx, _cache) => {
                           onClick: $event => (showDetail(item)),
                           class: "mr-2"
                         }, {
-                          default: _withCtx(() => [...(_cache[15] || (_cache[15] = [
+                          default: _withCtx(() => [...(_cache[19] || (_cache[19] = [
                             _createTextVNode(" 详情 ", -1)
                           ]))]),
                           _: 1
                         }, 8, ["onClick"])
                       ]),
                       _: 1
-                    }, 8, ["items", "loading"])
+                    }, 8, ["modelValue", "items", "loading"])
                   ]),
                   _: 1
                 }),
@@ -394,14 +531,14 @@ return (_ctx, _cache) => {
                         class: "mr-2 mb-2",
                         size: "small"
                       }, {
-                        default: _withCtx(() => [...(_cache[16] || (_cache[16] = [
+                        default: _withCtx(() => [...(_cache[20] || (_cache[20] = [
                           _createTextVNode(" 刷新索引 ", -1)
                         ]))]),
                         _: 1
                       }, 8, ["loading"]),
                       _createVNode(_component_VTextField, {
                         modelValue: indexFilterKeyword.value,
-                        "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((indexFilterKeyword).value = $event)),
+                        "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((indexFilterKeyword).value = $event)),
                         placeholder: "搜索名称",
                         density: "compact",
                         "hide-details": "",
@@ -427,7 +564,7 @@ return (_ctx, _cache) => {
                           onClick: $event => (editIndexItem(item)),
                           class: "mr-2"
                         }, {
-                          default: _withCtx(() => [...(_cache[17] || (_cache[17] = [
+                          default: _withCtx(() => [...(_cache[21] || (_cache[21] = [
                             _createTextVNode(" 编辑 ", -1)
                           ]))]),
                           _: 1
@@ -453,12 +590,12 @@ return (_ctx, _cache) => {
             }, {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, { start: "" }, {
-                  default: _withCtx(() => [...(_cache[18] || (_cache[18] = [
+                  default: _withCtx(() => [...(_cache[22] || (_cache[22] = [
                     _createTextVNode("mdi-refresh", -1)
                   ]))]),
                   _: 1
                 }),
-                _cache[19] || (_cache[19] = _createTextVNode(" 刷新数据 ", -1))
+                _cache[23] || (_cache[23] = _createTextVNode(" 刷新数据 ", -1))
               ]),
               _: 1
             }, 8, ["loading"]),
@@ -469,12 +606,12 @@ return (_ctx, _cache) => {
             }, {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, { start: "" }, {
-                  default: _withCtx(() => [...(_cache[20] || (_cache[20] = [
+                  default: _withCtx(() => [...(_cache[24] || (_cache[24] = [
                     _createTextVNode("mdi-cog", -1)
                   ]))]),
                   _: 1
                 }),
-                _cache[21] || (_cache[21] = _createTextVNode(" 配置 ", -1))
+                _cache[25] || (_cache[25] = _createTextVNode(" 配置 ", -1))
               ]),
               _: 1
             })
@@ -486,14 +623,14 @@ return (_ctx, _cache) => {
     }),
     _createVNode(_component_VDialog, {
       modelValue: detailDialog.value,
-      "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((detailDialog).value = $event)),
+      "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((detailDialog).value = $event)),
       "max-width": "600px"
     }, {
       default: _withCtx(() => [
         _createVNode(_component_VCard, null, {
           default: _withCtx(() => [
             _createVNode(_component_VCardTitle, null, {
-              default: _withCtx(() => [...(_cache[22] || (_cache[22] = [
+              default: _withCtx(() => [...(_cache[26] || (_cache[26] = [
                 _createElementVNode("span", { class: "text-h5" }, "重命名详情", -1)
               ]))]),
               _: 1
@@ -505,7 +642,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[23] || (_cache[23] = [
+                          default: _withCtx(() => [...(_cache[27] || (_cache[27] = [
                             _createTextVNode("种子哈希:", -1)
                           ]))]),
                           _: 1
@@ -522,7 +659,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[24] || (_cache[24] = [
+                          default: _withCtx(() => [...(_cache[28] || (_cache[28] = [
                             _createTextVNode("原始名称:", -1)
                           ]))]),
                           _: 1
@@ -539,7 +676,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[25] || (_cache[25] = [
+                          default: _withCtx(() => [...(_cache[29] || (_cache[29] = [
                             _createTextVNode("重命名后:", -1)
                           ]))]),
                           _: 1
@@ -556,7 +693,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[26] || (_cache[26] = [
+                          default: _withCtx(() => [...(_cache[30] || (_cache[30] = [
                             _createTextVNode("状态:", -1)
                           ]))]),
                           _: 1
@@ -581,7 +718,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[27] || (_cache[27] = [
+                          default: _withCtx(() => [...(_cache[31] || (_cache[31] = [
                             _createTextVNode("下载器:", -1)
                           ]))]),
                           _: 1
@@ -598,7 +735,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[28] || (_cache[28] = [
+                          default: _withCtx(() => [...(_cache[32] || (_cache[32] = [
                             _createTextVNode("处理时间:", -1)
                           ]))]),
                           _: 1
@@ -624,9 +761,9 @@ return (_ctx, _cache) => {
                 _createVNode(_component_VBtn, {
                   color: "blue darken-1",
                   variant: "text",
-                  onClick: _cache[5] || (_cache[5] = $event => (detailDialog.value = false))
+                  onClick: _cache[6] || (_cache[6] = $event => (detailDialog.value = false))
                 }, {
-                  default: _withCtx(() => [...(_cache[29] || (_cache[29] = [
+                  default: _withCtx(() => [...(_cache[33] || (_cache[33] = [
                     _createTextVNode(" 关闭 ", -1)
                   ]))]),
                   _: 1
@@ -642,14 +779,14 @@ return (_ctx, _cache) => {
     }, 8, ["modelValue"]),
     _createVNode(_component_VDialog, {
       modelValue: editIndexDialog.value,
-      "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((editIndexDialog).value = $event)),
+      "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((editIndexDialog).value = $event)),
       "max-width": "600px"
     }, {
       default: _withCtx(() => [
         _createVNode(_component_VCard, null, {
           default: _withCtx(() => [
             _createVNode(_component_VCardTitle, null, {
-              default: _withCtx(() => [...(_cache[30] || (_cache[30] = [
+              default: _withCtx(() => [...(_cache[34] || (_cache[34] = [
                 _createElementVNode("span", { class: "text-h5" }, "编辑索引条目", -1)
               ]))]),
               _: 1
@@ -660,7 +797,7 @@ return (_ctx, _cache) => {
                   default: _withCtx(() => [
                     _createVNode(_component_v_text_field, {
                       modelValue: editingItem.value.original_name,
-                      "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((editingItem.value.original_name) = $event)),
+                      "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((editingItem.value.original_name) = $event)),
                       label: "原始名称",
                       readonly: "",
                       variant: "outlined",
@@ -669,7 +806,7 @@ return (_ctx, _cache) => {
                     }, null, 8, ["modelValue"]),
                     _createVNode(_component_v_text_field, {
                       modelValue: editingItem.value.after_name,
-                      "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((editingItem.value.after_name) = $event)),
+                      "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((editingItem.value.after_name) = $event)),
                       label: "重命名后",
                       variant: "outlined",
                       density: "compact",
@@ -688,9 +825,9 @@ return (_ctx, _cache) => {
                 _createVNode(_component_VBtn, {
                   color: "blue darken-1",
                   variant: "text",
-                  onClick: _cache[9] || (_cache[9] = $event => (editIndexDialog.value = false))
+                  onClick: _cache[10] || (_cache[10] = $event => (editIndexDialog.value = false))
                 }, {
-                  default: _withCtx(() => [...(_cache[31] || (_cache[31] = [
+                  default: _withCtx(() => [...(_cache[35] || (_cache[35] = [
                     _createTextVNode(" 取消 ", -1)
                   ]))]),
                   _: 1
@@ -700,8 +837,60 @@ return (_ctx, _cache) => {
                   onClick: saveIndexItem,
                   loading: savingIndex.value
                 }, {
-                  default: _withCtx(() => [...(_cache[32] || (_cache[32] = [
+                  default: _withCtx(() => [...(_cache[36] || (_cache[36] = [
                     _createTextVNode(" 保存 ", -1)
+                  ]))]),
+                  _: 1
+                }, 8, ["loading"])
+              ]),
+              _: 1
+            })
+          ]),
+          _: 1
+        })
+      ]),
+      _: 1
+    }, 8, ["modelValue"]),
+    _createVNode(_component_VDialog, {
+      modelValue: deleteConfirmDialog.value,
+      "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((deleteConfirmDialog).value = $event)),
+      "max-width": "400px"
+    }, {
+      default: _withCtx(() => [
+        _createVNode(_component_VCard, null, {
+          default: _withCtx(() => [
+            _createVNode(_component_VCardTitle, null, {
+              default: _withCtx(() => [...(_cache[37] || (_cache[37] = [
+                _createElementVNode("span", { class: "text-h5" }, "确认删除", -1)
+              ]))]),
+              _: 1
+            }),
+            _createVNode(_component_VCardText, null, {
+              default: _withCtx(() => [
+                _createTextVNode(" 确定要删除选中的 " + _toDisplayString(selectedHistory.value.length) + " 条历史记录吗？ ", 1)
+              ]),
+              _: 1
+            }),
+            _createVNode(_component_VCardActions, null, {
+              default: _withCtx(() => [
+                _createVNode(_component_VSpacer),
+                _createVNode(_component_VBtn, {
+                  color: "blue darken-1",
+                  variant: "text",
+                  onClick: _cache[12] || (_cache[12] = $event => (deleteConfirmDialog.value = false))
+                }, {
+                  default: _withCtx(() => [...(_cache[38] || (_cache[38] = [
+                    _createTextVNode(" 取消 ", -1)
+                  ]))]),
+                  _: 1
+                }),
+                _createVNode(_component_VBtn, {
+                  color: "error",
+                  onClick: confirmDeleteHistory,
+                  loading: deleting.value
+                }, {
+                  default: _withCtx(() => [...(_cache[39] || (_cache[39] = [
+                    _createTextVNode(" 确认删除 ", -1)
                   ]))]),
                   _: 1
                 }, 8, ["loading"])
@@ -719,6 +908,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageComponent = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-8c2e363a"]]);
+const PageComponent = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ddbfa1b7"]]);
 
 export { _export_sfc as _, PageComponent as default };

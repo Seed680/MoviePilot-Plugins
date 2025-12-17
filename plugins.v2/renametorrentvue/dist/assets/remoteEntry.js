@@ -1,12 +1,12 @@
 const currentImports = {};
       const exportSet = new Set(['Module', '__esModule', 'default', '_export_sfc']);
       let moduleMap = {
-"./Page":()=>{
-      dynamicLoadingCss(["__federation_expose_Page-BK3Z5dPz.css"], false, './Page');
-      return __federation_import('./__federation_expose_Page-a3KjnM3x.js').then(module =>Object.keys(module).every(item => exportSet.has(item)) ? () => module.default : () => module)},
 "./Config":()=>{
       dynamicLoadingCss([], false, './Config');
-      return __federation_import('./__federation_expose_Config-BWxgyd5Y.js').then(module =>Object.keys(module).every(item => exportSet.has(item)) ? () => module.default : () => module)},};
+      return __federation_import('./__federation_expose_Config-DSO0gkZh.js').then(module =>Object.keys(module).every(item => exportSet.has(item)) ? () => module.default : () => module)},
+"./Page":()=>{
+      dynamicLoadingCss(["__federation_expose_Page-CNclRr-7.css"], false, './Page');
+      return __federation_import('./__federation_expose_Page-ClOSVr0z.js').then(module =>Object.keys(module).every(item => exportSet.has(item)) ? () => module.default : () => module)},};
       const seen = {};
       const dynamicLoadingCss = (cssFilePaths, dontAppendStylesToHead, exposeItemName) => {
         const metaUrl = import.meta.url;
@@ -47,7 +47,7 @@ const currentImports = {};
          }
          
           if (dontAppendStylesToHead) {
-            const key = 'css__renametorrentvue__' + exposeItemName;
+            const key = 'css__MyPlugin__' + exposeItemName;
             window[key] = window[key] || [];
             window[key].push(href);
             return;
