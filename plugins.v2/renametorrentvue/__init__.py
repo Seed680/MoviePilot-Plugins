@@ -163,7 +163,7 @@ class RenameTorrentVue(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "0.1.1"
+    plugin_version = "0.1.2"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -1286,7 +1286,7 @@ class RenameTorrentVue(_PluginBase):
             logger.debug(f"识别到MP 下载历史名称:{downloadhis.torrent_name}")
             meta = MetaInfo(title=downloadhis.torrent_name, subtitle=downloadhis.torrent_description)
             media_info = self.chain.recognize_media(meta=meta, mtype=MediaType(downloadhis.type),
-                                                    tmdbid=downloadhis.tmdbid, Doubanid=downloadhis.doubanid)
+                                                    tmdbid=downloadhis.tmdbid)
         if success and not meta:
             logger.info(f"未找到与之关联的下载种子 hash: {torrent_info.hash} 种子名称：{torrent_info.name} 元数据识别可能不准确")
             meta = MetaInfo(torrent_info.name)
