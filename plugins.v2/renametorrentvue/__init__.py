@@ -157,13 +157,13 @@ class QbittorrentDownloader():
 
 class RenameTorrentVue(_PluginBase):
     # 插件名称
-    plugin_name = "重命名种子文件Vue版"
+    plugin_name = "重命名种子Vue版"
     # 插件描述
-    plugin_desc = "提供Vue界面重命名下载器中的种子文件。"
+    plugin_desc = "提供Vue界面重命名下载器中的种子。"
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "0.1"
+    plugin_version = "0.1.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
