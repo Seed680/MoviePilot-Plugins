@@ -227,9 +227,6 @@ async function confirmDeleteHistory() {
   try {
     deleting.value = true;
     
-    // 调试输出选中的记录
-    console.log('Confirm delete. Selected history records:', selectedHistory.value);
-    
     // 检查是否有要删除的记录
     if (!selectedHistory.value || selectedHistory.value.length === 0) {
       alert('没有选中的记录');
@@ -237,55 +234,8 @@ async function confirmDeleteHistory() {
       return;
     }
     
-    // 获取要删除的hash列表
-    const hashesToDelete = [];
-    
-    // 遍历选中的记录并提取hash值
-    for (let i = 0; i < selectedHistory.value.length; i++) {
-      const item = selectedHistory.value[i];
-      console.log('Processing item:', item);
-      console.log('Item type:', typeof item);
-      
-      // 如果item本身就是hash字符串（长度为40的SHA1哈希）
-      if (typeof item === 'string' && item.length === 40) {
-        hashesToDelete.push(item);
-        console.log('Direct hash found:', item);
-      } 
-      // 如果item是对象且包含hash属性
-      else if (item && typeof item === 'object' && item.hash) {
-        hashesToDelete.push(item.hash);
-        console.log('Object with hash found:', item.hash);
-      } 
-      // 特殊处理：如果item是Proxy对象，尝试访问它的值
-      else if (item && typeof item === 'object') {
-        // 尝试获取Proxy对象的实际值
-        const rawValue = item.valueOf ? item.valueOf() : item;
-        if (typeof rawValue === 'string' && rawValue.length === 40) {
-          hashesToDelete.push(rawValue);
-          console.log('Proxy hash found:', rawValue);
-        } else {
-          console.log('Item is not a valid hash or object with hash property:', item);
-        }
-      } else {
-        console.log('Item is not a valid hash or object with hash property:', item);
-      }
-    }
-    
-    // 调试输出要发送的hash
-    console.log('Hashes to delete:', hashesToDelete);
-    
-    // 检查是否有有效的hash
-    if (hashesToDelete.length === 0) {
-      alert('选中的记录中没有有效的hash值');
-      deleting.value = false;
-      return;
-    }
-    
     // 构造要发送的记录列表
-    const recordsToSend = hashesToDelete.map(hash => ({ hash: hash }));
-    
-    // 调试输出要发送的记录
-    console.log('Records to send:', recordsToSend);
+    const recordsToSend = selectedHistory.value.map(hash => ({ hash: hash }));
     
     // 发送删除请求
     const response = await props.api.post('plugin/RenameTorrentVue/delete_rename_history', {
@@ -908,6 +858,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageComponent = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-ddbfa1b7"]]);
+const PageComponent = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-b9936bad"]]);
 
 export { _export_sfc as _, PageComponent as default };
