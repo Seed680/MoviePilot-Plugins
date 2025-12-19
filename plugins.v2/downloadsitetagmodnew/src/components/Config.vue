@@ -18,53 +18,60 @@
           <v-row>
             <v-col cols="6" md="3">
               <v-switch
-                v-model="config.enable"
-                label="启用插件"
-                color="primary"
-                persistent-hint
-                inset
+                  v-model="config.enable"
+                  label="启用插件"
+                  color="primary"
+                  persistent-hint
+                  inset
               ></v-switch>
             </v-col>
-                
+
             <v-col cols="6" md="3">
               <v-checkbox
-                v-model="config.enable_tag"
-                label="自动站点标签"
-                color="primary"
+                  v-model="config.enable_tag"
+                  label="自动站点标签"
+                  color="primary"
               ></v-checkbox>
             </v-col>
-            
+
             <v-col cols="6" md="3">
               <v-checkbox
-                v-model="config.enable_media_tag"
-                label="自动剧名标签"
-                color="primary"
+                  v-model="config.enable_media_tag"
+                  label="自动剧名标签"
+                  color="primary"
               ></v-checkbox>
             </v-col>
-            
+
             <v-col cols="6" md="3">
               <v-checkbox
-                v-model="config.enable_category"
-                label="自动设置分类"
-                color="primary"
+                  v-model="config.enable_category"
+                  label="自动设置分类"
+                  color="primary"
               ></v-checkbox>
             </v-col>
-            
+
             <v-col cols="6" md="6">
               <v-checkbox
-                v-model="config.onlyonce"
-                label="补全下载历史的标签与分类(一次性任务)"
-                color="primary"
-                inset
+                  v-model="config.onlyonce"
+                  label="补全下载历史的标签与分类(一次性任务)"
+                  color="primary"
+                  inset
+              ></v-checkbox>
+            </v-col>
+            <v-col cols="6" md="3">
+              <v-checkbox
+                  v-model="config.enable_del_tags"
+                  label="自动删除未使用标签"
+                  color="primary"
               ></v-checkbox>
             </v-col>
             <v-col>
-            <v-switch
-                v-model="config.rename_type"
-                label="自定义"
-                color="primary"
-                persistent-hint
-                inset
+              <v-switch
+                  v-model="config.rename_type"
+                  label="自定义"
+                  color="primary"
+                  persistent-hint
+                  inset
               ></v-switch>
             </v-col>
           </v-row>
@@ -74,35 +81,35 @@
           <v-row>
             <v-col cols="12">
               <v-select
-                v-model="config.downloaders"
-                :items="config.all_downloaders"
-                label="下载器"
-                placeholder="请选择下载器"
-                item-text="title"
-                item-value="value"
-                multiple
-                chips
+                  v-model="config.downloaders"
+                  :items="config.all_downloaders"
+                  label="下载器"
+                  placeholder="请选择下载器"
+                  item-text="title"
+                  item-value="value"
+                  multiple
+                  chips
               ></v-select>
             </v-col>
             <v-col cols="6" md="6">
               <v-text-field
-                v-model="config.catprefix"
-                label="自定义分类前缀"
-                placeholder="默认为空"
+                  v-model="config.catprefix"
+                  label="自定义分类前缀"
+                  placeholder="默认为空"
               ></v-text-field>
             </v-col>
             <v-col cols="6" md="6">
               <v-text-field
-                v-model="config.siteprefix"
-                label="自定义站点标签前缀"
-                placeholder="默认为空"
+                  v-model="config.siteprefix"
+                  label="自定义站点标签前缀"
+                  placeholder="默认为空"
               ></v-text-field>
             </v-col>
             <v-col cols="6" md="3">
               <v-select
-                v-model="config.interval"
-                :items="scheduleTypes"
-                label="定时任务类型"
+                  v-model="config.interval"
+                  :items="scheduleTypes"
+                  label="定时任务类型"
               ></v-select>
             </v-col>
             <v-col cols="6" md="6" v-if="config.interval === '计划任务'">
@@ -133,7 +140,33 @@
               ></v-select>
             </v-col>
           </v-row>
+          
           <v-divider class="my-4"></v-divider>
+          
+          <v-row>
+            <v-col cols="12">
+              <v-alert type="info" variant="tonal">
+                以下为tracker映射规则，您可以根据需要修改或添加新的规则。
+              </v-alert>
+            </v-col>
+          </v-row>
+          
+          <v-row>
+            <v-col cols="12">
+              <v-textarea
+                v-model="config.tracker_mappings_str"
+                label="Tracker域名映射规则"
+                rows="6"
+                auto-grow
+                placeholder="每行一个映射，格式：tracker域名 -> 映射域名&#10;例如：chdbits.xyz -> ptchdbits.co"
+                hint="支持的分隔符：->, →, :, ：，空格"
+                persistent-hint
+              ></v-textarea>
+            </v-col>
+          </v-row>
+          
+          <v-divider class="my-4"></v-divider>
+          
           <v-row  v-if="!config.rename_type">
             <v-col cols="12">
               <!-- 循环生成输入框，每行4个 -->

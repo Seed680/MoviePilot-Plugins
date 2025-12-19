@@ -33,7 +33,7 @@ class DownloadSiteTagModNew(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "1.2"
+    plugin_version = "1.3"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -64,6 +64,7 @@ class DownloadSiteTagModNew(_PluginBase):
     _enable_media_tag = False
     _enable_tag = True
     _enable_category = False
+    _enable_del_tags = False
     _category_movie = None
     _category_tv = None
     _category_anime = None
@@ -76,12 +77,30 @@ class DownloadSiteTagModNew(_PluginBase):
     _path_rename = None
     _catprefix = ""
     _siteprefix = ""
+    # 默认的tracker映射字符串（用于显示在界面上）
+    _tracker_mappings_default = "\n".join([
+        "chdbits.xyz -> ptchdbits.co",
+        "agsvpt.trackers.work -> agsvpt.com",
+        "tracker.cinefiles.info -> audiences.me",
+        "# 格式说明：tracker域名 -> 映射域名",
+        "# 使用 -> 作为分隔符",
+        "# 每行一个映射规则，空行和以#开头的行会被忽略",
+        "# 站点管理中必须存在对应的域名才能生效"
+    ])
+    _tracker_mappings_str = ""
+    _tracker_mappings = {}
+    _del_tags_task_rid = {}
 
     def init_plugin(self, config: dict = None):
         self.downloadhistory_oper = DownloadHistoryOper()
         self.downloader_helper = DownloaderHelper()
         self.sites_helper = SitesHelper()
         self.category_helper = CategoryHelper()
+        
+        # 初始化删除标签任务rid映射
+        self._del_tags_task_rid = {}
+        # 初始化默认的tracker映射
+        self._tracker_mappings = self._parse_tracker_mappings(self._tracker_mappings_default)
 
         self._all_cat = [*self.category_helper.tv_categorys, *self.category_helper.movie_categorys]
         self._all_cat_rename = self._all_cat
@@ -97,9 +116,11 @@ class DownloadSiteTagModNew(_PluginBase):
             self._enable_media_tag = config.get("enable_media_tag", False)
             self._enable_tag = config.get("enable_tag")
             self._enable_category = config.get("enable_category")
+            self._enable_del_tags = config.get("enable_del_tags", False)
             self._downloaders = config.get("downloaders")
             self._catprefix = config.get("catprefix","")
             self._siteprefix = config.get("siteprefix","")
+            self._tracker_mappings_str = config.get("tracker_mappings_str", "")
             logger.debug(f"catprefix:{self._catprefix}")
             logger.debug(f"siteprefix:{self._siteprefix}")
             logger.debug(f"all_cat:{self._all_cat}")
@@ -110,6 +131,20 @@ class DownloadSiteTagModNew(_PluginBase):
             logger.debug(f"all_cat_rename:{self._all_cat_rename}")
             self._rename_type = config.get("rename_type", False) #False按二级分类 True按路径分类
             self._path_rename = config.get("path_rename", None)
+
+            # 此设置对于老用户来说缺乏具体说明，因此如果为空，表示用户首次更新，则使用默认配置起到提示作用
+            if not ("tracker_mappings_str" in config):
+                config["tracker_mappings_str"] = self._tracker_mappings_default
+                self.update_config(config)
+            # 如果用户有配置，解析并合并到默认映射中
+            elif self._tracker_mappings_str:
+                user_mappings = self._parse_tracker_mappings(self._tracker_mappings_str)
+                # 将用户映射合并到默认映射中，用户映射会覆盖默认映射中相同的key
+                self._tracker_mappings.update(user_mappings)
+            
+            # 首次运行时，从下载器初始化rid映射
+            if self._enable_del_tags:
+                self._task_del_unused_tags()
 
             if not self._rename_type:
                 for index, item in enumerate(self._all_cat):
@@ -156,8 +191,8 @@ class DownloadSiteTagModNew(_PluginBase):
                 self._scheduler.start()
 
     def get_form(self) -> Tuple[Optional[List[dict]], Dict[str, Any]]:
-         # This dict is passed as initialConfig to Config.vue by the host
-         # return None, self._get_config()
+        # This dict is passed as initialConfig to Config.vue by the host
+        # return None, self._get_config()
         # logger.debug(f"all_cat_rename:{self._all_cat_rename}")
         return None, {
             "enable": self._enable,
@@ -168,6 +203,7 @@ class DownloadSiteTagModNew(_PluginBase):
             "enable_media_tag": self._enable_media_tag,
             "enable_tag": self._enable_tag,
             "enable_category": self._enable_category,
+            "enable_del_tags": self._enable_del_tags,
             "downloaders": self._downloaders,
             "all_cat_rename": self._all_cat_rename,
             "all_downloaders": self._all_downloaders,
@@ -177,7 +213,8 @@ class DownloadSiteTagModNew(_PluginBase):
             "path_rename": self._path_rename,
             "name": self.plugin_name,
             "catprefix": self._catprefix,
-            "siteprefix": self._siteprefix
+            "siteprefix": self._siteprefix,
+            "tracker_mappings_str": self._tracker_mappings_default
         }
 
     def load_config(self, config: dict):
@@ -185,21 +222,23 @@ class DownloadSiteTagModNew(_PluginBase):
         if config:
             # 遍历配置中的键并设置相应的属性
             for key in (
-                "enable",
-                "interval",
-                "interval_cron",
-                "interval_time",
-                "interval_unit",
-                "enable_media_tag",
-                "enable_tag",
-                "enable_category",
-                "downloaders",
-                "onlyonce",
-                "all_cat_rename",
-                "rename_type",
-                "path_rename",
-                "catprefix",
-                "siteprefix"
+                    "enable",
+                    "interval",
+                    "interval_cron",
+                    "interval_time",
+                    "interval_unit",
+                    "enable_media_tag",
+                    "enable_tag",
+                    "enable_category",
+                    "enable_del_tags",
+                    "downloaders",
+                    "onlyonce",
+                    "all_cat_rename",
+                    "rename_type",
+                    "path_rename",
+                    "catprefix",
+                    "siteprefix",
+                    "tracker_mappings_str"
             ):
                 setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
 
@@ -225,6 +264,7 @@ class DownloadSiteTagModNew(_PluginBase):
             "enable_media_tag": self._enable_media_tag,
             "enable_tag": self._enable_tag,
             "enable_category": self._enable_category,
+            "enable_del_tags": self._enable_del_tags,
             "downloaders": self._downloaders,
             "all_cat_rename": self._all_cat_rename,
             "all_downloaders": self._all_downloaders,
@@ -234,30 +274,31 @@ class DownloadSiteTagModNew(_PluginBase):
             "path_rename": self._path_rename,
             "name": self.plugin_name,
             "catprefix": self._catprefix,
-            "siteprefix": self._siteprefix
+            "siteprefix": self._siteprefix,
+            "tracker_mappings_str": self._tracker_mappings_str
         }
 
     def _save_config(self, config_payload: dict) -> Dict[str, Any]:
         # Update instance variables directly from payload, defaulting to current values if key is missing
-            self.load_config(config_payload)
-            # 忽略onlyonce参数
-            config_payload.onlyonce = False
+        self.load_config(config_payload)
+        # 忽略onlyonce参数
+        config_payload.onlyonce = False
 
-            # Prepare config to save
-            # config_to_save = self._get_config()
+        # Prepare config to save
+        # config_to_save = self._get_config()
 
-            # 保存配置
-            self.update_config(config_payload)
+        # 保存配置
+        self.update_config(config_payload)
 
-            # 重新初始化插件
-            self.stop_service()
-            self.init_plugin(self.get_config())
+        # 重新初始化插件
+        self.stop_service()
+        self.init_plugin(self.get_config())
 
-            logger.info(f"{self.plugin_name}: 配置已保存并通过 init_plugin 重新初始化。当前内存状态: enable={self._enable}")
+        logger.info(f"{self.plugin_name}: 配置已保存并通过 init_plugin 重新初始化。当前内存状态: enable={self._enable}")
 
-            # 返回最终状态
-            return {"message": "配置已成功保存", "saved_config": self._get_config()}
-            
+        # 返回最终状态
+        return {"message": "配置已成功保存", "saved_config": self._get_config()}
+
     def _reset_categories(self) -> Dict[str, Any]:
         """
         重置二级分类
@@ -272,7 +313,7 @@ class DownloadSiteTagModNew(_PluginBase):
         self.update_config(config)
 
         logger.info(f"{self.plugin_name}: 二级分类已重置")
-        
+
         # 返回更新后的配置
         return {
             "all_cat_rename": self._all_cat_rename,
@@ -358,7 +399,20 @@ class DownloadSiteTagModNew(_PluginBase):
             "kwargs": {} # 定时器参数
         }]
         """
+        # 初始化公共服务列表
+        tasks = []
         if self._enable:
+            if self._enable_del_tags:
+                # 添加 删除所有未被任何种子使用的标签 任务 每5分钟执行一次
+                tasks.append({
+                    "id": "DeleteUnusedTags",
+                    "name": "删除下载器中未被使用的标签",
+                    "trigger": "interval",
+                    "func": self._task_del_unused_tags,
+                    "kwargs": {
+                        "minutes": 5
+                    }
+                })
             if self._interval == "计划任务" or self._interval == "固定间隔":
                 if self._interval == "固定间隔":
                     if self._interval_unit == "小时":
@@ -375,7 +429,7 @@ class DownloadSiteTagModNew(_PluginBase):
                         if self._interval_time < 5:
                             self._interval_time = 5
                             logger.info(f"{self.LOG_TAG}启动定时服务: 最小不少于5分钟, 防止执行间隔太短任务冲突")
-                        return [{
+                        tasks.append({
                             "id": "DownloadSiteTag",
                             "name": "补全下载历史的标签与分类",
                             "trigger": "interval",
@@ -383,16 +437,16 @@ class DownloadSiteTagModNew(_PluginBase):
                             "kwargs": {
                                 "minutes": self._interval_time
                             }
-                        }]
+                        })
                 else:
-                    return [{
+                    tasks.append({
                         "id": "DownloadSiteTag",
                         "name": "补全下载历史的标签与分类",
                         "trigger": CronTrigger.from_crontab(self._interval_cron),
                         "func": self._complemented_history,
                         "kwargs": {}
-                    }]
-        return []
+                    })
+        return tasks
 
     @staticmethod
     def str_to_number(s: str, i: int) -> int:
@@ -400,6 +454,47 @@ class DownloadSiteTagModNew(_PluginBase):
             return int(s)
         except ValueError:
             return i
+
+    @staticmethod
+    def _parse_tracker_mappings(mapping_str: str) -> dict:
+        """
+        解析tracker映射规则字符串为字典
+        格式：tracker域名 -> 映射域名
+        例如：chdbits.xyz -> ptchdbits.co
+        使用"->"作为分隔符
+        """
+        tracker_mappings = {}
+        if not mapping_str:
+            return tracker_mappings
+            
+        lines = mapping_str.strip().split('\n')
+        for line in lines:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue  # 跳过空行和注释行
+                
+            # 支持多种分隔符
+            separators = ['->', '→', ':', '：']
+            separator = None
+            for sep in separators:
+                if sep in line:
+                    separator = sep
+                    break
+            
+            if separator:
+                parts = line.split(separator, 1)
+                if len(parts) == 2:
+                    key = parts[0].strip()
+                    value = parts[1].strip()
+                    if key and value:
+                        tracker_mappings[key] = value
+            else:
+                # 如果没有找到分隔符，尝试按空格分割
+                parts = line.split()
+                if len(parts) >= 2:
+                    tracker_mappings[parts[0].strip()] = parts[1].strip()
+                    
+        return tracker_mappings
 
     def _complemented_history(self):
         """
@@ -415,11 +510,6 @@ class DownloadSiteTagModNew(_PluginBase):
         # JackettIndexers索引器支持多个站点, 如果不存在历史记录, 则通过tracker会再次附加其他站点名称
         indexers.append("JackettIndexers")
         indexers = set(indexers)
-        tracker_mappings = {
-            "chdbits.xyz": "ptchdbits.co",
-            "agsvpt.trackers.work": "agsvpt.com",
-            "tracker.cinefiles.info": "audiences.me",
-        }
         for service in self.service_infos.values():
             downloader = service.name
             downloader_obj = service.instance
@@ -476,7 +566,7 @@ class DownloadSiteTagModNew(_PluginBase):
                         trackers = self._get_trackers(torrent=torrent, dl_type=service.type)
                         for tracker in trackers:
                             # 检查tracker是否包含特定的关键字，并进行相应的映射
-                            for key, mapped_domain in tracker_mappings.items():
+                            for key, mapped_domain in self._tracker_mappings.items():
                                 if key in tracker:
                                     domain = mapped_domain
                                     break
@@ -568,6 +658,10 @@ class DownloadSiteTagModNew(_PluginBase):
                 except Exception as e:
                     logger.error(
                         f"{self.LOG_TAG}分析种子信息时发生了错误: {str(e)}", exc_info=True)
+            
+            # 执行清理未使用标签
+            if self._enable_del_tags:
+                self._del_unused_tags(service=service)
 
         logger.info(f"{self.LOG_TAG}执行完成")
 
@@ -743,6 +837,88 @@ class DownloadSiteTagModNew(_PluginBase):
                     downloader_obj.set_torrent_tag(ids=_hash, tags=_tags)
             logger.warn(
                 f"{self.LOG_TAG}下载器: {service.name} 种子id: {_hash} {('  标签: ' + ','.join(_tags)) if _tags else ''} {('  分类: ' + _cat) if _cat else ''}")
+    
+    def _task_del_unused_tags(self):
+        """
+        公共服务：删除所有未被任何种子使用的标签，遍历全部下载器
+        """
+        if not self.service_infos:
+            return
+        for service in self.service_infos.values():
+            # 仅qb支持删除未使用标签
+            if service.type != "qbittorrent":
+                continue
+            downloader = service.name
+            downloader_obj = service.instance
+            if not downloader_obj:
+                logger.error(f"{self.LOG_TAG} 删除未使用标签公共服务，获取下载器失败 {downloader}")
+                continue
+            try:
+                # 初始化下载器 获取全量数据
+                if downloader not in self._del_tags_task_rid:
+                    data = downloader_obj.qbc.sync_maindata(rid=0)
+                    logger.info(f"{self.LOG_TAG}初始化删除未使用标签任务 RID for {downloader}  full_update: {data.get('full_update', False)}")
+                    self._del_tags_task_rid[downloader] = data.get("rid", 0)
+                else:
+                    # 提取上次返回的 rid
+                    last_rid = self._del_tags_task_rid[downloader]
+                    data = downloader_obj.qbc.sync_maindata(rid=last_rid)
+                    # 更新 rid 用于下次访问
+                    self._del_tags_task_rid[downloader] = data.get("rid", last_rid)
+                    # 可能服务器重启，或其他原因导致 rid 状态已被重置
+                    if data.get("full_update", False):
+                        logger.info(f"{self.LOG_TAG}重置删除未使用标签任务 RID for {downloader}  full_update: {data.get('full_update', False)}")
+                        continue
+                    if data.get('torrents_removed', []):
+                        logger.info(f"{self.LOG_TAG}删除未使用标签任务 RID for {downloader} 发现删除种子，即将执行清理未使用标签操作！")
+                        # 指定下载器服务，执行删除未使用标签
+                        self._del_unused_tags(service=service)
+            except Exception as e:
+                logger.error(
+                    f"{self.LOG_TAG}删除未使用标签公共服务，下载器：{downloader}   发生了错误: {str(e)}")
+
+    def _del_unused_tags(self, service: ServiceInfo, torrents: Any = None):
+        """
+        删除所有未被任何种子使用的标签, 可指定下载器与种子列表
+        """
+        # 只有qb下载器才需要删除未使用的标签，TR下载器未使用标签会自动移除
+        if not service or not service.instance or service.type != "qbittorrent":
+            return
+
+        downloader_obj = service.instance
+        try:
+            # 获取所有现有的标签 调用内部qbc的API
+            all_tags = downloader_obj.qbc.torrents_tags()
+            if not all_tags:
+                logger.info(
+                    f"{self.LOG_TAG}下载器: {service.name} 当前没有任何标签，跳过删除未使用标签操作")
+                return
+            # 获取下载器中的种子
+            if not torrents:
+                torrents, error = downloader_obj.get_torrents()
+                # 如果下载器获取种子发生错误 或 没有种子 则跳过
+                if error or not torrents:
+                    logger.warn(
+                        f"{self.LOG_TAG}删除所有未被任何种子使用的标签时发生了错误或查询不到任何种子!")
+                    return
+            logger.info(
+                f"{self.LOG_TAG}删除所有未被任何种子使用的标签: {service.name} 查询到 {len(torrents)} 个种子")
+            # 收集所有正在被使用的标签
+            used_tags_set = set()
+            for torrent in torrents:
+                tag = self._get_label(torrent=torrent, dl_type=service.type)
+                if tag:  # 确保种子有标签
+                    used_tags_set.update(tag)
+            # 计算未使用的标签（在全部标签中但不在使用集合中）
+            unused_tags = [tag for tag in all_tags if tag not in used_tags_set]
+            # 删除未使用的标签
+            if unused_tags:
+                downloader_obj.delete_torrents_tag(ids=None, tag=unused_tags)
+                logger.info(
+                    f"{self.LOG_TAG}删除所有未被任何种子使用的标签: {','.join(unused_tags)}")
+        except Exception as e:
+            logger.error(
+                f"{self.LOG_TAG}删除所有未被任何种子使用的标签时发生了错误: {str(e)}")
 
     @eventmanager.register(EventType.DownloadAdded)
     def download_added(self, event: Event):
@@ -838,14 +1014,14 @@ class DownloadSiteTagModNew(_PluginBase):
             return  torrents_info[0].get('category'), torrents_info[0].get('tags').split(","),
         else:
             return "", []
-        
+
     def get_save_path_by_hash(self, torrent_hash:str, service_instance:Qbittorrent):
         torrents_info = service_instance.qbc.torrents_info(torrent_hashes=torrent_hash)
         if torrents_info:
             return  torrents_info[0].get('save_path')
         else:
             return None
-    
+
     def get_torrent_name_by_hash(self, torrent_hash:str, service_instance:Qbittorrent):
         torrents_info = service_instance.qbc.torrents_info(torrent_hashes=torrent_hash)
         if torrents_info:
@@ -867,7 +1043,7 @@ class DownloadSiteTagModNew(_PluginBase):
             else:
                 logger.debug(f"{path} 未命中路径关键字 {key} 分类: {self._cat_rename_dict[key]}")
         return _cat
-    
+
     def get_cat_rename_by_dict(self, cat:str):
         logger.debug(f'本剧集类别:{cat}')
         _cat = self._cat_rename_dict[cat]
@@ -876,3 +1052,4 @@ class DownloadSiteTagModNew(_PluginBase):
             logger.debug(f'增加自定义分类前缀:{self._catprefix}')
             _cat = self._catprefix + _cat
             logger.debug(f'本剧集类别:{_cat}')
+        return _cat
