@@ -1,15 +1,14 @@
-import json
-from abc import ABCMeta, abstractmethod
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-import re
 from typing import List, Tuple, Dict, Any, Optional, Union, Set
-import pytz
 
+import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from app.core.config import settings
+from app.core.context import MediaInfo, Context
 from app.core.event import eventmanager, Event
 from app.core.meta.metabase import MetaBase
 from app.core.metainfo import MetaInfo
@@ -18,12 +17,10 @@ from app.db.models.plugindata import PluginData
 from app.db.systemconfig_oper import SystemConfigOper
 from app.helper.downloader import DownloaderHelper
 from app.log import logger
+from app.modules.filemanager.transhandler import TransHandler
 from app.modules.qbittorrent import Qbittorrent
 from app.plugins import _PluginBase
-from app.schemas import Notification, NotificationType
 from app.schemas.types import EventType, MediaType, SystemConfigKey
-from app.core.context import MediaInfo, TorrentInfo, Context
-from app.modules.filemanager.transhandler import TransHandler
 
 
 @dataclass
@@ -163,7 +160,7 @@ class RenameTorrentVue(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "0.1.3"
+    plugin_version = "0.1.5"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -1031,6 +1028,7 @@ class RenameTorrentVue(_PluginBase):
         # 去除首尾的空白字符和可能的点（以防移除前缀后开头仍有分隔符）
         processed_title = processed_title.strip(' .')
         logger.debug(f"处理后的种子名称:{processed_title}")
+        meta.title = processed_title
         rename_dict = format_dict(meta=meta, mediainfo=mediainfo, file_ext=file_ext)
         logger.debug(f"rename_dict： {rename_dict}")
         handler = TransHandler()
@@ -1216,7 +1214,7 @@ class RenameTorrentVue(_PluginBase):
         if not self._downloader:
             logger.info("下载器为空")
             return
-
+        logger.debug(f"event:{event}")
         event_data = event.event_data or {}
         hash = event_data.get("hash")
         downloader = event_data.get("downloader")
@@ -1253,22 +1251,22 @@ class RenameTorrentVue(_PluginBase):
             if not torrent_info:
                 logger.warn(f"下载器 {downloader} 不存在该种子: {hash}")
                 return True
-                # 取第一个种子
-                torrent_info = torrent_info[0]
+            # 取第一个种子
+            torrent_info = torrent_info[0]
 
-                # 检查种子是否已经被重命名过
-                renamed_names_cache = self.__get_renamed_names_cache()
-                if torrent_info.name in renamed_names_cache:
-                    logger.info(f"种子 {torrent_info.name} 已经重命名过，跳过处理")
-                    return True
+            # 检查种子是否已经被重命名过
+            renamed_names_cache = self.__get_renamed_names_cache()
+            if torrent_info.name in renamed_names_cache:
+                logger.info(f"种子 {torrent_info.name} 已经重命名过，跳过处理")
+                return True
 
-                # 通过索引字典直接查找历史记录，时间复杂度O(1)
-                history_index = self.__get_rename_history_index()
-                cached_entry = history_index.get(torrent_info.name)
+            # 通过索引字典直接查找历史记录，时间复杂度O(1)
+            history_index = self.__get_rename_history_index()
+            cached_entry = history_index.get(torrent_info.name)
 
-                # 如果在历史记录中找到了对应的重命名后名称，则直接使用
-                if cached_entry:
-                    return self._apply_cached_rename(torrent_info, cached_entry, downloader)
+            # 如果在历史记录中找到了对应的重命名后名称，则直接使用
+            if cached_entry:
+                return self._apply_cached_rename(torrent_info, cached_entry, downloader)
         # 保存目录排除
         if success and self._exclude_dirs:
             for exclude_dir in self._exclude_dirs.split("\n"):
@@ -1498,29 +1496,29 @@ class RenameTorrentVue(_PluginBase):
         try:
             # 获取要删除的记录列表
             records_to_delete = request_body.get("records", [])
-            
+
             # 调试输出接收到的数据
             logger.debug(f"Received records to delete: {records_to_delete}")
-            
+
             if not records_to_delete:
                 return {
                     "success": False,
                     "message": "未提供要删除的记录"
                 }
-            
+
             # 获取现有历史记录
             history = self.get_data(key="rename_history") or []
-            
+
             # 创建一个集合来存储要删除的记录的hash值
             hashes_to_delete = set()
             for record in records_to_delete:
                 record_hash = record.get("hash")
                 if record_hash:
                     hashes_to_delete.add(record_hash)
-            
+
             # 调试输出要删除的hash
             logger.debug(f"Hashes to delete: {hashes_to_delete}")
-            
+
             # 过滤掉要删除的记录
             remaining_history = []
             deleted_count = 0
@@ -1531,22 +1529,22 @@ class RenameTorrentVue(_PluginBase):
                     logger.debug(f"Deleting record: {record}")
                 else:
                     remaining_history.append(record)
-            
+
             # 保存更新后的历史记录
             self.save_data(key="rename_history", value=remaining_history)
-            
+
             # 重建相关缓存
             self._rename_history_index = None
             self._renamed_names_cache = None
-            
+
             logger.debug(f"Deleted {deleted_count} records, {len(remaining_history)} records remaining")
             logger.debug("Rebuilt rename history index and renamed names cache")
-            
+
             return {
                 "success": True,
                 "message": f"成功删除 {deleted_count} 条记录"
             }
-            
+
         except Exception as e:
             logger.error(f"删除重命名历史记录失败: {str(e)}")
             return {

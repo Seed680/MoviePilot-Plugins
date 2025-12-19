@@ -14,177 +14,211 @@
 
         <v-form ref="form" v-model="isFormValid" @submit.prevent="saveConfig">
           <!-- 基本设置区域 -->
-          <div class="text-subtitle-1 font-weight-bold mt-4 mb-2">基本设置</div>
-          <v-row>
-            <v-col cols="12" md="6">
-              <v-switch
-                v-model="config.enabled"
-                label="启用插件"
-                color="primary"
-                persistent-hint
-                inset
-              ></v-switch>
-            </v-col>
-            <v-col cols="12" md="6">
-              <v-switch
-                v-model="config.notify"
-                label="启用通知"
-                color="primary"
-                persistent-hint
-                inset
-              ></v-switch>
-            </v-col>
-            <v-col cols="12" md="6">
-              <v-switch
-                v-model="config.add_tag_after_rename"
-                label="重命名成功后添加标签"
-                color="primary"
-                persistent-hint
-                inset
-              ></v-switch>
-            </v-col>
-          </v-row>
+          <v-card variant="outlined" class="mb-4">
+            <v-card-item>
+              <v-card-title class="text-subtitle-1 font-weight-bold">基本设置</v-card-title>
+            </v-card-item>
+            <v-card-text>
+              <v-row>
+                <v-col cols="12" md="4">
+                  <v-switch
+                    v-model="config.enabled"
+                    label="启用插件"
+                    color="primary"
+                    persistent-hint
+                    inset
+                  ></v-switch>
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-switch
+                    v-model="config.notify"
+                    label="启用通知"
+                    color="primary"
+                    persistent-hint
+                    inset
+                  ></v-switch>
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-switch
+                    v-model="config.add_tag_after_rename"
+                    label="重命名成功后添加标签"
+                    color="primary"
+                    persistent-hint
+                    inset
+                  ></v-switch>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
 
           <!-- 下载器设置 -->
-          <div class="text-subtitle-1 font-weight-bold mt-4 mb-2">下载器设置</div>
-          <v-row>
-            <v-col cols="12">
-              <v-select
-                v-model="config.downloader"
-                :items="config.all_downloaders"
-                label="下载器"
-                placeholder="请选择下载器"
-                item-title="title"
-                item-value="value"
-                multiple
-                chips
-                deletable-chips
-              ></v-select>
-            </v-col>
-          </v-row>
+          <v-card variant="outlined" class="mb-4">
+            <v-card-item>
+              <v-card-title class="text-subtitle-1 font-weight-bold">下载器设置</v-card-title>
+            </v-card-item>
+            <v-card-text>
+              <v-row>
+                <v-col cols="12">
+                  <v-select
+                    v-model="config.downloader"
+                    :items="config.all_downloaders"
+                    label="下载器"
+                    placeholder="请选择下载器"
+                    item-title="title"
+                    item-value="value"
+                    multiple
+                    chips
+                    deletable-chips
+                  ></v-select>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
 
           <!-- 执行方式 -->
-          <div class="text-subtitle-1 font-weight-bold mt-4 mb-2">执行方式</div>
-          <v-row>
-            <v-col cols="12" md="6">
-              <v-switch
-                v-model="config.cron_enabled"
-                label="启用定时任务"
-                color="primary"
-                persistent-hint
-                inset
-              ></v-switch>
-            </v-col>
-            <v-col cols="12" md="6">
-              <v-switch
-                v-model="config.event_enabled"
-                label="启用事件监听"
-                color="primary"
-                persistent-hint
-                inset
-              ></v-switch>
-            </v-col>
-            <v-col cols="12" md="6">
-              <v-switch
-                v-model="config.retry"
-                label="尝试处理失败的种子"
-                color="primary"
-                persistent-hint
-                inset
-              ></v-switch>
-            </v-col>
-            <v-col cols="12" md="6">
-              <v-switch
-                v-model="config.onlyonce"
-                label="立即运行一次"
-                color="primary"
-                persistent-hint
-                inset
-              ></v-switch>
-            </v-col>
-            <v-col cols="12" md="6">
-              <v-switch
-                v-model="config.recovery"
-                label="恢复重命名"
-                color="primary"
-                persistent-hint
-                inset
-              ></v-switch>
-            </v-col>
-          </v-row>
-          
-          <v-row v-if="config.cron_enabled">
-            <v-col cols="12" md="6">
-              <VCronField
-                v-model="config.cron"
-                label="执行周期"
-                hint="设置插件的执行周期，如：0 2 * * * (每天凌晨2点执行)"
-                persistent-hint
-              ></VCronField>
-            </v-col>
-          </v-row>
+          <v-card variant="outlined" class="mb-4">
+            <v-card-item>
+              <v-card-title class="text-subtitle-1 font-weight-bold">执行方式</v-card-title>
+            </v-card-item>
+            <v-card-text>
+              <v-row>
+                <v-col cols="12" md="6">
+                  <v-switch
+                    v-model="config.cron_enabled"
+                    label="启用定时任务"
+                    color="primary"
+                    persistent-hint
+                    inset
+                  ></v-switch>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-switch
+                    v-model="config.event_enabled"
+                    label="启用事件监听"
+                    color="primary"
+                    persistent-hint
+                    inset
+                  ></v-switch>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-switch
+                    v-model="config.retry"
+                    label="尝试处理失败的种子"
+                    color="primary"
+                    persistent-hint
+                    inset
+                  ></v-switch>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-switch
+                    v-model="config.onlyonce"
+                    label="立即运行一次"
+                    color="primary"
+                    persistent-hint
+                    inset
+                  ></v-switch>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-switch
+                    v-model="config.recovery"
+                    label="恢复重命名"
+                    color="primary"
+                    persistent-hint
+                    inset
+                  ></v-switch>
+                </v-col>
+              </v-row>
+              
+              <v-row v-if="config.cron_enabled">
+                <v-col cols="12" md="6">
+                  <VCronField
+                    v-model="config.cron"
+                    label="执行周期"
+                    hint="设置插件的执行周期，如：0 2 * * * (每天凌晨2点执行)"
+                    persistent-hint
+                  ></VCronField>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
 
           <!-- 标签过滤 -->
-          <div class="text-subtitle-1 font-weight-bold mt-4 mb-2">标签过滤</div>
-          <v-row>
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="config.exclude_tags"
-                label="排除标签"
-                placeholder="已重命名"
-                hint="排除包含指定标签的种子，多个标签用逗号分隔"
-                persistent-hint
-              ></v-text-field>
-            </v-col>
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="config.include_tags"
-                label="包含标签"
-                placeholder=""
-                hint="仅处理包含指定标签的种子，多个标签用逗号分隔"
-                persistent-hint
-              ></v-text-field>
-            </v-col>
-          </v-row>
+          <v-card variant="outlined" class="mb-4">
+            <v-card-item>
+              <v-card-title class="text-subtitle-1 font-weight-bold">标签过滤</v-card-title>
+            </v-card-item>
+            <v-card-text>
+              <v-row>
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="config.exclude_tags"
+                    label="排除标签"
+                    placeholder="已重命名"
+                    hint="排除包含指定标签的种子，多个标签用逗号分隔"
+                    persistent-hint
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="config.include_tags"
+                    label="包含标签"
+                    placeholder=""
+                    hint="仅处理包含指定标签的种子，多个标签用逗号分隔"
+                    persistent-hint
+                  ></v-text-field>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
 
           <!-- 路径过滤 -->
-          <div class="text-subtitle-1 font-weight-bold mt-4 mb-2">路径过滤</div>
-          <v-row>
-            <v-col cols="12">
-              <v-textarea
-                v-model="config.exclude_dirs"
-                label="排除目录"
-                placeholder=""
-                hint="排除指定目录下的种子，每行一个目录"
-                persistent-hint
-              ></v-textarea>
-            </v-col>
-            <v-col cols="12">
-              <v-textarea
-                v-model="config.hash_white_list"
-                label="种子哈希白名单"
-                placeholder=""
-                hint="仅处理指定哈希的种子，每行一个哈希值"
-                persistent-hint
-              ></v-textarea>
-            </v-col>
-          </v-row>
+          <v-card variant="outlined" class="mb-4">
+            <v-card-item>
+              <v-card-title class="text-subtitle-1 font-weight-bold">路径过滤</v-card-title>
+            </v-card-item>
+            <v-card-text>
+              <v-row>
+                <v-col cols="12">
+                  <v-textarea
+                    v-model="config.exclude_dirs"
+                    label="排除目录"
+                    placeholder=""
+                    hint="排除指定目录下的种子，每行一个目录"
+                    persistent-hint
+                  ></v-textarea>
+                </v-col>
+                <v-col cols="12">
+                  <v-textarea
+                    v-model="config.hash_white_list"
+                    label="种子哈希白名单"
+                    placeholder=""
+                    hint="仅处理指定哈希的种子，每行一个哈希值"
+                    persistent-hint
+                  ></v-textarea>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
 
           <!-- 重命名格式 -->
-          <div class="text-subtitle-1 font-weight-bold mt-4 mb-2">重命名格式</div>
-          <v-row>
-            <v-col cols="12">
-              <v-textarea
-                v-model="config.format_torrent_name"
-                label="格式化字符"
-                placeholder="{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %}.{{original_name}}"
-                hint="种子重命名的格式模板"
-                persistent-hint
-              ></v-textarea>
-            </v-col>
-          </v-row>
-
-          <v-divider class="my-4"></v-divider>
+          <v-card variant="outlined" class="mb-4">
+            <v-card-item>
+              <v-card-title class="text-subtitle-1 font-weight-bold">重命名格式</v-card-title>
+            </v-card-item>
+            <v-card-text>
+              <v-row>
+                <v-col cols="12">
+                  <v-textarea
+                    v-model="config.format_torrent_name"
+                    label="格式化字符"
+                    placeholder="{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %}.{{original_name}}"
+                    hint="种子重命名的格式模板"
+                    persistent-hint
+                  ></v-textarea>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
         </v-form>
       </v-card-text>
       <v-card-actions>
@@ -268,7 +302,6 @@ async function saveConfig() {
 
   try {
     // 发送保存事件
-    await props.api.post(`plugin/${config.id}/config`, config)
     emit('save', { ...config })
   } catch (err) {
     console.error('保存配置失败:', err)
