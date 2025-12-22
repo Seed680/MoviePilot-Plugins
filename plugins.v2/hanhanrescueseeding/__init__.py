@@ -26,9 +26,9 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件描述
     plugin_desc = "拯救憨憨保种区"
     # 插件图标
-    plugin_icon = "hanhan.png"
+    plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.2.3"
+    plugin_version = "1.2.3.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -53,6 +53,7 @@ class HanHanRescueSeeding(_PluginBase):
     _save_path = None
     _custom_tag = None
     _enable_notification = None
+    _notify_on_zero_torrents = None
 
     def init_plugin(self, config: dict = None):
         try:
@@ -79,6 +80,7 @@ class HanHanRescueSeeding(_PluginBase):
                 self._save_path = config.get("save_path")
                 self._custom_tag = config.get("custom_tag")
                 self._enable_notification = config.get("enable_notification", False)
+                self._notify_on_zero_torrents = config.get("notify_on_zero_torrents", True)
 
             # 停止现有任务
             self.stop_service()
@@ -114,7 +116,8 @@ class HanHanRescueSeeding(_PluginBase):
             "all_downloaders": self._all_downloaders,
             "save_path": self._save_path,
             "custom_tag": self._custom_tag,
-            "enable_notification": self._enable_notification
+            "enable_notification": self._enable_notification,
+            "notify_on_zero_torrents": self._notify_on_zero_torrents
         }
 
     def load_config(self, config: dict):
@@ -130,7 +133,8 @@ class HanHanRescueSeeding(_PluginBase):
                     "download_limit",
                     "save_path",
                     "custom_tag",
-                    "enable_notification"
+                    "enable_notification",
+                    "notify_on_zero_torrents"
             ):
                 setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
 
@@ -157,7 +161,8 @@ class HanHanRescueSeeding(_PluginBase):
             "all_downloaders": self._all_downloaders,
             "save_path": self._save_path,
             "custom_tag": self._custom_tag,
-            "enable_notification": self._enable_notification
+            "enable_notification": self._enable_notification,
+            "notify_on_zero_torrents": self._notify_on_zero_torrents
         }
 
     def _get_download_records(self) -> List[Dict[str, Any]]:
@@ -393,11 +398,13 @@ class HanHanRescueSeeding(_PluginBase):
 
             # 发送通知
             if self._enable_notification:
-                self.post_message(
-                    mtype=NotificationType.Plugin,
-                    title="【憨憨保种区】",
-                    text=f"成功拯救了 {success_downloaded_count} 个种子"
-                )
+                # 检查是否需要在种子数为0时发送通知
+                if self._notify_on_zero_torrents or success_downloaded_count > 0:
+                    self.post_message(
+                        mtype=NotificationType.Plugin,
+                        title="【憨憨保种区】",
+                        text=f"成功拯救了 {success_downloaded_count} 个种子"
+                    )
         except Exception as e:
             logger.error(f"检查保种区异常:{str(e)}", exc_info=True)
             # 发送异常通知
