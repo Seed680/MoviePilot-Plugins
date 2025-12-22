@@ -43,6 +43,15 @@
                 inset
               ></v-switch>
             </v-col>
+            <v-col cols="12" md="6">
+              <v-switch
+                v-model="config.notify_on_zero_torrents"
+                label="种子数为0时发送通知"
+                color="primary"
+                persistent-hint
+                inset
+              ></v-switch>
+            </v-col>
           </v-row>
 
           <v-row>
@@ -157,7 +166,8 @@ const defaultConfig = {
   save_path: '',
   run_once: false,
   custom_tag: '',
-  enable_notification: false
+  enable_notification: true,
+  notify_on_zero_torrents: true
 }
 
 // 合并默认配置和初始配置
