@@ -981,7 +981,7 @@ class RenameTorrentVue(_PluginBase):
         logger.debug(f"处理后的种子名称:{processed_title}")
         meta.title = processed_title
         rename_dict = format_dict(meta=meta, mediainfo=mediainfo, file_ext=file_ext)
-        logger.debug(f"rename_dict： {rename_dict}")
+        # logger.debug(f"rename_dict： {rename_dict}")
         handler = TransHandler()
         path = handler.get_rename_path(template_string, rename_dict)
         return path.as_posix() if path else None
