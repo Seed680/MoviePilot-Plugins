@@ -237,11 +237,12 @@
         "name": "憨憨保种区",
         "description": "拯救憨憨保种区",
         "labels": "保种",
-        "version": "1.2.2.1",
+        "version": "1.2.3",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.2.3": "修改通知内容",
             "v1.2.2": "增加通知",
             "v1.2.1": "支持多个标签",
             "v1.2.0": "支持TR",

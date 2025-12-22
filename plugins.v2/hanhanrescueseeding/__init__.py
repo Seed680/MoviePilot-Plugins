@@ -28,11 +28,11 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "hanhan.png"
     # 插件版本
-    plugin_version = "1.2.2.1"
+    plugin_version = "1.2.3"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
-    author_url = "Seed680"
+    author_url = "https://github.com/Seed680"
     # 插件配置项ID前缀
     plugin_config_prefix = "hanhanrescueseeding_"
     # 加载顺序
@@ -396,7 +396,7 @@ class HanHanRescueSeeding(_PluginBase):
                 self.post_message(
                     mtype=NotificationType.Plugin,
                     title="【憨憨保种区】",
-                    text=f"拯救保种任务执行完成，成功拯救了 {success_downloaded_count} 个种子"
+                    text=f"成功拯救了 {success_downloaded_count} 个种子"
                 )
         except Exception as e:
             logger.error(f"检查保种区异常:{str(e)}", exc_info=True)
