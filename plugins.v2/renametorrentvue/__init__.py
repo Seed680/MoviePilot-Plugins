@@ -160,7 +160,7 @@ class RenameTorrentVue(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "0.1.5"
+    plugin_version = "1.0"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -187,7 +187,7 @@ class RenameTorrentVue(_PluginBase):
     # 启用事件监听
     _event_enabled: bool = False
     # 格式化字符
-    _format_torrent_name: str = "{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %}.{{original_name}}"
+    _format_torrent_name: str = "{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %} - {{original_name}}"
     # 下载器
     _downloader: list = []
     # 排除标签
@@ -207,9 +207,9 @@ class RenameTorrentVue(_PluginBase):
     # 成功后添加标签
     _add_tag_after_rename: bool = False
     # 重命名历史记录索引缓存
-    _rename_history_index: Optional[Dict[str, Dict[str, Union[str, List[str]]]]] = None
+    # _rename_history_index: Optional[Dict[str, Dict[str, Union[str, List[str]]]]] = None
     # 已重命名的种子名称缓存
-    _renamed_names_cache: Optional[Set[str]] = None
+    # _renamed_names_cache: Optional[Set[str]] = None
 
     downloader_helper = None
     downloadhis = None
@@ -260,6 +260,7 @@ class RenameTorrentVue(_PluginBase):
             # 启动服务
             self._scheduler.print_jobs()
             self._scheduler.start()
+
     def load_config(self, config: dict):
         """加载配置"""
         if not config:
@@ -410,7 +411,7 @@ class RenameTorrentVue(_PluginBase):
         return "vue", "dist/assets"
 
     def get_page(self) -> Optional[List[dict]]:
-        """Vue mode doesn't use Vuetify page definitions."""
+        """Vue mode doesn0t use Vuetify page definitions."""
         return None
 
     def get_dashboard(self, **kwargs) -> Tuple[Dict[str, Any], Dict[str, Any], List[dict]]:
@@ -492,13 +493,8 @@ class RenameTorrentVue(_PluginBase):
         """
         获取重命名历史记录索引缓存
         """
-        # 获取索引缓存
-        index = self.__get_rename_history_index()
-        # 转换为列表格式便于前端显示
-        return [
-            {"original_name": k, "after_name": v.get("after_name", "") if isinstance(v, dict) else ""}
-            for k, v in index.items()
-        ]
+        # 已删除缓存相关代码
+        return []
 
     def list_torrents(self):
         """
@@ -744,92 +740,47 @@ class RenameTorrentVue(_PluginBase):
         # 保存历史记录
         self.save_data(key="rename_history", value=history)
 
-        # 更新索引缓存
-        if self._rename_history_index is not None:
-            if success and original_name:
-                # 如果是成功的记录，添加到索引中
-                if original_name in self._rename_history_index:
-                    # 如果已存在该原始名称，更新重命名后名称，并添加hash到列表中
-                    self._rename_history_index[original_name]["after_name"] = after_name
-                    hash_list = self._rename_history_index[original_name]["hash"]
-                    if isinstance(hash_list, list):
-                        hash_list.append(hash)
-                    else:
-                        self._rename_history_index[original_name]["hash"] = [hash_list, hash]
-                else:
-                    # 如果不存在该原始名称，创建新的条目
-                    self._rename_history_index[original_name] = {
-                        "after_name": after_name,
-                        "hash": [hash]
-                    }
-
-                # 更新已重命名名称缓存
-                if self._renamed_names_cache is not None:
-                    self._renamed_names_cache.add(after_name)
-            elif not success and original_name and original_name in self._rename_history_index:
-                # 如果是失败的记录，且索引中有对应的项，则移除
-                self._rename_history_index.pop(original_name, None)
+        # 已删除缓存相关代码
 
     def __build_rename_history_index(self) -> Dict[str, Dict[str, Union[str, List[str]]]]:
         """
         构建重命名历史记录索引字典
         :return: 以原始名称为键，包含重命名后名称和hash值列表的字典
         """
-        # 获取历史记录
-        history = self.get_data(key="rename_history") or []
+        # 已删除缓存相关代码
+        return {}
 
-        # 按原始名称分组记录
-        grouped_records = {}
-        for record in history:
-            if record.get("success") and record.get("original_name"):
-                original_name = record.get("original_name")
-                grouped_records.setdefault(original_name, []).append(record)
+    # def __get_rename_history_index(self) -> Dict[str, Dict[str, Union[str, List[str]]]]:
+    #     """
+    #     获取重命名历史记录索引字典（带缓存）
+    #     :return: 以原始名称为键，包含重命名后名称和hash值列表的字典
+    #     """
+    #     # 如果索引尚未构建，则构建索引
+    #     if self._rename_history_index is None:
+    #         self._rename_history_index = self.__build_rename_history_index()
+    #     return self._rename_history_index
 
-        # 构建以原始名称为键的成功记录索引字典，包含重命名后名称和hash值列表
-        history_index = {
-            original_name: {
-                "after_name": records[-1].get("after_name"),  # 最新的一条记录的重命名后名称
-                "hash": [record.get("hash", "") for record in records]  # 所有记录的hash值列表
-            }
-            for original_name, records in grouped_records.items()
-        }
+    # def __build_renamed_names_cache(self) -> Set[str]:
+    #     """
+    #     构建已重命名的种子名称缓存
+    #     :return: 包含所有已重命名后名称的集合
+    #     """
+    #     # 获取历史记录
+    #     history = self.get_data(key="rename_history") or []
 
-        # 重置已重命名名称缓存
-        self._renamed_names_cache = None
+    #     # 构建已重命名名称的集合
+    #     return {record.get("after_name") for record in history
+    #             if record.get("success") and record.get("after_name")}
 
-        return history_index
-
-    def __get_rename_history_index(self) -> Dict[str, Dict[str, Union[str, List[str]]]]:
-        """
-        获取重命名历史记录索引字典（带缓存）
-        :return: 以原始名称为键，包含重命名后名称和hash值列表的字典
-        """
-        # 如果索引尚未构建，则构建索引
-        if self._rename_history_index is None:
-            self._rename_history_index = self.__build_rename_history_index()
-        return self._rename_history_index
-
-    def __build_renamed_names_cache(self) -> Set[str]:
-        """
-        构建已重命名的种子名称缓存
-        :return: 包含所有已重命名后名称的集合
-        """
-        # 获取历史记录
-        history = self.get_data(key="rename_history") or []
-
-        # 构建已重命名名称的集合
-        return {record.get("after_name") for record in history
-                if record.get("success") and record.get("after_name")}
-
-    def __get_renamed_names_cache(self) -> Set[str]:
-        """
-        获取已重命名的种子名称缓存（带缓存）
-        :return: 包含所有已重命名后名称的集合
-        """
-        # 如果缓存尚未构建，则构建缓存
-        if self._renamed_names_cache is None:
-            self._renamed_names_cache = self.__build_renamed_names_cache()
-        return self._renamed_names_cache
+    # def __get_renamed_names_cache(self) -> Set[str]:
+    #     """
+    #     获取已重命名的种子名称缓存（带缓存）
+    #     :return: 包含所有已重命名后名称的集合
+    #     """
+    #     # 如果缓存尚未构建，则构建缓存
+    #     if self._renamed_names_cache is None:
+    #         self._renamed_names_cache = self.__build_renamed_names_cache()
+    #     return self._renamed_names_cache
 
     def __get_processed_from_history(self) -> Set[str]:
         """
@@ -1019,7 +970,7 @@ class RenameTorrentVue(_PluginBase):
         logger.debug(f"处理前的种子名称:{meta.title}")
         # 移除可能的前缀（如 [站点名] 或 [标签]）及其后的分隔符（如空格、点等）
         # 这个模式匹配以 [ 开头，] 结尾的标签，后面可能跟着空格或点
-        prefix_pattern = r'^\[.*?\][\s.]*'
+        prefix_pattern = r'\[.*\][\s.]*'
         processed_title = re.sub(prefix_pattern, '', meta.title)
 
         # 移除末尾的 .torrent 后缀（如果存在）
@@ -1053,6 +1004,9 @@ class RenameTorrentVue(_PluginBase):
             # 确保_downloader是列表格式
             downloader_list = self._downloader if isinstance(self._downloader, list) else [self._downloader] if self._downloader else []
 
+            # 记录成功恢复的种子hash值
+            recovered_hashes = set()
+
             for d in downloader_list:
                 self.set_downloader(d)
                 if self.downloader is None:
@@ -1074,17 +1028,22 @@ class RenameTorrentVue(_PluginBase):
                         if original_name:
                             self.downloader.torrents_rename(torrent_hash=torrent_hash, new_torrent_name=str(original_name))
                             logger.info(f"种子恢复成功 hash: {torrent_hash} {torrent_name} ==> {original_name}")
-
-                            # 记录恢复历史
-                            self.__record_rename_history(
-                                hash=torrent_hash,
-                                original_name=torrent_name,
-                                after_name=original_name,
-                                success=True,
-                                downloader_name=d.name
-                            )
+                            
+                            # 记录成功恢复的hash
+                            recovered_hashes.add(torrent_hash)
                         else:
                             logger.debug(f"恢复处理记录: hash: {torrent_hash} 找不到原始名称,")
+
+            # 在所有恢复任务完成后，统一删除已恢复的记录
+            if recovered_hashes:
+                # 获取现有历史记录
+                history = self.get_data(key="rename_history") or []
+                # 过滤掉已恢复的记录
+                remaining_history = [record for record in history if record.get("hash") not in recovered_hashes]
+                # 保存更新后的历史记录
+                self.save_data(key="rename_history", value=remaining_history)
+                logger.info(f"已从历史记录中删除 {len(recovered_hashes)} 条已恢复的记录")
+
             logger.info(f"恢复完成")
         except Exception as e:
             logger.error(f"恢复下载器中的种子名称失败 {str(e)}", exc_info=True)
@@ -1155,18 +1114,7 @@ class RenameTorrentVue(_PluginBase):
                     logger.debug(f"白名单内的种子 torrents_info：{torrents_info}")
                 if torrents_info:
                     for torrent_info in torrents_info:
-                        # 检查当前种子名称是否与历史记录中的原始名称匹配
-                        history_index = self.__get_rename_history_index()
-                        cached_entry = history_index.get(torrent_info.name)
-
-                        if cached_entry:
-                            success = self._apply_cached_rename(torrent_info, cached_entry, d)
-                            if success:
-                                continue
-                        renamed_names_cache = self.__get_renamed_names_cache()
-                        if torrent_info.name in renamed_names_cache:
-                            logger.info(f"种子 {torrent_info.name} 已经重命名过，跳过处理")
-                            continue
+                        # 已删除缓存相关代码
                         _hash = ""
                         if assist_mapping:
                             logger.debug(f"存在IYUU辅种数据")
@@ -1254,19 +1202,7 @@ class RenameTorrentVue(_PluginBase):
             # 取第一个种子
             torrent_info = torrent_info[0]
 
-            # 检查种子是否已经被重命名过
-            renamed_names_cache = self.__get_renamed_names_cache()
-            if torrent_info.name in renamed_names_cache:
-                logger.info(f"种子 {torrent_info.name} 已经重命名过，跳过处理")
-                return True
-
-            # 通过索引字典直接查找历史记录，时间复杂度O(1)
-            history_index = self.__get_rename_history_index()
-            cached_entry = history_index.get(torrent_info.name)
-
-            # 如果在历史记录中找到了对应的重命名后名称，则直接使用
-            if cached_entry:
-                return self._apply_cached_rename(torrent_info, cached_entry, downloader)
+            # 已删除缓存相关代码
         # 保存目录排除
         if success and self._exclude_dirs:
             for exclude_dir in self._exclude_dirs.split("\n"):
@@ -1325,36 +1261,8 @@ class RenameTorrentVue(_PluginBase):
         :param downloader: 下载器名称
         :return: 重命名是否成功
         """
-        cached_name = cached_entry.get("after_name")
-        logger.info(f"从历史记录中找到匹配项，直接使用历史重命名结果: {torrent_info.name} ==> {cached_name}")
-        try:
-            self.downloader.torrents_rename(torrent_hash=torrent_info.hash, new_torrent_name=str(cached_name))
-            logger.info(f"种子重命名成功 hash: {torrent_info.hash} {torrent_info.name} ==> {cached_name}")
-
-            # 添加已重命名标签
-            if self._add_tag_after_rename:
-                self.downloader.torrents_add_tags(torrent_info.hash, ["已重命名"])
-
-            # 记录重命名历史
-            self.__record_rename_history(
-                hash=torrent_info.hash,
-                original_name=torrent_info.name,
-                after_name=cached_name,
-                success=True,
-                downloader_name=downloader
-            )
-            return True
-        except Exception as e:
-            logger.error(f"种子重命名失败 hash: {torrent_info.hash} {str(e)}", exc_info=True)
-            # 记录重命名异常历史
-            self.__record_rename_history(
-                hash=torrent_info.hash,
-                original_name=torrent_info.name,
-                after_name=cached_name,
-                success=False,
-                downloader_name=downloader
-            )
-            return False
+        # 已删除缓存相关代码
+        return False
 
     def _rename_single_torrent(self, torrent_info: TorrentInfoRT, new_name: str, downloader_name: str) -> bool:
         """
@@ -1400,38 +1308,8 @@ class RenameTorrentVue(_PluginBase):
         :param new_name: 新名称
         :return: 成功重命名的种子数量
         """
-        renamed_count = 0
-        if not self._downloader:
-            return renamed_count
-
-        # 从索引缓存中获取所有相关的种子hash值
-        cached_entry = self._rename_history_index.get(original_name, {})
-        related_hashes = cached_entry.get("hash", []) if cached_entry else []
-
-        # 确保related_hashes是列表格式
-        if not isinstance(related_hashes, list):
-            related_hashes = [related_hashes]
-
-        # 遍历所有配置的下载器
-        downloader_list = self._downloader if isinstance(self._downloader, list) else [self._downloader] if self._downloader else []
-        for downloader_name in downloader_list:
-            downloader_instance = self.__get_downloader_instance(downloader_name)
-            if downloader_instance and related_hashes:
-                # 直接通过hash值获取相关种子，避免遍历所有种子
-                torrents = downloader_instance.torrents_info(torrent_hash=related_hashes)
-                for torrent in torrents:
-                    try:
-                        downloader_instance.torrents_rename(torrent.hash, new_name)
-                        renamed_count += 1
-
-                        # 添加标签
-                        if self._add_tag_after_rename:
-                            downloader_instance.add_torrent_tag(torrent.hash, "已重命名")
-
-                    except Exception as e:
-                        logger.error(f"重命名种子失败: {str(e)}")
-
-        return renamed_count
+        # 已删除缓存相关代码
+        return 0
 
     def update_rename_index(self, request_body: dict):
         """
@@ -1439,54 +1317,11 @@ class RenameTorrentVue(_PluginBase):
 
         :param request_body: 包含 original_name 和 after_name 的字典
         """
-        original_name = request_body.get("original_name")
-        after_name = request_body.get("after_name")
-        try:
-            # 更新内存中的索引缓存
-            if self._rename_history_index is not None:
-                if original_name in self._rename_history_index:
-                    # 如果已存在该原始名称，更新重命名后名称
-                    self._rename_history_index[original_name]["after_name"] = after_name
-                else:
-                    # 如果不存在该原始名称，创建新的条目
-                    self._rename_history_index[original_name] = {
-                        "after_name": after_name,
-                        "hash": []  # update_rename_index 方法中不涉及具体的hash值
-                    }
-
-            # 获取所有历史记录
-            history = self.get_data(key="rename_history") or []
-
-            # 更新历史记录中的相关条目
-            updated_count = 0
-            for record in history:
-                if record.get("original_name") == original_name and record.get("success"):
-                    record["after_name"] = after_name
-                    updated_count += 1
-
-            # 保存更新后的历史记录
-            self.save_data(key="rename_history", value=history)
-
-            # 更新已重命名名称缓存
-            if self._renamed_names_cache is not None:
-                self._renamed_names_cache.add(after_name)
-
-            # 对仍在下载器中的相关种子执行重命名操作
-            renamed_count = self._rename_torrents_with_new_name(original_name, after_name)
-
-            return {
-                "success": True,
-                "message": f"成功更新索引并重命名了 {renamed_count} 个种子",
-                "updated_records": updated_count,
-                "renamed_torrents": renamed_count
-            }
-
-        except Exception as e:
-            logger.error(f"更新重命名索引失败: {str(e)}")
-            return {
-                "success": False,
-                "message": f"更新重命名索引失败: {str(e)}"
-            }
+        # 已删除缓存相关代码
+        return {
+            "success": False,
+            "message": "已删除缓存相关功能"
+        }
 
     def delete_rename_history(self, request_body: dict):
         """
@@ -1533,12 +1368,8 @@ class RenameTorrentVue(_PluginBase):
             # 保存更新后的历史记录
             self.save_data(key="rename_history", value=remaining_history)
 
-            # 重建相关缓存
-            self._rename_history_index = None
-            self._renamed_names_cache = None
-
             logger.debug(f"Deleted {deleted_count} records, {len(remaining_history)} records remaining")
-            logger.debug("Rebuilt rename history index and renamed names cache")
+            logger.debug("History records updated")
 
             return {
                 "success": True,

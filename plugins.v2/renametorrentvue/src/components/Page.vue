@@ -13,7 +13,6 @@
       <!-- Tabs -->
       <v-tabs v-model="activeTab" color="primary" align-tabs="center">
         <v-tab value="history">历史记录</v-tab>
-        <v-tab value="index">索引缓存</v-tab>
       </v-tabs>
       
       <v-card-text>
@@ -102,56 +101,6 @@
             </VDataTable>
           </v-window-item>
           
-          <!-- Index Cache Tab -->
-          <v-window-item value="index">
-            <!-- 操作栏 -->
-            <div class="d-flex flex-wrap align-center mb-4">
-              <VBtn
-                color="primary"
-                @click="refreshIndex"
-                :loading="indexLoading"
-                prepend-icon="mdi-refresh"
-                class="mr-2 mb-2"
-                size="small"
-              >
-                刷新索引
-              </VBtn>
-              
-              <VTextField
-                v-model="indexFilterKeyword"
-                placeholder="搜索名称"
-                density="compact"
-                hide-details
-                clearable
-                class="mr-2 mb-2"
-                style="max-width: 200px;"
-              />
-              
-              <VSpacer />
-            </div>
-            
-            <!-- 索引缓存表格 -->
-            <VDataTable
-              :headers="indexHeaders"
-              :items="filteredIndexRecords"
-              :loading="indexLoading"
-              class="elevation-1"
-              :items-per-page="10"
-              :items-per-page-options="[10, 20, 50, -1]"
-            >
-              <template v-slot:item.actions="{ item }">
-                <VBtn
-                  color="primary"
-                  variant="outlined"
-                  size="small"
-                  @click="editIndexItem(item)"
-                  class="mr-2"
-                >
-                  编辑
-                </VBtn>
-              </template>
-            </VDataTable>
-          </v-window-item>
         </v-window>
       </v-card-text>
       
@@ -226,55 +175,6 @@
       </VCard>
     </VDialog>
     
-    <!-- 编辑索引对话框 -->
-    <VDialog v-model="editIndexDialog" max-width="600px">
-      <VCard>
-        <VCardTitle>
-          <span class="text-h5">编辑索引条目</span>
-        </VCardTitle>
-        
-        <VCardText>
-          <v-form ref="editIndexForm">
-            <v-text-field
-              v-model="editingItem.original_name"
-              label="原始名称"
-              readonly
-              variant="outlined"
-              density="compact"
-              class="mb-4"
-            ></v-text-field>
-            
-            <v-text-field
-              v-model="editingItem.after_name"
-              label="重命名后"
-              variant="outlined"
-              density="compact"
-              class="mb-4"
-              :rules="[v => !!v || '重命名后不能为空']"
-            ></v-text-field>
-          </v-form>
-        </VCardText>
-        
-        <VCardActions>
-          <VSpacer />
-          <VBtn
-            color="blue darken-1"
-            variant="text"
-            @click="editIndexDialog = false"
-          >
-            取消
-          </VBtn>
-          <VBtn
-            color="primary"
-            @click="saveIndexItem"
-            :loading="savingIndex"
-          >
-            保存
-          </VBtn>
-        </VCardActions>
-      </VCard>
-    </VDialog>
-    
     <!-- 删除确认对话框 -->
     <VDialog v-model="deleteConfirmDialog" max-width="400px">
       <VCard>
@@ -335,34 +235,18 @@ const headers = [
   { title: '操作', key: 'actions', sortable: false }
 ]
 
-// 索引缓存表格头部定义
-const indexHeaders = [
-  { title: '原始名称', key: 'original_name' },
-  { title: '重命名后', key: 'after_name' },
-  { title: '操作', key: 'actions', sortable: false }
-]
-
 // 状态变量
 const loading = ref(false)
-const indexLoading = ref(false)
-const savingIndex = ref(false)
 const deleting = ref(false)
 const historyRecords = ref([])
-const indexRecords = ref([])
 const detailDialog = ref(false)
-const editIndexDialog = ref(false)
 const deleteConfirmDialog = ref(false)
 const currentRecord = ref({})
-const editingItem = ref({
-  original_name: '',
-  after_name: ''
-})
 const selectedHistory = ref([])
 
 // 筛选变量
 const filterStatus = ref('all')
 const filterKeyword = ref('')
-const indexFilterKeyword = ref('')
 
 // 状态筛选选项
 const statusOptions = [
@@ -393,22 +277,6 @@ const filteredHistoryRecords = computed(() => {
   return filtered
 })
 
-// 计算属性：过滤后的索引记录
-const filteredIndexRecords = computed(() => {
-  let filtered = indexRecords.value
-  
-  // 关键字筛选
-  if (indexFilterKeyword.value) {
-    const keyword = indexFilterKeyword.value.toLowerCase()
-    filtered = filtered.filter(record => 
-      (record.original_name && record.original_name.toLowerCase().includes(keyword)) ||
-      (record.after_name && record.after_name.toLowerCase().includes(keyword))
-    )
-  }
-  
-  return filtered
-})
-
 // 刷新历史记录
 async function refreshHistory() {
   try {
@@ -422,72 +290,15 @@ async function refreshHistory() {
   }
 }
 
-// 刷新索引缓存
-async function refreshIndex() {
-  try {
-    indexLoading.value = true
-    const response = await props.api.get('plugin/RenameTorrentVue/rename_index')
-    indexRecords.value = response || []
-  } catch (error) {
-    console.error('获取索引缓存失败:', error)
-  } finally {
-    indexLoading.value = false
-  }
-}
-
 // 刷新所有数据
 async function refreshAllData() {
   await refreshHistory()
-  await refreshIndex()
 }
 
 // 显示详情
 function showDetail(record) {
   currentRecord.value = record
   detailDialog.value = true
-}
-
-// 编辑索引条目
-function editIndexItem(item) {
-  editingItem.value = { ...item }
-  editIndexDialog.value = true
-}
-
-// 保存索引条目
-async function saveIndexItem() {
-  try {
-    savingIndex.value = true
-    
-    // 发送更新请求
-    const response = await props.api.post('plugin/RenameTorrentVue/update_rename_index', {
-      original_name: editingItem.value.original_name,
-      after_name: editingItem.value.after_name
-    })
-    
-    if (response?.success || response.data?.success) {
-      // 更新本地索引记录
-      const index = indexRecords.value.findIndex(item => 
-        item.original_name === editingItem.value.original_name)
-      if (index !== -1) {
-        indexRecords.value[index].after_name = editingItem.value.after_name
-      }
-      
-      // 关闭对话框
-      editIndexDialog.value = false
-      
-      // 显示成功消息
-      const message = response.message || response.data?.message || '更新成功';
-      alert(`更新成功: ${message}`)
-    } else {
-      const message = response.message || response.data?.message || '未知错误';
-      alert(`更新失败: ${message}`)
-    }
-  } catch (error) {
-    console.error('更新索引条目失败:', error)
-    alert('更新索引条目失败')
-  } finally {
-    savingIndex.value = false
-  }
 }
 
 // 格式化日期
@@ -566,7 +377,6 @@ function notifyClose() {
 // 组件挂载时刷新数据
 onMounted(() => {
   refreshHistory()
-  refreshIndex()
 })
 </script>
 
