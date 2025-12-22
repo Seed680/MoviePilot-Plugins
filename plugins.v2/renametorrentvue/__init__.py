@@ -160,7 +160,7 @@ class RenameTorrentVue(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "0.1.6"
+    plugin_version = "0.1.6.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -970,7 +970,7 @@ class RenameTorrentVue(_PluginBase):
         logger.debug(f"处理前的种子名称:{meta.title}")
         # 移除可能的前缀（如 [站点名] 或 [标签]）及其后的分隔符（如空格、点等）
         # 这个模式匹配以 [ 开头，] 结尾的标签，后面可能跟着空格或点
-        prefix_pattern = r'\[.*?\][\s.]*'
+        prefix_pattern = r'\[.*\][\s.]*'
         processed_title = re.sub(prefix_pattern, '', meta.title)
 
         # 移除末尾的 .torrent 后缀（如果存在）
