@@ -283,11 +283,12 @@
         "name": "重命名种子Vue版",
         "description": "重命名种子Vue版",
         "labels": "重命名",
-        "version": "1.0",
+        "version": "1.0.1",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.0.1": "优化代码，增加错误原因（本版本可能有问题，谨慎更新）",
             "v1.0": "修改默认模板；增加模板选择及预览",
             "v0.1.6": "删除缓存相关内容",
             "v0.1.5": "修复下载监听失效的bug，初步可用",

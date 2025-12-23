@@ -8,7 +8,7 @@ const _export_sfc = (sfc, props) => {
   return target;
 };
 
-const {createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,createElementVNode:_createElementVNode,openBlock:_openBlock,createElementBlock:_createElementBlock} = await importShared('vue');
+const {createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,createElementVNode:_createElementVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock} = await importShared('vue');
 
 
 const _hoisted_1 = { class: "history-container" };
@@ -511,10 +511,29 @@ return (_ctx, _cache) => {
                       ]),
                       _: 1
                     }),
+                    (!currentRecord.value.success && currentRecord.value.reason)
+                      ? (_openBlock(), _createBlock(_component_v_list_item, { key: 0 }, {
+                          default: _withCtx(() => [
+                            _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
+                              default: _withCtx(() => [...(_cache[23] || (_cache[23] = [
+                                _createTextVNode("失败原因:", -1)
+                              ]))]),
+                              _: 1
+                            }),
+                            _createVNode(_component_v_list_item_subtitle, null, {
+                              default: _withCtx(() => [
+                                _createTextVNode(_toDisplayString(currentRecord.value.reason), 1)
+                              ]),
+                              _: 1
+                            })
+                          ]),
+                          _: 1
+                        }))
+                      : _createCommentVNode("", true),
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[23] || (_cache[23] = [
+                          default: _withCtx(() => [...(_cache[24] || (_cache[24] = [
                             _createTextVNode("下载器:", -1)
                           ]))]),
                           _: 1
@@ -531,7 +550,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[24] || (_cache[24] = [
+                          default: _withCtx(() => [...(_cache[25] || (_cache[25] = [
                             _createTextVNode("处理时间:", -1)
                           ]))]),
                           _: 1
@@ -559,7 +578,7 @@ return (_ctx, _cache) => {
                   variant: "text",
                   onClick: _cache[5] || (_cache[5] = $event => (detailDialog.value = false))
                 }, {
-                  default: _withCtx(() => [...(_cache[25] || (_cache[25] = [
+                  default: _withCtx(() => [...(_cache[26] || (_cache[26] = [
                     _createTextVNode(" 关闭 ", -1)
                   ]))]),
                   _: 1
@@ -582,7 +601,7 @@ return (_ctx, _cache) => {
         _createVNode(_component_VCard, null, {
           default: _withCtx(() => [
             _createVNode(_component_VCardTitle, null, {
-              default: _withCtx(() => [...(_cache[26] || (_cache[26] = [
+              default: _withCtx(() => [...(_cache[27] || (_cache[27] = [
                 _createElementVNode("span", { class: "text-h5" }, "确认删除", -1)
               ]))]),
               _: 1
@@ -601,7 +620,7 @@ return (_ctx, _cache) => {
                   variant: "text",
                   onClick: _cache[7] || (_cache[7] = $event => (deleteConfirmDialog.value = false))
                 }, {
-                  default: _withCtx(() => [...(_cache[27] || (_cache[27] = [
+                  default: _withCtx(() => [...(_cache[28] || (_cache[28] = [
                     _createTextVNode(" 取消 ", -1)
                   ]))]),
                   _: 1
@@ -611,7 +630,7 @@ return (_ctx, _cache) => {
                   onClick: confirmDeleteHistory,
                   loading: deleting.value
                 }, {
-                  default: _withCtx(() => [...(_cache[28] || (_cache[28] = [
+                  default: _withCtx(() => [...(_cache[29] || (_cache[29] = [
                     _createTextVNode(" 确认删除 ", -1)
                   ]))]),
                   _: 1
@@ -630,6 +649,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageComponent = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-81b6e046"]]);
+const PageComponent = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-6c2b9fb0"]]);
 
 export { _export_sfc as _, PageComponent as default };
