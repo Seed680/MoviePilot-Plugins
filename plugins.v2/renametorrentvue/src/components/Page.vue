@@ -150,6 +150,11 @@
               </v-list-item-subtitle>
             </v-list-item>
             
+            <v-list-item v-if="!currentRecord.success && currentRecord.reason">
+              <v-list-item-title class="font-weight-bold">失败原因:</v-list-item-title>
+              <v-list-item-subtitle>{{ currentRecord.reason }}</v-list-item-subtitle>
+            </v-list-item>
+            
             <v-list-item>
               <v-list-item-title class="font-weight-bold">下载器:</v-list-item-title>
               <v-list-item-subtitle>{{ currentRecord.downloader }}</v-list-item-subtitle>
