@@ -47,7 +47,7 @@ class FormatDownloadPath(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "0.0.2"
+    plugin_version = "0.0.2.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -323,8 +323,8 @@ class FormatDownloadPath(_PluginBase):
         # 获取原始路径
         options = event_data.options or {}
         original_path = options.get("save_path", "")
-        if not original_path:
-            logger.debug("事件中没有原始路径信息，跳过处理")
+        if original_path:
+            logger.debug("事件中有原始路径信息，跳过处理")
             return
 
         # 根据媒体类型选择模板
