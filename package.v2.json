@@ -296,5 +296,17 @@
             "v0.1.3": "测试",
             "v0.0.1": "初始版本"
         }
+    },
+    "FormatDownloadPath": { 
+        "name": "下载路径格式化",
+        "description": "下载路径格式化",
+        "labels": "格式化",
+        "version": "0.0.1",
+        "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
+        "author": "Seed680",
+        "level": 1,
+        "history": {
+            "v0.0.1": "测试"
+        }
     }
 }
