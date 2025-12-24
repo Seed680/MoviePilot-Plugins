@@ -301,7 +301,7 @@
         "name": "下载路径格式化",
         "description": "下载路径格式化",
         "labels": "格式化",
-        "version": "0.0.1",
+        "version": "0.0.2",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,

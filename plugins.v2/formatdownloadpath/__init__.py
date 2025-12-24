@@ -1,27 +1,19 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Tuple, Dict, Any, Optional, Union
 from pathlib import Path
+from typing import List, Tuple, Dict, Any, Optional
 
-import pytz
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
-
-from app.core.config import settings
 from app.core.context import MediaInfo, Context
 from app.core.event import eventmanager, Event
 from app.core.meta.metabase import MetaBase
-from app.core.metainfo import MetaInfo
-from app.db.downloadhistory_oper import DownloadHistoryOper, DownloadHistory
-from app.db.models.plugindata import PluginData
-from app.db.systemconfig_oper import SystemConfigOper
+from app.db.downloadhistory_oper import DownloadHistoryOper
+from app.helper.directory import DirectoryHelper
 from app.helper.downloader import DownloaderHelper
 from app.log import logger
 from app.modules.filemanager.transhandler import TransHandler
-from app.modules.qbittorrent import Qbittorrent
 from app.plugins import _PluginBase
-from app.schemas.types import EventType, MediaType, SystemConfigKey, ChainEventType
 from app.schemas.event import ResourceDownloadEventData
+from app.schemas.types import EventType, MediaType, ChainEventType
 
 
 @dataclass
@@ -41,6 +33,8 @@ class FormatHistory:
     date: str
     # 类别
     category: str = ""
+    # 是否成功
+    success: bool = True
     # 失败原因
     reason: str = ""
 
@@ -53,7 +47,7 @@ class FormatDownloadPath(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "0.0.1"
+    plugin_version = "0.0.2"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -107,28 +101,28 @@ class FormatDownloadPath(_PluginBase):
         """
         if self._format_history_dict is None:
             self.__load_format_history_cache()
-        
+
         return self._format_history_dict
 
-    def __record_format_history(self, title: str, original_path: str, 
-                               formatted_path: str, downloader: str = None, 
-                               category: str = None, reason: str = None):
+    def __record_format_history(self, title: str, original_path: str,
+                                formatted_path: str, downloader: str = None,
+                                category: str = None, reason: str = None, success: bool = True):
         """
         记录格式化历史
         """
         # 添加到缓存
-        self.__add_to_format_history_cache(title, original_path, formatted_path, 
-                                          downloader, category, reason)
+        self.__add_to_format_history_cache(title, original_path, formatted_path,
+                                           downloader, category, reason, success)
 
-    def __add_to_format_history_cache(self, title: str, original_path: str, 
-                                     formatted_path: str, downloader: str = None,
-                                     category: str = None, reason: str = None):
+    def __add_to_format_history_cache(self, title: str, original_path: str,
+                                      formatted_path: str, downloader: str = None,
+                                      category: str = None, reason: str = None, success: bool = True):
         """
         添加记录到格式化历史缓存
         """
         if self._format_history_dict is None:
             self.__load_format_history_cache()
-        
+
         record = {
             "title": title,
             "original_path": original_path,
@@ -136,9 +130,10 @@ class FormatDownloadPath(_PluginBase):
             "downloader": downloader or "",
             "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "category": category or "",
+            "success": success,
             "reason": reason or ""
         }
-        
+
         # 添加到缓存开头（按时间倒序）
         key = f"{title}_{record['date']}"
         self._format_history_dict[key] = record
@@ -308,10 +303,13 @@ class FormatDownloadPath(_PluginBase):
             return
 
         logger.debug(f"收到资源下载事件：{event}")
-        event_data = event.event_data or {}
-        
+        event_data: ResourceDownloadEventData = event.event_data
+        if not event_data:
+            logger.debug("事件数据为空，跳过处理")
+            return
+
         # 获取上下文信息
-        context: Context = event_data.get("context")
+        context: Context = event_data.context
         if not context:
             logger.debug("事件中没有上下文信息，跳过处理")
             return
@@ -323,8 +321,9 @@ class FormatDownloadPath(_PluginBase):
             return
 
         # 获取原始路径
-        original_path = event_data.get("options", {}).get("save_path", "")
-        if original_path:
+        options = event_data.options or {}
+        original_path = options.get("save_path", "")
+        if not original_path:
             logger.debug("事件中没有原始路径信息，跳过处理")
             return
 
@@ -333,7 +332,7 @@ class FormatDownloadPath(_PluginBase):
             template_string = self._movie_format_path_template
         else:
             template_string = self._tv_format_path_template
-        
+
         # 格式化路径
         formatted_path = self.format_path(
             template_string=template_string,
@@ -347,9 +346,10 @@ class FormatDownloadPath(_PluginBase):
                 title=media_info.title,
                 original_path=original_path,
                 formatted_path=original_path,  # 失败时仍使用原路径
-                downloader=event_data.get("downloader", ""),
+                downloader=event_data.downloader or "",
                 category=media_info.category,
-                reason="路径格式化失败"
+                reason="路径格式化失败",
+                success=False
             )
             return
 
@@ -360,28 +360,34 @@ class FormatDownloadPath(_PluginBase):
                 title=media_info.title,
                 original_path=original_path,
                 formatted_path=formatted_path,
-                downloader=event_data.get("downloader", ""),
+                downloader=event_data.downloader or "",
                 category=media_info.category,
-                reason="路径已符合格式要求"
+                reason="路径已符合格式要求",
+                success=True
             )
             return
 
         # 更新事件数据中的路径
-        if event.event_data and formatted_path:
-            if "options" not in event.event_data:
-                event.event_data["options"] = {}
-            event.event_data["options"]["save_path"] = f"{original_path}/{formatted_path}"
+        if event and event.event_data and formatted_path:
+            if hasattr(event, 'event_data') and event.event_data:
+                options = event.event_data.options or {}
+                if self.get_auto_download_path(media_info) is None:
+                    return
+                options['save_path'] = self.get_auto_download_path(media_info) / formatted_path
+                event.event_data.options = options
+            else:
+                return
 
-        logger.info(f"路径已格式化：{original_path} -> {original_path}/{formatted_path}")
+        logger.info(f"路径已格式化：{original_path} -> {event.event_data.options['save_path']}")
         self.__record_format_history(
             title=media_info.title,
             original_path=original_path,
-            formatted_path=formatted_path,
-            downloader=event_data.get("downloader", ""),
+            formatted_path=event.event_data.options['save_path'],
+            downloader=event_data.downloader or "",
             category=media_info.category,
-            reason=""
+            reason="",
+            success=True
         )
-        return event
 
     def format_path(self, template_string: str, meta: MetaBase, mediainfo: MediaInfo) -> Optional[str]:
         """
@@ -396,7 +402,7 @@ class FormatDownloadPath(_PluginBase):
             logger.debug(f"路径格式化模板：{template_string}")
             logger.debug(f"重命名字典：{rename_dict}")
             formatted_path = handler.get_rename_path(template_string, rename_dict)
-            return str(formatted_path) if formatted_path else None
+            return formatted_path.as_posix() if formatted_path else None
         except Exception as e:
             logger.error(f"路径格式化失败：{str(e)}")
             return None
@@ -445,3 +451,28 @@ class FormatDownloadPath(_PluginBase):
                 "success": False,
                 "message": f"删除格式化历史记录失败: {str(e)}"
             }
+
+    def get_auto_download_path(self, _media: MediaInfo):
+        storage = 'local'
+        # 根据媒体信息查询下载目录配置
+        dir_info = DirectoryHelper().get_dir(_media, include_unsorted=True)
+        storage = dir_info.storage if dir_info else storage
+        # 拼装子目录
+        if dir_info:
+            # 一级目录
+            if not dir_info.media_type and dir_info.download_type_folder:
+                # 一级自动分类
+                download_dir = Path(dir_info.download_path) / _media.type.value
+            else:
+                # 一级不分类
+                download_dir = Path(dir_info.download_path)
+
+            # 二级目录
+            if not dir_info.media_category and dir_info.download_category_folder and _media and _media.category:
+                # 二级自动分类
+                download_dir = download_dir / _media.category
+        else:
+            # 未找到下载目录，且没有自定义下载目录
+            logger.error(f"未找到下载目录：{_media.type.value} {_media.title_year}")
+            return None
+        return download_dir

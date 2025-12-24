@@ -8,7 +8,7 @@ const _export_sfc = (sfc, props) => {
   return target;
 };
 
-const {createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock} = await importShared('vue');
+const {createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,mergeProps:_mergeProps,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock} = await importShared('vue');
 
 
 const _hoisted_1 = { class: "history-container" };
@@ -40,8 +40,9 @@ const headers = [
   { title: '种子名称', key: 'title' },
   { title: '原始路径', key: 'original_path' },
   { title: '格式化后路径', key: 'formatted_path' },
-  { title: '类别', key: 'category' },
   { title: '下载器', key: 'downloader' },
+  { title: '类别', key: 'category' },
+  { title: '状态', key: 'reason' },
   { title: '处理时间', key: 'date' },
   { title: '操作', key: 'actions', sortable: false }
 ];
@@ -70,10 +71,10 @@ const filteredHistoryRecords = computed(() => {
 
   // 状态筛选
   if (filterStatus.value !== 'all') {
-    if (filterStatus.value === 'failed') {
-      filtered = filtered.filter(record => record.reason && record.reason !== "");
-    } else if (filterStatus.value === 'success') {
-      filtered = filtered.filter(record => !record.reason || record.reason === "");
+    if (filterStatus.value === 'success') {
+      filtered = filtered.filter(record => !record.reason || record.reason === '');
+    } else if (filterStatus.value === 'failed') {
+      filtered = filtered.filter(record => record.reason && record.reason !== '');
     }
   }
 
@@ -94,7 +95,7 @@ const filteredHistoryRecords = computed(() => {
 async function refreshHistory() {
   try {
     loading.value = true;
-    const response = await props.api.get('plugin/FormatDownloadPath/format_history');
+    const response = await props.api.get('plugin/FormatDownloadPath/history');
     historyRecords.value = response || [];
   } catch (error) {
     console.error('获取历史记录失败:', error);
@@ -113,6 +114,18 @@ function showDetail(record) {
 function formatDate(dateString) {
   if (!dateString) return ''
   return new Date(dateString).toLocaleString('zh-CN')
+}
+
+// 获取类别颜色
+function getCategoryColor(category) {
+  if (!category) return 'default'
+  const categoryLower = category.toLowerCase();
+  if (categoryLower.includes('电影') || categoryLower.includes('movie')) {
+    return 'primary'
+  } else if (categoryLower.includes('剧') || categoryLower.includes('tv') || categoryLower.includes('series')) {
+    return 'secondary'
+  }
+  return 'default'
 }
 
 // 通知主应用切换到配置页面
@@ -139,6 +152,8 @@ return (_ctx, _cache) => {
   const _component_VSelect = _resolveComponent("VSelect");
   const _component_VTextField = _resolveComponent("VTextField");
   const _component_VSpacer = _resolveComponent("VSpacer");
+  const _component_v_chip = _resolveComponent("v-chip");
+  const _component_v_tooltip = _resolveComponent("v-tooltip");
   const _component_VDataTable = _resolveComponent("VDataTable");
   const _component_v_card_text = _resolveComponent("v-card-text");
   const _component_v_spacer = _resolveComponent("v-spacer");
@@ -234,6 +249,51 @@ return (_ctx, _cache) => {
               "item.date": _withCtx(({ item }) => [
                 _createTextVNode(_toDisplayString(formatDate(item.date)), 1)
               ]),
+              "item.category": _withCtx(({ item }) => [
+                _createVNode(_component_v_chip, {
+                  color: getCategoryColor(item.category),
+                  size: "small",
+                  variant: "flat"
+                }, {
+                  default: _withCtx(() => [
+                    _createTextVNode(_toDisplayString(item.category || '未知'), 1)
+                  ]),
+                  _: 2
+                }, 1032, ["color"])
+              ]),
+              "item.reason": _withCtx(({ item }) => [
+                (item.reason)
+                  ? (_openBlock(), _createBlock(_component_v_tooltip, {
+                      key: 0,
+                      text: item.reason,
+                      location: "top"
+                    }, {
+                      activator: _withCtx(({ props }) => [
+                        _createVNode(_component_v_chip, _mergeProps(props, {
+                          color: item.reason ? 'error' : 'success',
+                          size: "small",
+                          variant: "flat"
+                        }), {
+                          default: _withCtx(() => [
+                            _createTextVNode(_toDisplayString(item.reason ? '失败' : '成功'), 1)
+                          ]),
+                          _: 2
+                        }, 1040, ["color"])
+                      ]),
+                      _: 2
+                    }, 1032, ["text"]))
+                  : (_openBlock(), _createBlock(_component_v_chip, {
+                      key: 1,
+                      color: "success",
+                      size: "small",
+                      variant: "flat"
+                    }, {
+                      default: _withCtx(() => [...(_cache[7] || (_cache[7] = [
+                        _createTextVNode(" 成功 ", -1)
+                      ]))]),
+                      _: 1
+                    }))
+              ]),
               "item.actions": _withCtx(({ item }) => [
                 _createVNode(_component_VBtn, {
                   color: "primary",
@@ -242,7 +302,7 @@ return (_ctx, _cache) => {
                   onClick: $event => (showDetail(item)),
                   class: "mr-2"
                 }, {
-                  default: _withCtx(() => [...(_cache[7] || (_cache[7] = [
+                  default: _withCtx(() => [...(_cache[8] || (_cache[8] = [
                     _createTextVNode(" 详情 ", -1)
                   ]))]),
                   _: 1
@@ -262,12 +322,12 @@ return (_ctx, _cache) => {
             }, {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, { start: "" }, {
-                  default: _withCtx(() => [...(_cache[8] || (_cache[8] = [
+                  default: _withCtx(() => [...(_cache[9] || (_cache[9] = [
                     _createTextVNode("mdi-refresh", -1)
                   ]))]),
                   _: 1
                 }),
-                _cache[9] || (_cache[9] = _createTextVNode(" 刷新数据 ", -1))
+                _cache[10] || (_cache[10] = _createTextVNode(" 刷新数据 ", -1))
               ]),
               _: 1
             }, 8, ["loading"]),
@@ -278,12 +338,12 @@ return (_ctx, _cache) => {
             }, {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, { start: "" }, {
-                  default: _withCtx(() => [...(_cache[10] || (_cache[10] = [
+                  default: _withCtx(() => [...(_cache[11] || (_cache[11] = [
                     _createTextVNode("mdi-cog", -1)
                   ]))]),
                   _: 1
                 }),
-                _cache[11] || (_cache[11] = _createTextVNode(" 配置 ", -1))
+                _cache[12] || (_cache[12] = _createTextVNode(" 配置 ", -1))
               ]),
               _: 1
             })
@@ -302,7 +362,7 @@ return (_ctx, _cache) => {
         _createVNode(_component_VCard, null, {
           default: _withCtx(() => [
             _createVNode(_component_VCardTitle, null, {
-              default: _withCtx(() => [...(_cache[12] || (_cache[12] = [
+              default: _withCtx(() => [...(_cache[13] || (_cache[13] = [
                 _createElementVNode("span", { class: "text-h5" }, "路径格式化详情", -1)
               ]))]),
               _: 1
@@ -314,7 +374,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[13] || (_cache[13] = [
+                          default: _withCtx(() => [...(_cache[14] || (_cache[14] = [
                             _createTextVNode("种子名称:", -1)
                           ]))]),
                           _: 1
@@ -331,7 +391,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[14] || (_cache[14] = [
+                          default: _withCtx(() => [...(_cache[15] || (_cache[15] = [
                             _createTextVNode("原始路径:", -1)
                           ]))]),
                           _: 1
@@ -348,7 +408,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[15] || (_cache[15] = [
+                          default: _withCtx(() => [...(_cache[16] || (_cache[16] = [
                             _createTextVNode("格式化后路径:", -1)
                           ]))]),
                           _: 1
@@ -356,23 +416,6 @@ return (_ctx, _cache) => {
                         _createVNode(_component_v_list_item_subtitle, null, {
                           default: _withCtx(() => [
                             _createTextVNode(_toDisplayString(currentRecord.value.formatted_path), 1)
-                          ]),
-                          _: 1
-                        })
-                      ]),
-                      _: 1
-                    }),
-                    _createVNode(_component_v_list_item, null, {
-                      default: _withCtx(() => [
-                        _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[16] || (_cache[16] = [
-                            _createTextVNode("类别:", -1)
-                          ]))]),
-                          _: 1
-                        }),
-                        _createVNode(_component_v_list_item_subtitle, null, {
-                          default: _withCtx(() => [
-                            _createTextVNode(_toDisplayString(currentRecord.value.category), 1)
                           ]),
                           _: 1
                         })
@@ -400,13 +443,48 @@ return (_ctx, _cache) => {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
                           default: _withCtx(() => [...(_cache[18] || (_cache[18] = [
-                            _createTextVNode("处理时间:", -1)
+                            _createTextVNode("类别:", -1)
                           ]))]),
                           _: 1
                         }),
                         _createVNode(_component_v_list_item_subtitle, null, {
                           default: _withCtx(() => [
-                            _createTextVNode(_toDisplayString(formatDate(currentRecord.value.date)), 1)
+                            _createVNode(_component_v_chip, {
+                              color: getCategoryColor(currentRecord.value.category),
+                              size: "small",
+                              variant: "flat"
+                            }, {
+                              default: _withCtx(() => [
+                                _createTextVNode(_toDisplayString(currentRecord.value.category || '未知'), 1)
+                              ]),
+                              _: 1
+                            }, 8, ["color"])
+                          ]),
+                          _: 1
+                        })
+                      ]),
+                      _: 1
+                    }),
+                    _createVNode(_component_v_list_item, null, {
+                      default: _withCtx(() => [
+                        _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
+                          default: _withCtx(() => [...(_cache[19] || (_cache[19] = [
+                            _createTextVNode("状态:", -1)
+                          ]))]),
+                          _: 1
+                        }),
+                        _createVNode(_component_v_list_item_subtitle, null, {
+                          default: _withCtx(() => [
+                            _createVNode(_component_v_chip, {
+                              color: currentRecord.value.reason ? 'error' : 'success',
+                              size: "small",
+                              variant: "flat"
+                            }, {
+                              default: _withCtx(() => [
+                                _createTextVNode(_toDisplayString(currentRecord.value.reason ? '失败' : '成功'), 1)
+                              ]),
+                              _: 1
+                            }, 8, ["color"])
                           ]),
                           _: 1
                         })
@@ -417,7 +495,7 @@ return (_ctx, _cache) => {
                       ? (_openBlock(), _createBlock(_component_v_list_item, { key: 0 }, {
                           default: _withCtx(() => [
                             _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                              default: _withCtx(() => [...(_cache[19] || (_cache[19] = [
+                              default: _withCtx(() => [...(_cache[20] || (_cache[20] = [
                                 _createTextVNode("失败原因:", -1)
                               ]))]),
                               _: 1
@@ -431,7 +509,24 @@ return (_ctx, _cache) => {
                           ]),
                           _: 1
                         }))
-                      : _createCommentVNode("", true)
+                      : _createCommentVNode("", true),
+                    _createVNode(_component_v_list_item, null, {
+                      default: _withCtx(() => [
+                        _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
+                          default: _withCtx(() => [...(_cache[21] || (_cache[21] = [
+                            _createTextVNode("处理时间:", -1)
+                          ]))]),
+                          _: 1
+                        }),
+                        _createVNode(_component_v_list_item_subtitle, null, {
+                          default: _withCtx(() => [
+                            _createTextVNode(_toDisplayString(formatDate(currentRecord.value.date)), 1)
+                          ]),
+                          _: 1
+                        })
+                      ]),
+                      _: 1
+                    })
                   ]),
                   _: 1
                 })
@@ -446,7 +541,7 @@ return (_ctx, _cache) => {
                   variant: "text",
                   onClick: _cache[2] || (_cache[2] = $event => (detailDialog.value = false))
                 }, {
-                  default: _withCtx(() => [...(_cache[20] || (_cache[20] = [
+                  default: _withCtx(() => [...(_cache[22] || (_cache[22] = [
                     _createTextVNode(" 关闭 ", -1)
                   ]))]),
                   _: 1
@@ -465,6 +560,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageComponent = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-98193455"]]);
+const Page = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-590d714f"]]);
 
-export { _export_sfc as _, PageComponent as default };
+export { _export_sfc as _, Page as default };
