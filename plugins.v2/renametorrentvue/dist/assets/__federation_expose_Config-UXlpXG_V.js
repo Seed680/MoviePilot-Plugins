@@ -8,6 +8,7 @@ const _hoisted_2 = {
   class: "d-flex flex-wrap overflow-x-auto",
   style: {"gap":"8px","padding":"8px 0"}
 };
+const _hoisted_3 = { class: "mt-2 w-100" };
 
 const {ref,reactive,onMounted,computed} = await importShared('vue');
 
@@ -36,7 +37,11 @@ const form = ref(null);
 const isFormValid = ref(true);
 const error = ref(null);
 const saving = ref(false);
-const formatTextarea = ref(null);
+ref(null);
+const movieFormatTextarea = ref(null);
+const tvFormatTextarea = ref(null);
+// 跟踪当前活动的模板
+const activeTemplate = ref('movie'); // 默认为电影模板
 
 // 示例数据用于预览
 const previewData = {
@@ -79,7 +84,8 @@ const defaultConfig = {
   include_tags: '',
   exclude_dirs: '',
   hash_white_list: '',
-  format_torrent_name: '{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %}.{{original_name}}',
+  movie_format_torrent_name: '{{ title }}{% if year %} ({{ year }}){% endif %} - {{original_name}}',
+  tv_format_torrent_name: '{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %} - {{original_name}}',
   onlyonce: false,
   recovery: false,
   retry: false,
@@ -92,7 +98,15 @@ const config = reactive({ ...defaultConfig, ...props.initialConfig});
 
 // 计算预览结果
 const previewResult = computed(() => {
-  return renderTemplate(config.format_torrent_name, previewData)
+  return renderTemplate(config.movie_format_torrent_name, previewData)
+});
+
+// 计算TV预览结果
+const tvPreviewResult = computed(() => {
+  return renderTemplate(config.tv_format_torrent_name, {
+    ...previewData,
+    type: '电视剧'
+  })
 });
 
 // 初始化配置
@@ -146,25 +160,67 @@ function notifyClose() {
   emit('close');
 }
 
+// 设置当前活动的模板
+function setActiveTemplate(templateType) {
+  activeTemplate.value = templateType;
+}
+
 // 在光标位置插入变量
 function insertVariable(variable) {
-  const textarea = formatTextarea.value.$el.querySelector('textarea');
-  const startPos = textarea.selectionStart;
-  const endPos = textarea.selectionEnd;
-  const textBefore = config.format_torrent_name.substring(0, startPos);
-  const textAfter = config.format_torrent_name.substring(endPos);
+  // 获取当前焦点的元素
+  const activeElement = document.activeElement;
   
-  // 默认插入带条件判断的语句
-  let insertText = `{% if ${variable} %}{{ ${variable} }}{% endif %}`;
+  // 如果当前焦点在模板输入框中，更新活动模板
+  if (activeElement && activeElement.tagName === 'TEXTAREA') {
+    if (activeElement.id === 'movie-format-template') {
+      activeTemplate.value = 'movie';
+    } else if (activeElement.id === 'tv-format-template') {
+      activeTemplate.value = 'tv';
+    }
+  }
   
-  // 插入变量
-  config.format_torrent_name = textBefore + insertText + textAfter;
-  
-  // 设置焦点和光标位置
-  setTimeout(() => {
-    textarea.focus();
-    textarea.setSelectionRange(startPos + insertText.length, startPos + insertText.length);
-  }, 10);
+  // 根据当前活动模板插入变量
+  if (activeTemplate.value === 'movie') {
+    // 获取电影模板输入框
+    const textarea = movieFormatTextarea.value?.$el?.querySelector('textarea');
+    if (textarea) {
+      const startPos = textarea.selectionStart || 0;
+      const endPos = textarea.selectionEnd || 0;
+      const textBefore = config.movie_format_torrent_name.substring(0, startPos);
+      const textAfter = config.movie_format_torrent_name.substring(endPos);
+      
+      // 默认插入带条件判断的语句
+      let insertText = `{% if ${variable} %}{{ ${variable} }}{% endif %}`;
+      
+      config.movie_format_torrent_name = textBefore + insertText + textAfter;
+      
+      // 设置焦点和光标位置
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(startPos + insertText.length, startPos + insertText.length);
+      }, 10);
+    }
+  } else {
+    // 获取剧集模板输入框
+    const textarea = tvFormatTextarea.value?.$el?.querySelector('textarea');
+    if (textarea) {
+      const startPos = textarea.selectionStart || 0;
+      const endPos = textarea.selectionEnd || 0;
+      const textBefore = config.tv_format_torrent_name.substring(0, startPos);
+      const textAfter = config.tv_format_torrent_name.substring(endPos);
+      
+      // 默认插入带条件判断的语句
+      let insertText = `{% if ${variable} %}{{ ${variable} }}{% endif %}`;
+      
+      config.tv_format_torrent_name = textBefore + insertText + textAfter;
+      
+      // 设置焦点和光标位置
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(startPos + insertText.length, startPos + insertText.length);
+      }, 10);
+    }
+  }
 }
 
 // 渲染模板
@@ -203,6 +259,7 @@ return (_ctx, _cache) => {
   const _component_v_text_field = _resolveComponent("v-text-field");
   const _component_v_textarea = _resolveComponent("v-textarea");
   const _component_v_chip = _resolveComponent("v-chip");
+  const _component_v_divider = _resolveComponent("v-divider");
   const _component_v_form = _resolveComponent("v-form");
   const _component_v_spacer = _resolveComponent("v-spacer");
   const _component_v_card_actions = _resolveComponent("v-card-actions");
@@ -220,7 +277,7 @@ return (_ctx, _cache) => {
             }, {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, null, {
-                  default: _withCtx(() => [...(_cache[43] || (_cache[43] = [
+                  default: _withCtx(() => [...(_cache[48] || (_cache[48] = [
                     _createTextVNode("mdi-close", -1)
                   ]))]),
                   _: 1
@@ -257,7 +314,7 @@ return (_ctx, _cache) => {
               ref_key: "form",
               ref: form,
               modelValue: isFormValid.value,
-              "onUpdate:modelValue": _cache[42] || (_cache[42] = $event => ((isFormValid).value = $event)),
+              "onUpdate:modelValue": _cache[47] || (_cache[47] = $event => ((isFormValid).value = $event)),
               onSubmit: _withModifiers(saveConfig, ["prevent"])
             }, {
               default: _withCtx(() => [
@@ -269,7 +326,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_card_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_card_title, { class: "text-subtitle-1 font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[44] || (_cache[44] = [
+                          default: _withCtx(() => [...(_cache[49] || (_cache[49] = [
                             _createTextVNode("基本设置", -1)
                           ]))]),
                           _: 1
@@ -346,7 +403,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_card_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_card_title, { class: "text-subtitle-1 font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[45] || (_cache[45] = [
+                          default: _withCtx(() => [...(_cache[50] || (_cache[50] = [
                             _createTextVNode("下载器设置", -1)
                           ]))]),
                           _: 1
@@ -392,7 +449,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_card_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_card_title, { class: "text-subtitle-1 font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[46] || (_cache[46] = [
+                          default: _withCtx(() => [...(_cache[51] || (_cache[51] = [
                             _createTextVNode("执行方式", -1)
                           ]))]),
                           _: 1
@@ -523,7 +580,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_card_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_card_title, { class: "text-subtitle-1 font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[47] || (_cache[47] = [
+                          default: _withCtx(() => [...(_cache[52] || (_cache[52] = [
                             _createTextVNode("标签过滤", -1)
                           ]))]),
                           _: 1
@@ -584,7 +641,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_card_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_card_title, { class: "text-subtitle-1 font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[48] || (_cache[48] = [
+                          default: _withCtx(() => [...(_cache[53] || (_cache[53] = [
                             _createTextVNode("路径过滤", -1)
                           ]))]),
                           _: 1
@@ -639,7 +696,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_card_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_card_title, { class: "text-subtitle-1 font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[49] || (_cache[49] = [
+                          default: _withCtx(() => [...(_cache[54] || (_cache[54] = [
                             _createTextVNode("重命名格式", -1)
                           ]))]),
                           _: 1
@@ -654,14 +711,40 @@ return (_ctx, _cache) => {
                             _createVNode(_component_v_col, { cols: "12" }, {
                               default: _withCtx(() => [
                                 _createVNode(_component_v_textarea, {
-                                  modelValue: config.format_torrent_name,
-                                  "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.format_torrent_name) = $event)),
-                                  label: "格式化字符",
-                                  placeholder: "{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %} - {{original_name}}",
-                                  hint: "种子重命名的格式模板",
+                                  modelValue: config.movie_format_torrent_name,
+                                  "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((config.movie_format_torrent_name) = $event)),
+                                  label: "电影格式化字符",
+                                  placeholder: "{{ title }}{% if year %} ({{ year }}){% endif %} - {{original_name}}",
+                                  hint: "电影种子重命名的格式模板",
                                   "persistent-hint": "",
-                                  ref_key: "formatTextarea",
-                                  ref: formatTextarea
+                                  ref_key: "movieFormatTextarea",
+                                  ref: movieFormatTextarea,
+                                  id: "movie-format-template",
+                                  onFocus: _cache[15] || (_cache[15] = $event => (setActiveTemplate('movie'))),
+                                  onClick: _cache[16] || (_cache[16] = $event => (setActiveTemplate('movie')))
+                                }, null, 8, ["modelValue"])
+                              ]),
+                              _: 1
+                            })
+                          ]),
+                          _: 1
+                        }),
+                        _createVNode(_component_v_row, null, {
+                          default: _withCtx(() => [
+                            _createVNode(_component_v_col, { cols: "12" }, {
+                              default: _withCtx(() => [
+                                _createVNode(_component_v_textarea, {
+                                  modelValue: config.tv_format_torrent_name,
+                                  "onUpdate:modelValue": _cache[17] || (_cache[17] = $event => ((config.tv_format_torrent_name) = $event)),
+                                  label: "剧集格式化字符",
+                                  placeholder: "{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %} - {{original_name}}",
+                                  hint: "剧集种子重命名的格式模板",
+                                  "persistent-hint": "",
+                                  ref_key: "tvFormatTextarea",
+                                  ref: tvFormatTextarea,
+                                  id: "tv-format-template",
+                                  onFocus: _cache[18] || (_cache[18] = $event => (setActiveTemplate('tv'))),
+                                  onClick: _cache[19] || (_cache[19] = $event => (setActiveTemplate('tv')))
                                 }, null, 8, ["modelValue"])
                               ]),
                               _: 1
@@ -678,7 +761,7 @@ return (_ctx, _cache) => {
                                     _createVNode(_component_v_card_item, null, {
                                       default: _withCtx(() => [
                                         _createVNode(_component_v_card_title, { class: "text-subtitle-2" }, {
-                                          default: _withCtx(() => [...(_cache[50] || (_cache[50] = [
+                                          default: _withCtx(() => [...(_cache[55] || (_cache[55] = [
                                             _createTextVNode("模板变量", -1)
                                           ]))]),
                                           _: 1
@@ -693,9 +776,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[15] || (_cache[15] = $event => (insertVariable('title')))
+                                            onClick: _cache[20] || (_cache[20] = $event => (insertVariable('title')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[51] || (_cache[51] = [
+                                            default: _withCtx(() => [...(_cache[56] || (_cache[56] = [
                                               _createTextVNode("标题", -1)
                                             ]))]),
                                             _: 1
@@ -704,9 +787,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[16] || (_cache[16] = $event => (insertVariable('en_title')))
+                                            onClick: _cache[21] || (_cache[21] = $event => (insertVariable('en_title')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[52] || (_cache[52] = [
+                                            default: _withCtx(() => [...(_cache[57] || (_cache[57] = [
                                               _createTextVNode("英文标题", -1)
                                             ]))]),
                                             _: 1
@@ -715,9 +798,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[17] || (_cache[17] = $event => (insertVariable('original_title')))
+                                            onClick: _cache[22] || (_cache[22] = $event => (insertVariable('original_title')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[53] || (_cache[53] = [
+                                            default: _withCtx(() => [...(_cache[58] || (_cache[58] = [
                                               _createTextVNode("原始标题", -1)
                                             ]))]),
                                             _: 1
@@ -726,9 +809,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[18] || (_cache[18] = $event => (insertVariable('name')))
+                                            onClick: _cache[23] || (_cache[23] = $event => (insertVariable('name')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[54] || (_cache[54] = [
+                                            default: _withCtx(() => [...(_cache[59] || (_cache[59] = [
                                               _createTextVNode("识别名称", -1)
                                             ]))]),
                                             _: 1
@@ -737,9 +820,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[19] || (_cache[19] = $event => (insertVariable('en_name')))
+                                            onClick: _cache[24] || (_cache[24] = $event => (insertVariable('en_name')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[55] || (_cache[55] = [
+                                            default: _withCtx(() => [...(_cache[60] || (_cache[60] = [
                                               _createTextVNode("英文名称", -1)
                                             ]))]),
                                             _: 1
@@ -748,9 +831,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[20] || (_cache[20] = $event => (insertVariable('original_name')))
+                                            onClick: _cache[25] || (_cache[25] = $event => (insertVariable('original_name')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[56] || (_cache[56] = [
+                                            default: _withCtx(() => [...(_cache[61] || (_cache[61] = [
                                               _createTextVNode("原始文件名", -1)
                                             ]))]),
                                             _: 1
@@ -759,9 +842,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[21] || (_cache[21] = $event => (insertVariable('year')))
+                                            onClick: _cache[26] || (_cache[26] = $event => (insertVariable('year')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[57] || (_cache[57] = [
+                                            default: _withCtx(() => [...(_cache[62] || (_cache[62] = [
                                               _createTextVNode("年份", -1)
                                             ]))]),
                                             _: 1
@@ -770,9 +853,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[22] || (_cache[22] = $event => (insertVariable('resourceType')))
+                                            onClick: _cache[27] || (_cache[27] = $event => (insertVariable('resourceType')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[58] || (_cache[58] = [
+                                            default: _withCtx(() => [...(_cache[63] || (_cache[63] = [
                                               _createTextVNode("资源类型", -1)
                                             ]))]),
                                             _: 1
@@ -781,9 +864,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[23] || (_cache[23] = $event => (insertVariable('effect')))
+                                            onClick: _cache[28] || (_cache[28] = $event => (insertVariable('effect')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[59] || (_cache[59] = [
+                                            default: _withCtx(() => [...(_cache[64] || (_cache[64] = [
                                               _createTextVNode("特效", -1)
                                             ]))]),
                                             _: 1
@@ -792,9 +875,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[24] || (_cache[24] = $event => (insertVariable('edition')))
+                                            onClick: _cache[29] || (_cache[29] = $event => (insertVariable('edition')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[60] || (_cache[60] = [
+                                            default: _withCtx(() => [...(_cache[65] || (_cache[65] = [
                                               _createTextVNode("版本", -1)
                                             ]))]),
                                             _: 1
@@ -803,9 +886,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[25] || (_cache[25] = $event => (insertVariable('videoFormat')))
+                                            onClick: _cache[30] || (_cache[30] = $event => (insertVariable('videoFormat')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[61] || (_cache[61] = [
+                                            default: _withCtx(() => [...(_cache[66] || (_cache[66] = [
                                               _createTextVNode("分辨率", -1)
                                             ]))]),
                                             _: 1
@@ -814,9 +897,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[26] || (_cache[26] = $event => (insertVariable('releaseGroup')))
+                                            onClick: _cache[31] || (_cache[31] = $event => (insertVariable('releaseGroup')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[62] || (_cache[62] = [
+                                            default: _withCtx(() => [...(_cache[67] || (_cache[67] = [
                                               _createTextVNode("制作组", -1)
                                             ]))]),
                                             _: 1
@@ -825,9 +908,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[27] || (_cache[27] = $event => (insertVariable('videoCodec')))
+                                            onClick: _cache[32] || (_cache[32] = $event => (insertVariable('videoCodec')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[63] || (_cache[63] = [
+                                            default: _withCtx(() => [...(_cache[68] || (_cache[68] = [
                                               _createTextVNode("视频编码", -1)
                                             ]))]),
                                             _: 1
@@ -836,9 +919,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[28] || (_cache[28] = $event => (insertVariable('audioCodec')))
+                                            onClick: _cache[33] || (_cache[33] = $event => (insertVariable('audioCodec')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[64] || (_cache[64] = [
+                                            default: _withCtx(() => [...(_cache[69] || (_cache[69] = [
                                               _createTextVNode("音频编码", -1)
                                             ]))]),
                                             _: 1
@@ -847,9 +930,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[29] || (_cache[29] = $event => (insertVariable('tmdbid')))
+                                            onClick: _cache[34] || (_cache[34] = $event => (insertVariable('tmdbid')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[65] || (_cache[65] = [
+                                            default: _withCtx(() => [...(_cache[70] || (_cache[70] = [
                                               _createTextVNode("TMDB ID", -1)
                                             ]))]),
                                             _: 1
@@ -858,9 +941,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[30] || (_cache[30] = $event => (insertVariable('imdbid')))
+                                            onClick: _cache[35] || (_cache[35] = $event => (insertVariable('imdbid')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[66] || (_cache[66] = [
+                                            default: _withCtx(() => [...(_cache[71] || (_cache[71] = [
                                               _createTextVNode("IMDB ID", -1)
                                             ]))]),
                                             _: 1
@@ -869,9 +952,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[31] || (_cache[31] = $event => (insertVariable('doubanid')))
+                                            onClick: _cache[36] || (_cache[36] = $event => (insertVariable('doubanid')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[67] || (_cache[67] = [
+                                            default: _withCtx(() => [...(_cache[72] || (_cache[72] = [
                                               _createTextVNode("豆瓣ID", -1)
                                             ]))]),
                                             _: 1
@@ -880,9 +963,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[32] || (_cache[32] = $event => (insertVariable('webSource')))
+                                            onClick: _cache[37] || (_cache[37] = $event => (insertVariable('webSource')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[68] || (_cache[68] = [
+                                            default: _withCtx(() => [...(_cache[73] || (_cache[73] = [
                                               _createTextVNode("流媒体平台", -1)
                                             ]))]),
                                             _: 1
@@ -891,9 +974,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[33] || (_cache[33] = $event => (insertVariable('type')))
+                                            onClick: _cache[38] || (_cache[38] = $event => (insertVariable('type')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[69] || (_cache[69] = [
+                                            default: _withCtx(() => [...(_cache[74] || (_cache[74] = [
                                               _createTextVNode("一级分类", -1)
                                             ]))]),
                                             _: 1
@@ -902,9 +985,9 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[34] || (_cache[34] = $event => (insertVariable('category')))
+                                            onClick: _cache[39] || (_cache[39] = $event => (insertVariable('category')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[70] || (_cache[70] = [
+                                            default: _withCtx(() => [...(_cache[75] || (_cache[75] = [
                                               _createTextVNode("二级分类", -1)
                                             ]))]),
                                             _: 1
@@ -913,20 +996,24 @@ return (_ctx, _cache) => {
                                             size: "small",
                                             variant: "flat",
                                             color: "primary",
-                                            onClick: _cache[35] || (_cache[35] = $event => (insertVariable('vote_average')))
+                                            onClick: _cache[40] || (_cache[40] = $event => (insertVariable('vote_average')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[71] || (_cache[71] = [
+                                            default: _withCtx(() => [...(_cache[76] || (_cache[76] = [
                                               _createTextVNode("评分", -1)
                                             ]))]),
                                             _: 1
                                           }),
+                                          _createElementVNode("div", _hoisted_3, [
+                                            _createVNode(_component_v_divider, { class: "mb-2" }),
+                                            _cache[77] || (_cache[77] = _createElementVNode("span", { class: "text-subtitle-2 text-primary" }, "TV剧集专用变量", -1))
+                                          ]),
                                           _createVNode(_component_v_chip, {
                                             size: "small",
                                             variant: "flat",
-                                            color: "primary",
-                                            onClick: _cache[36] || (_cache[36] = $event => (insertVariable('season')))
+                                            color: "secondary",
+                                            onClick: _cache[41] || (_cache[41] = $event => (insertVariable('season')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[72] || (_cache[72] = [
+                                            default: _withCtx(() => [...(_cache[78] || (_cache[78] = [
                                               _createTextVNode("季号", -1)
                                             ]))]),
                                             _: 1
@@ -934,10 +1021,10 @@ return (_ctx, _cache) => {
                                           _createVNode(_component_v_chip, {
                                             size: "small",
                                             variant: "flat",
-                                            color: "primary",
-                                            onClick: _cache[37] || (_cache[37] = $event => (insertVariable('season_year')))
+                                            color: "secondary",
+                                            onClick: _cache[42] || (_cache[42] = $event => (insertVariable('season_year')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[73] || (_cache[73] = [
+                                            default: _withCtx(() => [...(_cache[79] || (_cache[79] = [
                                               _createTextVNode("季年份", -1)
                                             ]))]),
                                             _: 1
@@ -945,10 +1032,10 @@ return (_ctx, _cache) => {
                                           _createVNode(_component_v_chip, {
                                             size: "small",
                                             variant: "flat",
-                                            color: "primary",
-                                            onClick: _cache[38] || (_cache[38] = $event => (insertVariable('episode')))
+                                            color: "secondary",
+                                            onClick: _cache[43] || (_cache[43] = $event => (insertVariable('episode')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[74] || (_cache[74] = [
+                                            default: _withCtx(() => [...(_cache[80] || (_cache[80] = [
                                               _createTextVNode("集号", -1)
                                             ]))]),
                                             _: 1
@@ -956,10 +1043,10 @@ return (_ctx, _cache) => {
                                           _createVNode(_component_v_chip, {
                                             size: "small",
                                             variant: "flat",
-                                            color: "primary",
-                                            onClick: _cache[39] || (_cache[39] = $event => (insertVariable('season_episode')))
+                                            color: "secondary",
+                                            onClick: _cache[44] || (_cache[44] = $event => (insertVariable('season_episode')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[75] || (_cache[75] = [
+                                            default: _withCtx(() => [...(_cache[81] || (_cache[81] = [
                                               _createTextVNode("季集", -1)
                                             ]))]),
                                             _: 1
@@ -967,10 +1054,10 @@ return (_ctx, _cache) => {
                                           _createVNode(_component_v_chip, {
                                             size: "small",
                                             variant: "flat",
-                                            color: "primary",
-                                            onClick: _cache[40] || (_cache[40] = $event => (insertVariable('episode_title')))
+                                            color: "secondary",
+                                            onClick: _cache[45] || (_cache[45] = $event => (insertVariable('episode_title')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[76] || (_cache[76] = [
+                                            default: _withCtx(() => [...(_cache[82] || (_cache[82] = [
                                               _createTextVNode("集标题", -1)
                                             ]))]),
                                             _: 1
@@ -978,10 +1065,10 @@ return (_ctx, _cache) => {
                                           _createVNode(_component_v_chip, {
                                             size: "small",
                                             variant: "flat",
-                                            color: "primary",
-                                            onClick: _cache[41] || (_cache[41] = $event => (insertVariable('episode_date')))
+                                            color: "secondary",
+                                            onClick: _cache[46] || (_cache[46] = $event => (insertVariable('episode_date')))
                                           }, {
-                                            default: _withCtx(() => [...(_cache[77] || (_cache[77] = [
+                                            default: _withCtx(() => [...(_cache[83] || (_cache[83] = [
                                               _createTextVNode("集播出日期", -1)
                                             ]))]),
                                             _: 1
@@ -1001,15 +1088,18 @@ return (_ctx, _cache) => {
                         }),
                         _createVNode(_component_v_row, null, {
                           default: _withCtx(() => [
-                            _createVNode(_component_v_col, { cols: "12" }, {
+                            _createVNode(_component_v_col, {
+                              cols: "12",
+                              md: "6"
+                            }, {
                               default: _withCtx(() => [
                                 _createVNode(_component_v_card, { variant: "outlined" }, {
                                   default: _withCtx(() => [
                                     _createVNode(_component_v_card_item, null, {
                                       default: _withCtx(() => [
                                         _createVNode(_component_v_card_title, { class: "text-subtitle-2" }, {
-                                          default: _withCtx(() => [...(_cache[78] || (_cache[78] = [
-                                            _createTextVNode("结果预览", -1)
+                                          default: _withCtx(() => [...(_cache[84] || (_cache[84] = [
+                                            _createTextVNode("电影预览结果", -1)
                                           ]))]),
                                           _: 1
                                         })
@@ -1020,14 +1110,53 @@ return (_ctx, _cache) => {
                                       default: _withCtx(() => [
                                         _createVNode(_component_v_textarea, {
                                           "model-value": previewResult.value,
-                                          label: "预览结果",
+                                          label: "电影预览",
                                           readonly: "",
                                           variant: "outlined",
                                           "hide-details": "",
                                           "auto-grow": "",
                                           rows: "1"
                                         }, null, 8, ["model-value"]),
-                                        _cache[79] || (_cache[79] = _createElementVNode("div", { class: "text-caption mt-2" }, " 注意：预览使用示例数据，实际效果可能有所不同 ", -1))
+                                        _cache[85] || (_cache[85] = _createElementVNode("div", { class: "text-caption mt-2" }, " 注意：预览使用示例数据，实际效果可能有所不同 ", -1))
+                                      ]),
+                                      _: 1
+                                    })
+                                  ]),
+                                  _: 1
+                                })
+                              ]),
+                              _: 1
+                            }),
+                            _createVNode(_component_v_col, {
+                              cols: "12",
+                              md: "6"
+                            }, {
+                              default: _withCtx(() => [
+                                _createVNode(_component_v_card, { variant: "outlined" }, {
+                                  default: _withCtx(() => [
+                                    _createVNode(_component_v_card_item, null, {
+                                      default: _withCtx(() => [
+                                        _createVNode(_component_v_card_title, { class: "text-subtitle-2" }, {
+                                          default: _withCtx(() => [...(_cache[86] || (_cache[86] = [
+                                            _createTextVNode("剧集预览结果", -1)
+                                          ]))]),
+                                          _: 1
+                                        })
+                                      ]),
+                                      _: 1
+                                    }),
+                                    _createVNode(_component_v_card_text, null, {
+                                      default: _withCtx(() => [
+                                        _createVNode(_component_v_textarea, {
+                                          "model-value": tvPreviewResult.value,
+                                          label: "剧集预览",
+                                          readonly: "",
+                                          variant: "outlined",
+                                          "hide-details": "",
+                                          "auto-grow": "",
+                                          rows: "1"
+                                        }, null, 8, ["model-value"]),
+                                        _cache[87] || (_cache[87] = _createElementVNode("div", { class: "text-caption mt-2" }, " 注意：预览使用示例数据，实际效果可能有所不同 ", -1))
                                       ]),
                                       _: 1
                                     })
@@ -1058,7 +1187,7 @@ return (_ctx, _cache) => {
               color: "secondary",
               onClick: resetForm
             }, {
-              default: _withCtx(() => [...(_cache[80] || (_cache[80] = [
+              default: _withCtx(() => [...(_cache[88] || (_cache[88] = [
                 _createTextVNode("重置配置", -1)
               ]))]),
               _: 1
@@ -1070,7 +1199,7 @@ return (_ctx, _cache) => {
               onClick: saveConfig,
               loading: saving.value
             }, {
-              default: _withCtx(() => [...(_cache[81] || (_cache[81] = [
+              default: _withCtx(() => [...(_cache[89] || (_cache[89] = [
                 _createTextVNode("保存配置", -1)
               ]))]),
               _: 1

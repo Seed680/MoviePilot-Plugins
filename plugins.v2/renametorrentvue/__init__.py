@@ -169,7 +169,7 @@ class RenameTorrentVue(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.0.1"
+    plugin_version = "1.0.2"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -195,8 +195,10 @@ class RenameTorrentVue(_PluginBase):
     _cron_enabled: bool = False
     # 启用事件监听
     _event_enabled: bool = False
-    # 格式化字符
-    _format_torrent_name: str = "{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %} - {{original_name}}"
+    # 电影格式化字符
+    _movie_format_torrent_name: str = "{{ title }}{% if year %} ({{ year }}){% endif %} - {{original_name}}"
+    # 剧集格式化字符
+    _tv_format_torrent_name: str = "{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %} - {{original_name}}"
     # 下载器
     _downloader: list| str = []
     # 排除标签
@@ -384,7 +386,8 @@ class RenameTorrentVue(_PluginBase):
                 "hash_white_list",
                 "exclude_tags",
                 "include_tags",
-                "format_torrent_name",
+                "movie_format_torrent_name",
+                "tv_format_torrent_name",
                 "onlyonce",
                 "recovery",
                 "retry",
@@ -475,7 +478,8 @@ class RenameTorrentVue(_PluginBase):
             "cron": "",
             "retry": False,
             "event_enabled": False,
-            "format_torrent_name": "{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %}.{{original_name}}",
+            "movie_format_torrent_name": self._movie_format_torrent_name,
+            "tv_format_torrent_name": self._tv_format_torrent_name,
             "add_tag_after_rename": False
         }
 
@@ -548,7 +552,8 @@ class RenameTorrentVue(_PluginBase):
             "cron_enabled": self._cron_enabled,
             "downloader": self._downloader,  # 兼容Vue前端
             "all_downloaders": _downloaders,
-            "format_torrent_name": self._format_torrent_name,
+            "movie_format_torrent_name": self._movie_format_torrent_name,
+            "tv_format_torrent_name": self._tv_format_torrent_name,
             "exclude_tags": self._exclude_tags,
             "include_tags": self._include_tags,
             "exclude_dirs": self._exclude_dirs,
@@ -702,23 +707,6 @@ class RenameTorrentVue(_PluginBase):
 
         return None
 
-    def __format_torrent_name(self, meta: MetaInfo, media_info) -> Optional[str]:
-        """
-        格式化种子名称
-        """
-        if not self._format_torrent_name:
-            return None
-
-        try:
-            handler = TransHandler()
-            rename_dict = handler.get_naming_dict(meta=meta, mediainfo=media_info)
-            logger.debug(f"格式化种子模板：{self._format_torrent_name}")
-            new_name = handler.get_rename_path(self._format_torrent_name, rename_dict)
-            return new_name.as_posix()
-        except Exception as e:
-            logger.error(f"格式化种子名称失败：{str(e)}")
-            return None
-
     def set_downloader(self, downloader: str):
         """
         获取下载器
@@ -752,10 +740,19 @@ class RenameTorrentVue(_PluginBase):
         _torrent_name = torrent_info.name
 
         # 直接执行重命名逻辑，历史记录检查已在main方法中完成
-        new_name = self.format_torrent_name(
-            template_string=self._format_torrent_name,
-            meta=meta,
-            mediainfo=media_info)
+        # 区分电影和剧集使用不同模板
+        if media_info.type == MediaType.MOVIE:
+            # 使用电影格式化模板
+            new_name = self.format_torrent_name(
+                template_string=self._movie_format_torrent_name,
+                meta=meta,
+                mediainfo=media_info)
+        else:
+            # 使用剧集格式化模板
+            new_name = self.format_torrent_name(
+                template_string=self._tv_format_torrent_name,
+                meta=meta,
+                mediainfo=media_info)
 
         logger.debug(f"种子 hash: {torrent_info.hash}  名称：{torrent_info.name} 重命名种子名称:{new_name}")
         
@@ -1041,7 +1038,7 @@ class RenameTorrentVue(_PluginBase):
             if _failures:
                 logger.info(f"失败 {len(_failures)} 个")
             if processed:
-                logger.info(f"成功 {_processed_num} 个, 合计 {len(processed)} 个种子已保存至历史")
+                logger.info(f"成功 {_processed_num} 个")
             logger.info(f"运行完成")
         except Exception as e:
             logger.error(f"种子重命名失败 {str(e)}", exc_info=True)

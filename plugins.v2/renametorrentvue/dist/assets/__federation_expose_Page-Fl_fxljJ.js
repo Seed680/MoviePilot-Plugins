@@ -71,22 +71,22 @@ const statusOptions = [
 // 计算属性：过滤后的历史记录
 const filteredHistoryRecords = computed(() => {
   let filtered = historyRecords.value;
-  
+
   // 状态筛选
   if (filterStatus.value !== 'all') {
     const isSuccess = filterStatus.value === 'success';
     filtered = filtered.filter(record => record.success === isSuccess);
   }
-  
+
   // 关键字筛选
   if (filterKeyword.value) {
     const keyword = filterKeyword.value.toLowerCase();
-    filtered = filtered.filter(record => 
-      (record.original_name && record.original_name.toLowerCase().includes(keyword)) ||
-      (record.after_name && record.after_name.toLowerCase().includes(keyword))
+    filtered = filtered.filter(record =>
+        (record.original_name && record.original_name.toLowerCase().includes(keyword)) ||
+        (record.after_name && record.after_name.toLowerCase().includes(keyword))
     );
   }
-  
+
   return filtered
 });
 
@@ -124,7 +124,7 @@ function formatDate(dateString) {
 function deleteSelectedHistory() {
   // 调试输出选中的记录
   console.log('Delete button clicked. Selected history records:', selectedHistory.value);
-  
+
   if (selectedHistory.value && selectedHistory.value.length > 0) {
     deleteConfirmDialog.value = true;
   } else {
@@ -136,32 +136,32 @@ function deleteSelectedHistory() {
 async function confirmDeleteHistory() {
   try {
     deleting.value = true;
-    
+
     // 检查是否有要删除的记录
     if (!selectedHistory.value || selectedHistory.value.length === 0) {
       alert('没有选中的记录');
       deleting.value = false;
       return;
     }
-    
+
     // 构造要发送的记录列表
     const recordsToSend = selectedHistory.value.map(hash => ({ hash: hash }));
-    
+
     // 发送删除请求
     const response = await props.api.post('plugin/RenameTorrentVue/delete_rename_history', {
       records: recordsToSend
     });
-    
+
     if (response?.success || response.data?.success) {
       // 清空选中项
       selectedHistory.value = [];
-      
+
       // 关闭确认对话框
       deleteConfirmDialog.value = false;
-      
+
       // 刷新历史记录
       await refreshHistory();
-      
+
       // 显示成功消息
       const message = response.message || response.data?.message || '删除成功';
       alert(`删除成功: ${message}`);
@@ -649,6 +649,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const PageComponent = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-6c2b9fb0"]]);
+const PageComponent = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-c76a3d23"]]);
 
 export { _export_sfc as _, PageComponent as default };
