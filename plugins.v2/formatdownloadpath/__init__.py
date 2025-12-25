@@ -49,7 +49,7 @@ class FormatDownloadPath(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.0"
+    plugin_version = "1.0.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -373,11 +373,11 @@ class FormatDownloadPath(_PluginBase):
             basedir = Path(original_path)
         else:
             basedir = self.get_auto_download_path(media_info)
-    
+
         if basedir is None:
             logger.debug("没有获取到下载路径，跳过处理")
             return
-        
+
         basedir_str = basedir.as_posix()
         # 检查是否在排除目录中
         if self._exclude_dirs:
@@ -478,16 +478,10 @@ class FormatDownloadPath(_PluginBase):
         """
         try:
             # 获取所有下载器实例
-            downloaders = self.downloader_helper.get_downloader_conf()
-            result = []
-            for d_id, d_info in downloaders.items():
-                if d_info and d_info.get("enabled"):
-                    result.append({
-                        "title": d_info.get("name", d_id),  # 使用title作为显示名称
-                        "value": d_id,  # 使用value作为选项值
-                        "type": d_info.get("type", "Unknown")
-                    })
-            return result
+            downloaders: List[dict] = SystemConfigOper().get(SystemConfigKey.Downloaders)
+            if downloaders:
+                return [{"title": d.get("name"), "value": d.get("name")} for d in downloaders if d.get("enabled")]
+            return []
         except Exception as e:
             logger.error(f"获取下载器列表失败: {str(e)}")
             return []
