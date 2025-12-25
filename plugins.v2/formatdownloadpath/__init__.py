@@ -7,13 +7,15 @@ from app.core.context import MediaInfo, Context
 from app.core.event import eventmanager, Event
 from app.core.meta.metabase import MetaBase
 from app.db.downloadhistory_oper import DownloadHistoryOper
+from app.db.systemconfig_oper import SystemConfigOper
 from app.helper.directory import DirectoryHelper
 from app.helper.downloader import DownloaderHelper
+from app.helper.service import ServiceConfigHelper
 from app.log import logger
 from app.modules.filemanager.transhandler import TransHandler
 from app.plugins import _PluginBase
 from app.schemas.event import ResourceDownloadEventData
-from app.schemas.types import EventType, MediaType, ChainEventType
+from app.schemas.types import EventType, MediaType, ChainEventType, SystemConfigKey
 
 
 @dataclass
@@ -47,7 +49,7 @@ class FormatDownloadPath(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "0.0.2.1"
+    plugin_version = "1.0"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -67,10 +69,12 @@ class FormatDownloadPath(_PluginBase):
     _enabled: bool = False
     # 启用监听
     _enable_listener: bool = False
+    # 监听的下载器
+    _downloaders: List[str] = None  # 初始化为None，将在load_config中设置为默认空列表
     # 电影格式化路径模板
-    _movie_format_path_template: str = "{{ title }}{% if year %}/{{ year }}{% endif %}"
+    _movie_format_path_template: str = "{{ title }}{% if year %}({{ year }}){% endif %}"
     # 剧集格式化路径模板
-    _tv_format_path_template: str = "{{ title }}{% if year %}/{{ year }}{% endif %}/Season {{ season or 1 }}"
+    _tv_format_path_template: str = "{{ title }}{% if year %}({{ year }}){% endif %}"
     # 排除目录
     _exclude_dirs: str = ""
     # 格式化历史记录字典缓存
@@ -83,6 +87,8 @@ class FormatDownloadPath(_PluginBase):
 
     def __init__(self):
         super().__init__()
+        # 初始化配置属性
+        self._downloaders = []
         # 初始化时加载缓存
         self.__load_format_history_cache()
 
@@ -177,6 +183,15 @@ class FormatDownloadPath(_PluginBase):
                 "exclude_dirs"
         ):
             setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
+        
+        # 特殊处理downloaders字段，确保它是列表类型
+        downloaders_value = config.get("downloaders")
+        if downloaders_value is not None:
+            self._downloaders = downloaders_value if isinstance(downloaders_value, list) else []
+        else:
+            # 如果配置中没有downloaders字段，保持默认值
+            if not hasattr(self, '_downloaders') or self._downloaders is None:
+                self._downloaders = []
 
     def get_state(self) -> bool:
         return self._enabled
@@ -222,6 +237,13 @@ class FormatDownloadPath(_PluginBase):
             "methods": ["POST"],
             "summary": "删除格式化历史记录",
             "description": "删除指定的格式化历史记录"
+        }, {
+            "path": "/get_downloaders",
+            "endpoint": self.get_downloaders,
+            "auth": "bear",
+            "methods": ["GET"],
+            "summary": "获取可用下载器",
+            "description": "获取系统中可用的下载器列表"
         }]
 
     def get_form(self):
@@ -231,8 +253,9 @@ class FormatDownloadPath(_PluginBase):
         return None, {
             "enabled": False,
             "enable_listener": False,
-            "movie_format_path_template": "{{ title }}{% if year %}/{{ year }}{% endif %}",
-            "tv_format_path_template": "{{ title }}{% if year %}/{{ year }}{% endif %}/Season {{ season or 1 }}",
+            "downloaders": [],
+            "movie_format_path_template": self._movie_format_path_template,
+            "tv_format_path_template": self._tv_format_path_template,
             "exclude_dirs": ""
         }
 
@@ -278,6 +301,7 @@ class FormatDownloadPath(_PluginBase):
             "name": "下载路径格式化",
             "enabled": self._enabled,
             "enable_listener": self._enable_listener,
+            "downloaders": self._downloaders or [],
             "movie_format_path_template": self._movie_format_path_template,
             "tv_format_path_template": self._tv_format_path_template,
             "exclude_dirs": self._exclude_dirs
@@ -308,6 +332,27 @@ class FormatDownloadPath(_PluginBase):
             logger.debug("事件数据为空，跳过处理")
             return
 
+        # 获取下载器信息
+        downloader = event_data.downloader or ""
+        # 检查是否配置了特定下载器，如果是，只处理指定的下载器
+        # 如果_downloaders为空列表，则监听所有下载器
+        if not downloader:
+            configs = ServiceConfigHelper.get_downloader_configs()
+            for config in configs:
+               if config.default:  # 找到标记为默认的下载器
+                   logger.debug(f"默认下载器: {config.name}")
+                   downloader = config.name
+                   break
+            else:
+               # 如果没有设置默认下载器，则使用第一个
+               if configs:
+                   logger.debug(f"第一个下载器作为默认: {configs[0].name}")
+                   downloader = configs[0].name
+
+        if self._downloaders and downloader not in self._downloaders:
+            logger.debug(f"下载器 {downloader} 不在监听列表中，跳过处理")
+            return
+
         # 获取上下文信息
         context: Context = event_data.context
         if not context:
@@ -323,9 +368,29 @@ class FormatDownloadPath(_PluginBase):
         # 获取原始路径
         options = event_data.options or {}
         original_path = options.get("save_path", "")
+        basedir = None
         if original_path:
-            logger.debug("事件中有原始路径信息，跳过处理")
+            basedir = Path(original_path)
+        else:
+            basedir = self.get_auto_download_path(media_info)
+    
+        if basedir is None:
+            logger.debug("没有获取到下载路径，跳过处理")
             return
+        
+        basedir_str = basedir.as_posix()
+        # 检查是否在排除目录中
+        if self._exclude_dirs:
+            exclude_dirs = [d.strip() for d in self._exclude_dirs.split("\n") if d.strip()]
+            for exclude_dir in exclude_dirs:
+                try:
+                    exclude_path = Path(exclude_dir.strip())
+                    if basedir.is_relative_to(exclude_path):
+                        logger.debug(f"目录 {basedir} 在排除列表中，跳过格式化")
+                        return
+                except Exception as e:
+                    logger.debug(f"检查排除目录时出错 {exclude_dir}: {str(e)}")
+                    continue
 
         # 根据媒体类型选择模板
         if media_info.type == MediaType.MOVIE:
@@ -341,12 +406,12 @@ class FormatDownloadPath(_PluginBase):
         )
 
         if not formatted_path:
-            logger.debug(f"路径格式化失败，原路径：{original_path}")
+            logger.debug(f"路径格式化失败，原路径：{basedir_str}")
             self.__record_format_history(
                 title=media_info.title,
-                original_path=original_path,
-                formatted_path=original_path,  # 失败时仍使用原路径
-                downloader=event_data.downloader or "",
+                original_path=basedir_str,
+                formatted_path=basedir_str,  # 失败时仍使用原路径
+                downloader=downloader,
                 category=media_info.category,
                 reason="路径格式化失败",
                 success=False
@@ -354,13 +419,13 @@ class FormatDownloadPath(_PluginBase):
             return
 
         # 检查路径是否与原路径相同
-        if formatted_path == original_path:
-            logger.debug(f"格式化后路径与原路径相同，无需修改：{original_path}")
+        if (basedir / formatted_path) == basedir_str:
+            logger.debug(f"格式化后路径与原路径相同，无需修改：{basedir_str}")
             self.__record_format_history(
                 title=media_info.title,
-                original_path=original_path,
+                original_path=basedir_str,
                 formatted_path=formatted_path,
-                downloader=event_data.downloader or "",
+                downloader=downloader,
                 category=media_info.category,
                 reason="路径已符合格式要求",
                 success=True
@@ -371,19 +436,19 @@ class FormatDownloadPath(_PluginBase):
         if event and event.event_data and formatted_path:
             if hasattr(event, 'event_data') and event.event_data:
                 options = event.event_data.options or {}
-                if self.get_auto_download_path(media_info) is None:
+                if basedir is None:
                     return
-                options['save_path'] = self.get_auto_download_path(media_info) / formatted_path
+                options['save_path'] = basedir / formatted_path
                 event.event_data.options = options
             else:
                 return
 
-        logger.info(f"路径已格式化：{original_path} -> {event.event_data.options['save_path']}")
+        logger.info(f"路径已格式化：{basedir_str} -> {event.event_data.options['save_path']}")
         self.__record_format_history(
             title=media_info.title,
-            original_path=original_path,
+            original_path=basedir_str,
             formatted_path=event.event_data.options['save_path'],
-            downloader=event_data.downloader or "",
+            downloader=downloader,
             category=media_info.category,
             reason="",
             success=True
@@ -407,6 +472,25 @@ class FormatDownloadPath(_PluginBase):
             logger.error(f"路径格式化失败：{str(e)}")
             return None
 
+    def get_downloaders(self):
+        """
+        获取可用下载器列表
+        """
+        try:
+            # 获取所有下载器实例
+            downloaders = self.downloader_helper.get_downloader_conf()
+            result = []
+            for d_id, d_info in downloaders.items():
+                if d_info and d_info.get("enabled"):
+                    result.append({
+                        "title": d_info.get("name", d_id),  # 使用title作为显示名称
+                        "value": d_id,  # 使用value作为选项值
+                        "type": d_info.get("type", "Unknown")
+                    })
+            return result
+        except Exception as e:
+            logger.error(f"获取下载器列表失败: {str(e)}")
+            return []
 
     def delete_format_history(self, request_body: dict):
         """

@@ -8,7 +8,7 @@ const _export_sfc = (sfc, props) => {
   return target;
 };
 
-const {createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,mergeProps:_mergeProps,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock} = await importShared('vue');
+const {createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,toDisplayString:_toDisplayString,createElementVNode:_createElementVNode,mergeProps:_mergeProps,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementBlock:_createElementBlock} = await importShared('vue');
 
 
 const _hoisted_1 = { class: "history-container" };
@@ -37,6 +37,7 @@ const emit = __emit;
 
 // 数据表格头部定义
 const headers = [
+  { title: '', key: 'data-table-select' }, // 添加选择列
   { title: '种子名称', key: 'title' },
   { title: '原始路径', key: 'original_path' },
   { title: '格式化后路径', key: 'formatted_path' },
@@ -52,7 +53,7 @@ const loading = ref(false);
 const historyRecords = ref([]);
 const detailDialog = ref(false);
 const currentRecord = ref({});
-ref([]);
+const selectedHistory = ref([]);
 
 // 筛选变量
 const filterStatus = ref('all');
@@ -95,7 +96,7 @@ const filteredHistoryRecords = computed(() => {
 async function refreshHistory() {
   try {
     loading.value = true;
-    const response = await props.api.get('plugin/FormatDownloadPath/history');
+    const response = await props.api.get('plugin/FormatDownloadPath/format_history');
     historyRecords.value = response || [];
   } catch (error) {
     console.error('获取历史记录失败:', error);
@@ -126,6 +127,62 @@ function getCategoryColor(category) {
     return 'secondary'
   }
   return 'default'
+}
+
+// 删除选中的历史记录
+async function deleteSelected() {
+  if (selectedHistory.value.length === 0) {
+    return
+  }
+
+  if (!confirm(`确定要删除选中的 ${selectedHistory.value.length} 条记录吗？`)) {
+    return
+  }
+
+  try {
+    loading.value = true;
+    
+    // 构造请求体，查找完整记录信息
+    const recordsToDelete = [];
+    for (const selectedItem of selectedHistory.value) {
+      // 查找匹配的完整记录（在filteredHistoryRecords中）
+      const matchingRecord = filteredHistoryRecords.value.find(record => 
+        record.title === selectedItem
+      );
+      
+      if (matchingRecord) {
+        recordsToDelete.push({
+          title: matchingRecord.title,
+          date: matchingRecord.date
+        });
+      }
+    }
+
+    const response = await props.api.post('plugin/FormatDownloadPath/delete_format_history', {
+      records: recordsToDelete
+    });
+
+    if (response && response.success) {
+      // 从本地记录中移除已删除的项
+      const keysToDelete = new Set(recordsToDelete.map(r => `${r.title}_${r.date}`));
+      historyRecords.value = historyRecords.value.filter(record => 
+        !keysToDelete.has(`${record.title}_${record.date}`)
+      );
+      
+      // 清空选择
+      selectedHistory.value = [];
+      
+      // 显示成功消息
+      alert(response.message || `成功删除 ${recordsToDelete.length} 条记录`);
+    } else {
+      alert(response.message || '删除失败');
+    }
+  } catch (error) {
+    console.error('删除历史记录失败:', error);
+    alert('删除失败: ' + (error.message || '未知错误'));
+  } finally {
+    loading.value = false;
+  }
 }
 
 // 通知主应用切换到配置页面
@@ -182,7 +239,7 @@ return (_ctx, _cache) => {
             }, {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, null, {
-                  default: _withCtx(() => [...(_cache[5] || (_cache[5] = [
+                  default: _withCtx(() => [...(_cache[6] || (_cache[6] = [
                     _createTextVNode("mdi-close", -1)
                   ]))]),
                   _: 1
@@ -193,7 +250,7 @@ return (_ctx, _cache) => {
           ]),
           default: _withCtx(() => [
             _createVNode(_component_v_card_title, null, {
-              default: _withCtx(() => [...(_cache[4] || (_cache[4] = [
+              default: _withCtx(() => [...(_cache[5] || (_cache[5] = [
                 _createTextVNode("路径格式化历史记录", -1)
               ]))]),
               _: 1
@@ -212,11 +269,24 @@ return (_ctx, _cache) => {
                 class: "mr-2 mb-2",
                 size: "small"
               }, {
-                default: _withCtx(() => [...(_cache[6] || (_cache[6] = [
+                default: _withCtx(() => [...(_cache[7] || (_cache[7] = [
                   _createTextVNode(" 刷新记录 ", -1)
                 ]))]),
                 _: 1
               }, 8, ["loading"]),
+              _createVNode(_component_VBtn, {
+                color: "error",
+                onClick: deleteSelected,
+                disabled: selectedHistory.value.length === 0,
+                "prepend-icon": "mdi-delete",
+                class: "mr-2 mb-2",
+                size: "small"
+              }, {
+                default: _withCtx(() => [
+                  _createTextVNode(" 删除选中 (" + _toDisplayString(selectedHistory.value.length) + ") ", 1)
+                ]),
+                _: 1
+              }, 8, ["disabled"]),
               _createVNode(_component_VSelect, {
                 modelValue: filterStatus.value,
                 "onUpdate:modelValue": _cache[0] || (_cache[0] = $event => ((filterStatus).value = $event)),
@@ -239,12 +309,16 @@ return (_ctx, _cache) => {
               _createVNode(_component_VSpacer)
             ]),
             _createVNode(_component_VDataTable, {
+              modelValue: selectedHistory.value,
+              "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((selectedHistory).value = $event)),
               headers: headers,
               items: filteredHistoryRecords.value,
               loading: loading.value,
               class: "elevation-1",
               "items-per-page": 10,
-              "items-per-page-options": [10, 20, 50, -1]
+              "items-per-page-options": [10, 20, 50, -1],
+              "item-value": "title",
+              "show-select": ""
             }, {
               "item.date": _withCtx(({ item }) => [
                 _createTextVNode(_toDisplayString(formatDate(item.date)), 1)
@@ -288,7 +362,7 @@ return (_ctx, _cache) => {
                       size: "small",
                       variant: "flat"
                     }, {
-                      default: _withCtx(() => [...(_cache[7] || (_cache[7] = [
+                      default: _withCtx(() => [...(_cache[8] || (_cache[8] = [
                         _createTextVNode(" 成功 ", -1)
                       ]))]),
                       _: 1
@@ -302,14 +376,14 @@ return (_ctx, _cache) => {
                   onClick: $event => (showDetail(item)),
                   class: "mr-2"
                 }, {
-                  default: _withCtx(() => [...(_cache[8] || (_cache[8] = [
+                  default: _withCtx(() => [...(_cache[9] || (_cache[9] = [
                     _createTextVNode(" 详情 ", -1)
                   ]))]),
                   _: 1
                 }, 8, ["onClick"])
               ]),
               _: 1
-            }, 8, ["items", "loading"])
+            }, 8, ["modelValue", "items", "loading"])
           ]),
           _: 1
         }),
@@ -322,12 +396,12 @@ return (_ctx, _cache) => {
             }, {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, { start: "" }, {
-                  default: _withCtx(() => [...(_cache[9] || (_cache[9] = [
+                  default: _withCtx(() => [...(_cache[10] || (_cache[10] = [
                     _createTextVNode("mdi-refresh", -1)
                   ]))]),
                   _: 1
                 }),
-                _cache[10] || (_cache[10] = _createTextVNode(" 刷新数据 ", -1))
+                _cache[11] || (_cache[11] = _createTextVNode(" 刷新数据 ", -1))
               ]),
               _: 1
             }, 8, ["loading"]),
@@ -338,12 +412,12 @@ return (_ctx, _cache) => {
             }, {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, { start: "" }, {
-                  default: _withCtx(() => [...(_cache[11] || (_cache[11] = [
+                  default: _withCtx(() => [...(_cache[12] || (_cache[12] = [
                     _createTextVNode("mdi-cog", -1)
                   ]))]),
                   _: 1
                 }),
-                _cache[12] || (_cache[12] = _createTextVNode(" 配置 ", -1))
+                _cache[13] || (_cache[13] = _createTextVNode(" 配置 ", -1))
               ]),
               _: 1
             })
@@ -355,14 +429,14 @@ return (_ctx, _cache) => {
     }),
     _createVNode(_component_VDialog, {
       modelValue: detailDialog.value,
-      "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((detailDialog).value = $event)),
+      "onUpdate:modelValue": _cache[4] || (_cache[4] = $event => ((detailDialog).value = $event)),
       "max-width": "800px"
     }, {
       default: _withCtx(() => [
         _createVNode(_component_VCard, null, {
           default: _withCtx(() => [
             _createVNode(_component_VCardTitle, null, {
-              default: _withCtx(() => [...(_cache[13] || (_cache[13] = [
+              default: _withCtx(() => [...(_cache[14] || (_cache[14] = [
                 _createElementVNode("span", { class: "text-h5" }, "路径格式化详情", -1)
               ]))]),
               _: 1
@@ -374,7 +448,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[14] || (_cache[14] = [
+                          default: _withCtx(() => [...(_cache[15] || (_cache[15] = [
                             _createTextVNode("种子名称:", -1)
                           ]))]),
                           _: 1
@@ -391,7 +465,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[15] || (_cache[15] = [
+                          default: _withCtx(() => [...(_cache[16] || (_cache[16] = [
                             _createTextVNode("原始路径:", -1)
                           ]))]),
                           _: 1
@@ -408,7 +482,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[16] || (_cache[16] = [
+                          default: _withCtx(() => [...(_cache[17] || (_cache[17] = [
                             _createTextVNode("格式化后路径:", -1)
                           ]))]),
                           _: 1
@@ -425,7 +499,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[17] || (_cache[17] = [
+                          default: _withCtx(() => [...(_cache[18] || (_cache[18] = [
                             _createTextVNode("下载器:", -1)
                           ]))]),
                           _: 1
@@ -442,7 +516,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[18] || (_cache[18] = [
+                          default: _withCtx(() => [...(_cache[19] || (_cache[19] = [
                             _createTextVNode("类别:", -1)
                           ]))]),
                           _: 1
@@ -468,7 +542,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[19] || (_cache[19] = [
+                          default: _withCtx(() => [...(_cache[20] || (_cache[20] = [
                             _createTextVNode("状态:", -1)
                           ]))]),
                           _: 1
@@ -495,7 +569,7 @@ return (_ctx, _cache) => {
                       ? (_openBlock(), _createBlock(_component_v_list_item, { key: 0 }, {
                           default: _withCtx(() => [
                             _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                              default: _withCtx(() => [...(_cache[20] || (_cache[20] = [
+                              default: _withCtx(() => [...(_cache[21] || (_cache[21] = [
                                 _createTextVNode("失败原因:", -1)
                               ]))]),
                               _: 1
@@ -513,7 +587,7 @@ return (_ctx, _cache) => {
                     _createVNode(_component_v_list_item, null, {
                       default: _withCtx(() => [
                         _createVNode(_component_v_list_item_title, { class: "font-weight-bold" }, {
-                          default: _withCtx(() => [...(_cache[21] || (_cache[21] = [
+                          default: _withCtx(() => [...(_cache[22] || (_cache[22] = [
                             _createTextVNode("处理时间:", -1)
                           ]))]),
                           _: 1
@@ -539,9 +613,9 @@ return (_ctx, _cache) => {
                 _createVNode(_component_VBtn, {
                   color: "blue darken-1",
                   variant: "text",
-                  onClick: _cache[2] || (_cache[2] = $event => (detailDialog.value = false))
+                  onClick: _cache[3] || (_cache[3] = $event => (detailDialog.value = false))
                 }, {
-                  default: _withCtx(() => [...(_cache[22] || (_cache[22] = [
+                  default: _withCtx(() => [...(_cache[23] || (_cache[23] = [
                     _createTextVNode(" 关闭 ", -1)
                   ]))]),
                   _: 1
@@ -560,6 +634,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const Page = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-590d714f"]]);
+const Page = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-12607ecc"]]);
 
 export { _export_sfc as _, Page as default };

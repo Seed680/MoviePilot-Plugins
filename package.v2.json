@@ -301,11 +301,12 @@
         "name": "下载路径格式化",
         "description": "下载路径格式化",
         "labels": "格式化",
-        "version": "0.0.2.1",
+        "version": "1.0",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.0": "增加排除目录",
             "v0.0.1": "测试"
         }
     }
