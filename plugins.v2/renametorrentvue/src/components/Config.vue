@@ -209,12 +209,31 @@
               <v-row>
                 <v-col cols="12">
                   <v-textarea
-                    v-model="config.format_torrent_name"
-                    label="格式化字符"
-                    placeholder="{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %} - {{original_name}}"
-                    hint="种子重命名的格式模板"
+                    v-model="config.movie_format_torrent_name"
+                    label="电影格式化字符"
+                    placeholder="{{ title }}{% if year %} ({{ year }}){% endif %} - {{original_name}}"
+                    hint="电影种子重命名的格式模板"
                     persistent-hint
-                    ref="formatTextarea"
+                    ref="movieFormatTextarea"
+                    id="movie-format-template"
+                    @focus="setActiveTemplate('movie')"
+                    @click="setActiveTemplate('movie')"
+                  ></v-textarea>
+                </v-col>
+              </v-row>
+              
+              <v-row>
+                <v-col cols="12">
+                  <v-textarea
+                    v-model="config.tv_format_torrent_name"
+                    label="剧集格式化字符"
+                    placeholder="{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %} - {{original_name}}"
+                    hint="剧集种子重命名的格式模板"
+                    persistent-hint
+                    ref="tvFormatTextarea"
+                    id="tv-format-template"
+                    @focus="setActiveTemplate('tv')"
+                    @click="setActiveTemplate('tv')"
                   ></v-textarea>
                 </v-col>
               </v-row>
@@ -252,12 +271,16 @@
                         <v-chip size="small" variant="flat" color="primary" @click="insertVariable('vote_average')">评分</v-chip>
                         
                         <!-- TV剧集专用变量 -->
-                        <v-chip size="small" variant="flat" color="primary" @click="insertVariable('season')">季号</v-chip>
-                        <v-chip size="small" variant="flat" color="primary" @click="insertVariable('season_year')">季年份</v-chip>
-                        <v-chip size="small" variant="flat" color="primary" @click="insertVariable('episode')">集号</v-chip>
-                        <v-chip size="small" variant="flat" color="primary" @click="insertVariable('season_episode')">季集</v-chip>
-                        <v-chip size="small" variant="flat" color="primary" @click="insertVariable('episode_title')">集标题</v-chip>
-                        <v-chip size="small" variant="flat" color="primary" @click="insertVariable('episode_date')">集播出日期</v-chip>
+                        <div class="mt-2 w-100">
+                          <v-divider class="mb-2"></v-divider>
+                          <span class="text-subtitle-2 text-primary">TV剧集专用变量</span>
+                        </div>
+                        <v-chip size="small" variant="flat" color="secondary" @click="insertVariable('season')">季号</v-chip>
+                        <v-chip size="small" variant="flat" color="secondary" @click="insertVariable('season_year')">季年份</v-chip>
+                        <v-chip size="small" variant="flat" color="secondary" @click="insertVariable('episode')">集号</v-chip>
+                        <v-chip size="small" variant="flat" color="secondary" @click="insertVariable('season_episode')">季集</v-chip>
+                        <v-chip size="small" variant="flat" color="secondary" @click="insertVariable('episode_title')">集标题</v-chip>
+                        <v-chip size="small" variant="flat" color="secondary" @click="insertVariable('episode_date')">集播出日期</v-chip>
                       </div>
                     </v-card-text>
                   </v-card>
@@ -266,15 +289,36 @@
               
               <!-- 结果预览 -->
               <v-row>
-                <v-col cols="12">
+                <v-col cols="12" md="6">
                   <v-card variant="outlined">
                     <v-card-item>
-                      <v-card-title class="text-subtitle-2">结果预览</v-card-title>
+                      <v-card-title class="text-subtitle-2">电影预览结果</v-card-title>
                     </v-card-item>
                     <v-card-text>
                       <v-textarea
                         :model-value="previewResult"
-                        label="预览结果"
+                        label="电影预览"
+                        readonly
+                        variant="outlined"
+                        hide-details
+                        auto-grow
+                        rows="1"
+                      ></v-textarea>
+                      <div class="text-caption mt-2">
+                        注意：预览使用示例数据，实际效果可能有所不同
+                      </div>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-card variant="outlined">
+                    <v-card-item>
+                      <v-card-title class="text-subtitle-2">剧集预览结果</v-card-title>
+                    </v-card-item>
+                    <v-card-text>
+                      <v-textarea
+                        :model-value="tvPreviewResult"
+                        label="剧集预览"
                         readonly
                         variant="outlined"
                         hide-details
@@ -322,6 +366,10 @@ const isFormValid = ref(true)
 const error = ref(null)
 const saving = ref(false)
 const formatTextarea = ref(null)
+const movieFormatTextarea = ref(null)
+const tvFormatTextarea = ref(null)
+// 跟踪当前活动的模板
+const activeTemplate = ref('movie') // 默认为电影模板
 
 // 可能为空的字段列表
 const nullableFields = ['en_name', 'tmdbid', 'imdbid', 'doubanid']
@@ -367,7 +415,8 @@ const defaultConfig = {
   include_tags: '',
   exclude_dirs: '',
   hash_white_list: '',
-  format_torrent_name: '{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %}.{{original_name}}',
+  movie_format_torrent_name: '{{ title }}{% if year %} ({{ year }}){% endif %} - {{original_name}}',
+  tv_format_torrent_name: '{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %} - {{original_name}}',
   onlyonce: false,
   recovery: false,
   retry: false,
@@ -380,7 +429,15 @@ const config = reactive({ ...defaultConfig, ...props.initialConfig})
 
 // 计算预览结果
 const previewResult = computed(() => {
-  return renderTemplate(config.format_torrent_name, previewData)
+  return renderTemplate(config.movie_format_torrent_name, previewData)
+})
+
+// 计算TV预览结果
+const tvPreviewResult = computed(() => {
+  return renderTemplate(config.tv_format_torrent_name, {
+    ...previewData,
+    type: '电视剧'
+  })
 })
 
 // 初始化配置
@@ -434,44 +491,125 @@ function notifyClose() {
   emit('close')
 }
 
+// 设置当前活动的模板
+function setActiveTemplate(templateType) {
+  activeTemplate.value = templateType
+}
+
 // 在光标位置插入变量
 function insertVariable(variable) {
-  const textarea = formatTextarea.value.$el.querySelector('textarea')
-  const startPos = textarea.selectionStart
-  const endPos = textarea.selectionEnd
-  const textBefore = config.format_torrent_name.substring(0, startPos)
-  const textAfter = config.format_torrent_name.substring(endPos)
+  // 获取当前焦点的元素
+  const activeElement = document.activeElement;
   
-  // 默认插入带条件判断的语句
-  let insertText = `{% if ${variable} %}{{ ${variable} }}{% endif %}`
+  // 如果当前焦点在模板输入框中，更新活动模板
+  if (activeElement && activeElement.tagName === 'TEXTAREA') {
+    if (activeElement.id === 'movie-format-template') {
+      activeTemplate.value = 'movie';
+    } else if (activeElement.id === 'tv-format-template') {
+      activeTemplate.value = 'tv';
+    }
+  }
   
-  // 插入变量
-  config.format_torrent_name = textBefore + insertText + textAfter
-  
-  // 设置焦点和光标位置
-  setTimeout(() => {
-    textarea.focus()
-    textarea.setSelectionRange(startPos + insertText.length, startPos + insertText.length)
-  }, 10)
+  // 根据当前活动模板插入变量
+  if (activeTemplate.value === 'movie') {
+    // 获取电影模板输入框
+    const textarea = movieFormatTextarea.value?.$el?.querySelector('textarea');
+    if (textarea) {
+      const startPos = textarea.selectionStart || 0;
+      const endPos = textarea.selectionEnd || 0;
+      const textBefore = config.movie_format_torrent_name.substring(0, startPos);
+      const textAfter = config.movie_format_torrent_name.substring(endPos);
+      
+      // 默认插入带条件判断的语句
+      let insertText = `{% if ${variable} %}{{ ${variable} }}{% endif %}`;
+      
+      config.movie_format_torrent_name = textBefore + insertText + textAfter;
+      
+      // 设置焦点和光标位置
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(startPos + insertText.length, startPos + insertText.length);
+      }, 10);
+    }
+  } else {
+    // 获取剧集模板输入框
+    const textarea = tvFormatTextarea.value?.$el?.querySelector('textarea');
+    if (textarea) {
+      const startPos = textarea.selectionStart || 0;
+      const endPos = textarea.selectionEnd || 0;
+      const textBefore = config.tv_format_torrent_name.substring(0, startPos);
+      const textAfter = config.tv_format_torrent_name.substring(endPos);
+      
+      // 默认插入带条件判断的语句
+      let insertText = `{% if ${variable} %}{{ ${variable} }}{% endif %}`;
+      
+      config.tv_format_torrent_name = textBefore + insertText + textAfter;
+      
+      // 设置焦点和光标位置
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(startPos + insertText.length, startPos + insertText.length);
+      }, 10);
+    }
+  }
 }
 
 // 插入条件语句
 function insertConditional(variable) {
-  const textarea = formatTextarea.value.$el.querySelector('textarea')
-  const startPos = textarea.selectionStart
-  const endPos = textarea.selectionEnd
-  const textBefore = config.format_torrent_name.substring(0, startPos)
-  const textAfter = config.format_torrent_name.substring(endPos)
+  // 获取当前焦点的元素
+  const activeElement = document.activeElement;
   
-  // 插入条件语句
-  const conditional = `{% if ${variable} %}{{ ${variable} }}{% endif %}`
-  config.format_torrent_name = textBefore + conditional + textAfter
+  // 如果当前焦点在模板输入框中，更新活动模板
+  if (activeElement && activeElement.tagName === 'TEXTAREA') {
+    if (activeElement.id === 'movie-format-template') {
+      activeTemplate.value = 'movie';
+    } else if (activeElement.id === 'tv-format-template') {
+      activeTemplate.value = 'tv';
+    }
+  }
   
-  // 设置焦点和光标位置
-  setTimeout(() => {
-    textarea.focus()
-    textarea.setSelectionRange(startPos + conditional.length, startPos + conditional.length)
-  }, 10)
+  // 根据当前活动模板插入条件语句
+  if (activeTemplate.value === 'movie') {
+    // 获取电影模板输入框
+    const textarea = movieFormatTextarea.value?.$el?.querySelector('textarea');
+    if (textarea) {
+      const startPos = textarea.selectionStart || 0;
+      const endPos = textarea.selectionEnd || 0;
+      const textBefore = config.movie_format_torrent_name.substring(0, startPos);
+      const textAfter = config.movie_format_torrent_name.substring(endPos);
+      
+      // 插入条件语句
+      const conditional = `{% if ${variable} %}{{ ${variable} }}{% endif %}`;
+      
+      config.movie_format_torrent_name = textBefore + conditional + textAfter;
+      
+      // 设置焦点和光标位置
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(startPos + conditional.length, startPos + conditional.length);
+      }, 10);
+    }
+  } else {
+    // 获取剧集模板输入框
+    const textarea = tvFormatTextarea.value?.$el?.querySelector('textarea');
+    if (textarea) {
+      const startPos = textarea.selectionStart || 0;
+      const endPos = textarea.selectionEnd || 0;
+      const textBefore = config.tv_format_torrent_name.substring(0, startPos);
+      const textAfter = config.tv_format_torrent_name.substring(endPos);
+      
+      // 插入条件语句
+      const conditional = `{% if ${variable} %}{{ ${variable} }}{% endif %}`;
+      
+      config.tv_format_torrent_name = textBefore + conditional + textAfter;
+      
+      // 设置焦点和光标位置
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(startPos + conditional.length, startPos + conditional.length);
+      }, 10);
+    }
+  }
 }
 
 // 渲染模板
