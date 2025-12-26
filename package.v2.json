@@ -285,11 +285,12 @@
         "name": "重命名种子Vue版",
         "description": "重命名种子Vue版",
         "labels": "重命名",
-        "version": "1.0.2",
+        "version": "1.0.2.1",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.0.2.1": "优化前端提示",
             "v1.0.2": "电影和剧集模板区分",
             "v1.0.1": "优化代码，增加错误原因（本版本可能有问题，谨慎更新）",
             "v1.0": "修改默认模板；增加模板选择及预览",
@@ -304,11 +305,12 @@
         "name": "下载路径格式化",
         "description": "下载路径格式化",
         "labels": "格式化",
-        "version": "1.0.1",
+        "version": "1.0.1.1",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.0.1.1": "优化前端提示",
             "v1.0.1": "更新前请先保留旧版本模板，更新后由于模板拆分会导致旧模板消失；\n内容修复一些bug",
             "v1.0": "增加排除目录；支持选择监听的下载器；调整默认格式化模板；修复一些bug",
             "v0.0.1": "测试"
