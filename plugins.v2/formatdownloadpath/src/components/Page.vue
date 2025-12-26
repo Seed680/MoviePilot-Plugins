@@ -213,7 +213,8 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-
+import { useToast } from 'vue-toastification'
+const $toast = useToast()
 // 接收API对象
 const props = defineProps({
   api: {
@@ -289,6 +290,7 @@ async function refreshHistory() {
     const response = await props.api.get('plugin/FormatDownloadPath/format_history')
     historyRecords.value = response || []
   } catch (error) {
+    $toast.error('获取历史记录失败')
     console.error('获取历史记录失败:', error)
   } finally {
     loading.value = false
@@ -363,13 +365,13 @@ async function deleteSelected() {
       selectedHistory.value = []
       
       // 显示成功消息
-      alert(response.message || `成功删除 ${recordsToDelete.length} 条记录`)
+      $toast.success(response.message || `成功删除 ${recordsToDelete.length} 条记录`)
     } else {
-      alert(response.message || '删除失败')
+      $toast.error(response.message || '删除失败')
     }
   } catch (error) {
     console.error('删除历史记录失败:', error)
-    alert('删除失败: ' + (error.message || '未知错误'))
+    $toast.error('删除失败: ' + (error.message || '未知错误'))
   } finally {
     loading.value = false
   }

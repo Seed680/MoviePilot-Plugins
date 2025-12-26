@@ -13,7 +13,8 @@
     "vuetify": "3.7.3",
     "echarts": "^5.4.3",
     "vue-echarts": "^6.6.1",
-    "@vueuse/core": "^12.4.0"
+    "@vueuse/core": "^12.4.0",
+    "vue-toastification": "^2.0.0-rc.5"
   },
   "devDependencies": {
     "@originjs/vite-plugin-federation": "^1.4.1",
