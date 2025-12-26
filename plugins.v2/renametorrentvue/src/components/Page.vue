@@ -215,7 +215,8 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-
+import { useToast } from 'vue-toastification'
+const $toast = useToast()
 // 接收API对象
 const props = defineProps({
   api: {
@@ -315,12 +316,10 @@ function formatDate(dateString) {
 // 删除选中的历史记录
 function deleteSelectedHistory() {
   // 调试输出选中的记录
-  console.log('Delete button clicked. Selected history records:', selectedHistory.value);
-
   if (selectedHistory.value && selectedHistory.value.length > 0) {
     deleteConfirmDialog.value = true
   } else {
-    alert('请先选择要删除的记录');
+    $toast.warning('请先选择要删除的记录')
   }
 }
 
@@ -331,7 +330,7 @@ async function confirmDeleteHistory() {
 
     // 检查是否有要删除的记录
     if (!selectedHistory.value || selectedHistory.value.length === 0) {
-      alert('没有选中的记录');
+      $toast.warning('没有选中的记录')
       deleting.value = false;
       return;
     }
@@ -356,14 +355,13 @@ async function confirmDeleteHistory() {
 
       // 显示成功消息
       const message = response.message || response.data?.message || '删除成功';
-      alert(`删除成功: ${message}`)
+      $toast.success(`删除成功: ${message}`)
     } else {
       const message = response.message || response.data?.message || '未知错误';
-      alert(`删除失败: ${message}`)
+      $toast.error(`删除失败: ${message}`)
     }
   } catch (error) {
-    console.error('删除历史记录失败:', error)
-    alert('删除历史记录失败')
+    $toast('删除失败: ' + error)
   } finally {
     deleting.value = false
   }
