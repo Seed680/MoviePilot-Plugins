@@ -28,7 +28,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.2.4"
+    plugin_version = "1.2.4.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -343,6 +343,7 @@ class HanHanRescueSeeding(_PluginBase):
                                 service_info = self.downloader_helper.get_service(downloader)
                                 if service_info and service_info.instance:
                                     try:
+                                        logger.debug(f"获取下载器是理成功: {downloader}")
                                         # 准备下载参数
                                         download_kwargs = {
                                             "content": download_link,
@@ -356,9 +357,10 @@ class HanHanRescueSeeding(_PluginBase):
                                                 download_kwargs["tag"] = self._custom_tag.split(',')
                                             elif service_info.type == "transmission":
                                                 download_kwargs["labels"] = self._custom_tag.split(',')
-
+                                        logger.debug(f"下载种子参数: {download_kwargs}")
                                         # 下载种子文件
                                         result = service_info.instance.add_torrent(**download_kwargs)
+                                        logger.debug(f"下载结果: {result}")
                                         if result:
                                             logger.info(f"成功下载种子: {download_link}")
                                             downloaded_count += 1
