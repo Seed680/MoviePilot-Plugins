@@ -50,7 +50,7 @@ const config = reactive({ ...defaultConfig, ...props.initialConfig});
 // 初始化配置
 onMounted(async () => {
   const data = await props.api.get(`plugin/${config.id}/config`);
-  config.value = { ...config,...data };
+  Object.assign(config, {...config, ...data});
 });
 
 // 自定义事件，用于保存配置

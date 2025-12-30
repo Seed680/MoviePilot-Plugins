@@ -33,7 +33,7 @@ class DownloadSiteTagModNew(_PluginBase):
     # 插件图标
     plugin_icon = "Youtube-dl_B.png"
     # 插件版本
-    plugin_version = "1.4"
+    plugin_version = "1.4.1"
     # 插件作者
     plugin_author = "叮叮当,Seed680"
     # 作者主页
@@ -57,7 +57,7 @@ class DownloadSiteTagModNew(_PluginBase):
     _scheduler = None
     _enable = False
     _onlyonce = False
-    _interval = "计划任务"
+    _interval = "禁用"
     _interval_cron = "5 4 * * *"
     _interval_time = 6
     _interval_unit = "小时"
@@ -109,7 +109,7 @@ class DownloadSiteTagModNew(_PluginBase):
         if config:
             self._enable = config.get("enable", False)
             self._onlyonce = config.get("onlyonce", False)
-            self._interval = config.get("interval","计划任务")
+            self._interval = config.get("interval","禁用")
             self._interval_cron = config.get("interval_cron", "5 4 * * *")
             self._interval_time = self.str_to_number(config.get("interval_time"), 6)
             self._interval_unit = config.get("interval_unit", "小时")
