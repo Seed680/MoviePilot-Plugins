@@ -18,6 +18,7 @@ from app.plugins import _PluginBase
 from app.schemas import ServiceInfo
 from app.schemas.types import SystemConfigKey
 from app.utils.http import RequestUtils
+from torrentool.torrent import Torrent
 
 
 class HanHanRescueSeeding(_PluginBase):
@@ -165,6 +166,7 @@ class HanHanRescueSeeding(_PluginBase):
             "notify_on_zero_torrents": self._notify_on_zero_torrents
         }
 
+
     def _get_download_records(self) -> List[Dict[str, Any]]:
         """API Endpoint: Returns download records."""
         records = self.get_data("download_records") or []
@@ -236,8 +238,74 @@ class HanHanRescueSeeding(_PluginBase):
                 "methods": ["GET"],
                 "auth": "bear",
                 "summary": "获取下载记录"
+            },
+
+            {
+                "path": "/delete_torrents",
+                "endpoint": self._delete_torrents,
+                "methods": ["POST"],
+                "auth": "bear",
+                "summary": "批量删除下载器中的种子"
+            },
+            {
+                "path": "/delete_download_records",
+                "endpoint": self._delete_download_records,
+                "methods": ["POST"],
+                "auth": "bear",
+                "summary": "批量删除下载记录"
             }
         ]
+
+
+    def _delete_torrents(self, torrent_hashes: List[str] = None):
+        """
+        API端点：批量删除指定hashes的种子
+        """
+        if not torrent_hashes:
+            return {"success": False, "message": "种子hash列表不能为空"}
+        
+        results = []
+        for torrent_hash in torrent_hashes:
+            success = self._delete_torrent_by_hash(torrent_hash)
+            results.append({
+                "hash": torrent_hash,
+                "success": success
+            })
+        
+        # 统计成功和失败的数量
+        success_count = sum(1 for r in results if r["success"])
+        fail_count = len(results) - success_count
+        
+        return {
+            "success": True,
+            "message": f"批量删除完成: 成功 {success_count}, 失败 {fail_count}",
+            "results": results
+        }
+
+    def _delete_download_records(self, titles: List[str] = None):
+        """
+        API端点：批量删除指定标题的下载记录
+        """
+        if not titles:
+            return {"success": False, "message": "标题列表不能为空"}
+        
+        try:
+            # 获取所有下载记录
+            download_records = self.get_data("download_records") or []
+            
+            # 过滤掉要删除的记录（基于标题）
+            updated_records = [record for record in download_records if record.get("title") not in titles]
+            
+            # 保存更新后的记录
+            self.save_data(key="download_records", value=updated_records)
+            
+            return {
+                "success": True,
+                "message": f"成功删除 {len(titles)} 条下载记录"
+            }
+        except Exception as e:
+            logger.error(f"批量删除下载记录失败: {str(e)}")
+            return {"success": False, "message": f"批量删除下载记录失败: {str(e)}"}
 
     def get_service(self) -> List[Dict[str, Any]]:
         """
@@ -338,15 +406,22 @@ class HanHanRescueSeeding(_PluginBase):
                             download_link = "https://" + self.domain + "/" + download_element[0].get('href')
                             if download_link:
                                 logger.info(f"下载种子链接: {download_link}")
+                                # 先下载种子文件获取hash
+                                torrent_content, torrent_hash = self._download_torrent(download_link, self.site)
+                                if not torrent_content:
+                                    logger.error(f"下载种子文件失败: {download_link}")
+                                    failed_downloaded_count += 1
+                                    continue
+                                
                                 # 调用下载器下载种子
                                 downloader = self._downloader
                                 service_info = self.downloader_helper.get_service(downloader)
                                 if service_info and service_info.instance:
                                     try:
-                                        logger.debug(f"获取下载器是理成功: {downloader}")
+                                        logger.debug(f"获取下载器实例成功: {downloader}")
                                         # 准备下载参数
                                         download_kwargs = {
-                                            "content": download_link,
+                                            "content": torrent_content,  # 使用下载的种子内容而不是URL
                                             "cookie": self.site.cookie
                                         }
                                         if self._save_path:
@@ -378,6 +453,7 @@ class HanHanRescueSeeding(_PluginBase):
                                                 "size": size_text,
                                                 "seeders": seed_count,
                                                 "download_link": download_link,
+                                                "torrent_hash": torrent_hash,  # 使用下载时计算的种子hash
                                                 "download_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                                             }
 
@@ -447,6 +523,60 @@ class HanHanRescueSeeding(_PluginBase):
         else:
             page_source = ""
         return page_source
+
+    def _download_torrent(self, url: str, site) -> Tuple[Optional[bytes], Optional[str]]:
+        """
+        根据url下载种子文件，返回种子内容bytes和种子对应的hash
+        """
+        ret = RequestUtils(
+            cookies=site.cookie,
+            timeout=30,
+        ).get_res(url, allow_redirects=True)
+        
+        if ret is not None and ret.content:
+            try:
+                # 使用torrentool解析种子内容并计算info hash
+                torrent = Torrent.from_string(ret.content)
+                torrent_hash = torrent.info_hash
+                return ret.content, torrent_hash
+            except Exception as e:
+                logger.error(f"解析种子文件失败: {str(e)}")
+                # 如果解析失败，仍然返回内容但hash为None
+                return ret.content, None
+        else:
+            logger.error(f"下载种子失败: {url}")
+            return None, None
+
+    def _delete_torrent_by_hash(self, torrent_hash: str) -> bool:
+        """
+        根据hash删除下载器中的种子
+        """
+        if not self._downloader:
+            logger.error("未配置下载器")
+            return False
+
+        service_info = self.downloader_helper.get_service(self._downloader)
+        if not service_info or not service_info.instance:
+            logger.error(f"下载器 {self._downloader} 未连接或不可用")
+            return False
+
+        try:
+            # 根据下载器类型调用相应的删除方法
+            if service_info.type == "qbittorrent":
+                # Qbittorrent 删除种子
+                result = service_info.instance.delete_torrents(ids=torrent_hash, delete_file=True)
+                return result
+            elif service_info.type == "transmission":
+                # Transmission 删除种子
+                result = service_info.instance.remove_torrents(ids=torrent_hash, delete_file=True)
+                return result
+            else:
+                logger.error(f"不支持的下载器类型: {service_info.type}")
+                return False
+        except Exception as e:
+            logger.error(f"删除种子失败 (hash: {torrent_hash}): {str(e)}")
+            return False
+
 
     def get_page(self) -> List[dict]:
         return None
