@@ -1,5 +1,7 @@
 import re
 import datetime
+import threading
+
 import pytz
 from typing import List, Tuple, Dict, Any, Optional
 
@@ -29,7 +31,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.2.4.1"
+    plugin_version = "1.2.6"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -55,6 +57,10 @@ class HanHanRescueSeeding(_PluginBase):
     _custom_tag = None
     _enable_notification = None
     _notify_on_zero_torrents = None
+    _history_rescue_enabled = None
+    _user_id = None
+    # 退出事件
+    _event = threading.Event()
 
     def init_plugin(self, config: dict = None):
         try:
@@ -82,20 +88,50 @@ class HanHanRescueSeeding(_PluginBase):
                 self._custom_tag = config.get("custom_tag")
                 self._enable_notification = config.get("enable_notification", False)
                 self._notify_on_zero_torrents = config.get("notify_on_zero_torrents", True)
+                self._history_rescue_enabled = config.get("history_rescue_enabled", False)
+                self._user_id = config.get("user_id", "")
 
             # 停止现有任务
             self.stop_service()
-            if self._run_once:
-                self._run_once = False
-                config.update({"run_once": False})
-                self.update_config(config=config)
-                logger.info("立即运行拯救憨憨保种区")
+            
+            # 检查是否需要立即运行一次性任务
+            need_run_once = self._run_once or (self._history_rescue_enabled and self._user_id)
+            
+            if need_run_once:
+                # 更新配置，将run_once和history_rescue_enabled设为false
+                updated = False
+                if self._run_once:
+                    config.update({"run_once": False})
+                    updated = True
+                if self._history_rescue_enabled:
+                    config.update({"history_rescue_enabled": False})
+                    updated = True
+                
+                if updated:
+                    self.update_config(config=config)
+                    
                 self._scheduler = BackgroundScheduler(timezone=settings.TZ)
-                self._scheduler.add_job(self._check_seeding, 'date',
-                                        run_date=datetime.datetime.now(
-                                            tz=pytz.timezone(settings.TZ)
-                                        ) + datetime.timedelta(seconds=3),
-                                        name="拯救憨憨保种区")
+                
+                # 添加普通保种任务
+                if self._run_once:
+                    self._run_once = False
+                    logger.info("立即运行拯救憨憨保种区")
+                    self._scheduler.add_job(self._check_seeding, 'date',
+                                            run_date=datetime.datetime.now(
+                                                tz=pytz.timezone(settings.TZ)
+                                            ) + datetime.timedelta(seconds=3),
+                                            name="拯救憨憨保种区")
+                
+                # 添加历史保种任务
+                if self._history_rescue_enabled and self._user_id:
+                    self._history_rescue_enabled = False
+                    logger.info(f"立即运行历史保种任务，用户ID: {self._user_id}")
+                    self._scheduler.add_job(self._check_history_seeding, 'date',
+                                            run_date=datetime.datetime.now(
+                                                tz=pytz.timezone(settings.TZ)
+                                            ) + datetime.timedelta(seconds=3),
+                                            name="拯救憨憨保种区历史任务")
+                
                 if self._scheduler.get_jobs():
                     # 启动服务
                     self._scheduler.print_jobs()
@@ -118,7 +154,9 @@ class HanHanRescueSeeding(_PluginBase):
             "save_path": self._save_path,
             "custom_tag": self._custom_tag,
             "enable_notification": self._enable_notification,
-            "notify_on_zero_torrents": self._notify_on_zero_torrents
+            "notify_on_zero_torrents": self._notify_on_zero_torrents,
+            "history_rescue_enabled": self._history_rescue_enabled,
+            "user_id": self._user_id
         }
 
     def load_config(self, config: dict):
@@ -135,7 +173,9 @@ class HanHanRescueSeeding(_PluginBase):
                     "save_path",
                     "custom_tag",
                     "enable_notification",
-                    "notify_on_zero_torrents"
+                    "notify_on_zero_torrents",
+                    "history_rescue_enabled",
+                    "user_id"
             ):
                 setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
 
@@ -163,7 +203,9 @@ class HanHanRescueSeeding(_PluginBase):
             "save_path": self._save_path,
             "custom_tag": self._custom_tag,
             "enable_notification": self._enable_notification,
-            "notify_on_zero_torrents": self._notify_on_zero_torrents
+            "notify_on_zero_torrents": self._notify_on_zero_torrents,
+            "history_rescue_enabled": self._history_rescue_enabled,
+            "user_id": self._user_id
         }
 
 
@@ -318,15 +360,17 @@ class HanHanRescueSeeding(_PluginBase):
             "kwargs": {} # 定时器参数
         }]
         """
+        services = []
         if self._enable and self._cron:
-            return [{
+            services.append({
                 "id": "HanHanRescueSeeding",
                 "name": "憨憨保种区服务",
                 "trigger": CronTrigger.from_crontab(self._cron),
                 "func": self._check_seeding,
                 "kwargs": {}
-            }]
-        return []
+            })
+        
+        return services
 
     def _check_seeding(self):
         try:
@@ -595,3 +639,253 @@ class HanHanRescueSeeding(_PluginBase):
                 self._scheduler = None
         except Exception as e:
             print(str(e))
+
+    def _check_history_seeding(self):
+        """
+        下载历史保种任务
+        访问 /userdetails.php?id={用户id}&action=7&page={page} 页面，解析种子信息并下载
+        """
+        if not self._user_id:
+            logger.error("用户ID未配置，无法执行下载历史保种任务")
+            return
+        
+        try:
+            # 初始化passkey变量
+            passkey = ""
+            downloaded_count = 0
+            success_downloaded_count = 0
+            failed_downloaded_count = 0
+            
+            # 遍历页面，从page=0开始
+            page = 0
+            while True:
+                user_details_url = f"https://{self.domain}/userdetails.php?id={self._user_id}&action=7&page={page}"
+                logger.debug(f"正在访问用户历史页面第{page + 1}页: {user_details_url}")
+                
+                page_content = self._get_page_source(url=user_details_url, site=self.site)
+                if not page_content:
+                    logger.error(f"访问用户历史页面第{page + 1}页失败: {user_details_url}")
+                    break
+                
+                # 解析页面
+                html = etree.HTML(page_content)
+                if html is None:
+                    logger.error(f"用户历史页面第{page + 1}页解析失败")
+                    break
+                
+                # 通过xpath获取tr元素
+                tr_elements = html.xpath('//*[@id="mainContent"]/div/div[2]/table')[0].xpath('tr')
+                
+                # 检查tr数量
+                if len(tr_elements) < 2:
+                    logger.info(f"用户历史页面第{page + 1}页种子数量为0个，终止任务")
+                    break
+                
+                logger.info(f"用户历史页面第{page + 1}页发现 {len(tr_elements)-1} 条种子记录，开始处理")
+                
+                # 从第2个tr开始遍历（跳过标题行）
+                for i, tr in enumerate(tr_elements[1:], start=1):
+                    try:
+                        # 检查下载数量限制
+                        if self._download_limit > 0 and success_downloaded_count > self._download_limit:
+                            logger.info(f"已达到单次下载数量限制 ({self._download_limit})，停止下载")
+                            break
+                        # 通过td[2]/a/@href获取种子详情页的地址
+                        detail_link_elements = tr.xpath('td[2]/a/@href')
+                        if not detail_link_elements:
+                            logger.warning(f"第 {i} 条记录没有找到详情链接")
+                            continue
+                        
+                        detail_link = detail_link_elements[0]
+                        
+                        # 通过正则匹配数字获取种子id
+                        import re
+                        torrent_id_match = re.search(r'id=(\d+)', detail_link)
+                        if not torrent_id_match:
+                            logger.warning(f"第 {i} 条记录无法解析种子ID")
+                            continue
+                        
+                        torrent_id = torrent_id_match.group(1)
+                        
+                        # 通过td[2]/a/text()获取种子的标题
+                        title_elements = tr.xpath('td[2]/a/text()')
+                        title = title_elements[0].strip() if title_elements else f"未知标题-{torrent_id}"
+                        
+                        # 通过td[3]获取种子大小
+                        size_elements = tr.xpath('td[3]//text()')
+                        size = "".join(size_elements).strip() if size_elements else "未知大小"
+                        
+                        # 通过td[4]获取做种人数
+                        seeders_elements = tr.xpath('td[4]//text()')
+                        seeders_text = "".join(seeders_elements).strip() if seeders_elements else "0"
+                        
+                        # 尝试解析做种人数
+                        try:
+                            seeders = int(re.search(r'\d+', seeders_text).group())
+                        except (ValueError, AttributeError):
+                            logger.warning(f"第 {i} 条记录无法解析做种人数: {seeders_text}")
+                            continue
+                        
+                        logger.info(f"种子 {torrent_id}: {title}, 大小: {size}, 做种人数: {seeders}")
+                        
+                        # 检查做种人数是否在设定区间内
+                        seeding_count_str = str(self._seeding_count)
+                        is_in_range = False
+                        
+                        if '-' in seeding_count_str:
+                            # 范围格式，如 1-3
+                            range_parts = seeding_count_str.split('-')
+                            if len(range_parts) == 2:
+                                try:
+                                    lower_bound = int(range_parts[0])
+                                    upper_bound = int(range_parts[1])
+                                    if lower_bound <= seeders <= upper_bound:
+                                        is_in_range = True
+                                except ValueError:
+                                    logger.error(f"无效的范围格式: {seeding_count_str}")
+                                    continue
+                        else:
+                            # 单个数字格式，检查做种人数是否小于该数字
+                            try:
+                                if seeders <= int(seeding_count_str):
+                                    is_in_range = True
+                            except ValueError:
+                                logger.error(f"无效的数字格式: {seeding_count_str}")
+                                continue
+                        
+                        if not is_in_range:
+                            logger.info(f"种子 {torrent_id} 做种人数 {seeders} 不在设定范围内 {seeding_count_str}，跳过")
+                            continue
+                        
+                        # 如果passkey为空，访问第一个种子的详情页获取passkey
+                        if not passkey:
+                            first_detail_url = f"https://{self.domain}/{detail_link}"
+                            logger.info(f"正在访问第一个种子详情页获取passkey: {first_detail_url}")
+                            
+                            detail_page_content = self._get_page_source(url=first_detail_url, site=self.site)
+                            if detail_page_content:
+                                detail_html = etree.HTML(detail_page_content)
+                                if detail_html is not None:
+                                    # 通过xpath获取下载链接
+                                    download_link_elements = detail_html.xpath('//*[@id="mainContent"]/div/div/div[1]/span/a/@href')
+                                    if download_link_elements:
+                                        # 通过正则表达式获取passkey
+                                        passkey_match = re.search(r'passkey=([^&]*)', download_link_elements[0])
+                                        if passkey_match:
+                                            passkey = passkey_match.group(1)
+                                            logger.info(f"获取到passkey: {passkey[:8]}...")
+                                        else:
+                                            logger.warning("无法从详情页获取passkey")
+                                    else:
+                                        logger.warning("在详情页未找到下载链接")
+                                else:
+                                    logger.warning("种子详情页解析失败")
+                            else:
+                                logger.warning("访问种子详情页失败")
+                            
+                            if not passkey:
+                                logger.error("无法获取passkey，终止任务")
+                                return
+                        
+                        # 构造下载链接
+                        download_link = f"https://{self.domain}/download.php?id={torrent_id}&passkey={passkey}"
+                        logger.info(f"开始下载种子: {download_link}")
+                        
+                        # 下载种子文件
+                        torrent_content, torrent_hash = self._download_torrent(download_link, self.site)
+                        if not torrent_content:
+                            logger.error(f"下载种子文件失败: {download_link}")
+                            failed_downloaded_count += 1
+                            continue
+                        
+                        # 调用下载器下载种子
+                        downloader = self._downloader
+                        service_info = self.downloader_helper.get_service(downloader)
+                        if service_info and service_info.instance:
+                            try:
+                                logger.debug(f"获取下载器实例成功: {downloader}")
+                                # 准备下载参数
+                                download_kwargs = {
+                                    "content": torrent_content,  # 使用下载的种子内容而不是URL
+                                    "cookie": self.site.cookie
+                                }
+                                if self._save_path:
+                                    download_kwargs["download_dir"] = self._save_path
+                                # 如果有自定义标签，则添加标签参数
+                                if self._custom_tag:
+                                    if service_info.type == "qbittorrent":
+                                        download_kwargs["tag"] = self._custom_tag.split(',')
+                                    elif service_info.type == "transmission":
+                                        download_kwargs["labels"] = self._custom_tag.split(',')
+                                logger.debug(f"下载种子参数: {download_kwargs}")
+                                # 下载种子文件
+                                result = service_info.instance.add_torrent(**download_kwargs)
+                                logger.debug(f"下载结果: {result}")
+                                if result:
+                                    logger.info(f"成功下载种子: {download_link}")
+                                    downloaded_count += 1
+                                    success_downloaded_count += 1
+                                    
+                                    # 获取种子信息
+                                    zh_title = "历史种子"  # 历史种子可能没有中文标题
+                                    seed_count = str(seeders)
+                                    
+                                    # 保存下载记录
+                                    download_record = {
+                                        "title": title,
+                                        "zh_title": zh_title,
+                                        "size": size,
+                                        "seeders": seed_count,
+                                        "download_link": download_link,
+                                        "torrent_hash": torrent_hash,  # 使用下载时计算的种子hash
+                                        "download_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                    }
+
+                                    # 获取现有下载记录
+                                    download_records = self.get_data("download_records") or []
+                                    # 将新记录添加到列表中
+                                    download_records.append(download_record)
+                                    # 保存更新后的列表
+                                    self.save_data(key="download_records", value=download_records)
+
+                                else:
+                                    logger.error(f"下载种子失败: {download_link}")
+                                    failed_downloaded_count += 1
+
+                            except Exception as e:
+                                logger.error(f"下载种子失败: {str(e)}")
+                                failed_downloaded_count += 1
+                        else:
+                            logger.error(f"下载器 {downloader} 未连接或不可用")
+                            failed_downloaded_count += 1
+                            
+                    except Exception as e:
+                        logger.error(f"处理第 {i} 条记录时出错: {str(e)}")
+                        continue
+                # 检查是否达到下载限制，如果是则跳出外层循环
+                if self._download_limit > 0 and success_downloaded_count >= self._download_limit:
+                    break
+                page += 1
+            
+            # 发送通知
+            if self._enable_notification:
+                self.post_message(
+                    mtype=NotificationType.Plugin,
+                    title="【憨憨保种区-历史任务】",
+                    text=f"历史保种任务完成: 成功 {success_downloaded_count}, 失败 {failed_downloaded_count}"
+                )
+                
+        except Exception as e:
+            logger.error(f"下载历史保种任务执行异常: {str(e)}", exc_info=True)
+            # 发送异常通知
+            if self._enable_notification:
+                self.post_message(
+                    mtype=NotificationType.Plugin,
+                    title="【憨憨保种区-历史任务】",
+                    text=f"历史保种任务执行异常，请查看日志了解详情"
+                )
+        
+        # 任务完成后将history_rescue_enabled设为false
+        config = self.get_data("config") or {}
+        config["history_rescue_enabled"] = False
+        self.update_config(config=config)

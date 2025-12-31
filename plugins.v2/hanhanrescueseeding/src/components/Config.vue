@@ -28,7 +28,16 @@
             <v-col cols="12" md="6">
               <v-switch
                 v-model="config.run_once"
-                label="立即运行一次"
+                label="立即运行普通保种任务"
+                color="primary"
+                persistent-hint
+                inset
+              ></v-switch>
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-switch
+                v-model="config.history_rescue_enabled"
+                label="立即运行下载历史保种任务"
                 color="primary"
                 persistent-hint
                 inset
@@ -65,6 +74,16 @@
                 item-value="value"
                 chips
               ></v-select>
+            </v-col>
+            <v-col cols="12" md="6" v-if="config.history_rescue_enabled">
+              <v-text-field
+                v-model="config.user_id"
+                label="用户ID"
+                type="number"
+                placeholder="请输入用户ID"
+                hint="用于下载历史保种任务的用户ID"
+                persistent-hint
+              ></v-text-field>
             </v-col>
           </v-row>
 
@@ -167,7 +186,9 @@ const defaultConfig = {
   run_once: false,
   custom_tag: '',
   enable_notification: true,
-  notify_on_zero_torrents: true
+  notify_on_zero_torrents: true,
+  history_rescue_enabled: false,
+  user_id: ''
 }
 
 // 合并默认配置和初始配置
