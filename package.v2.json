@@ -238,11 +238,12 @@
         "name": "憨憨保种区",
         "description": "拯救憨憨保种区",
         "labels": "保种",
-        "version": "1.2.5",
+        "version": "1.2.6",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.2.6": "增加下载历史保种任务",
             "v1.2.5": "增加历史记录筛选及删除;更新下载逻辑使用种子内容而非URL",
             "v1.2.4.1": "增加调式日志",
             "v1.2.4": "历史记录倒序",
