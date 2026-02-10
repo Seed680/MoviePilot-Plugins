@@ -341,8 +341,8 @@ return (_ctx, _cache) => {
                           }, {
                             default: _withCtx(() => [
                               _createVNode(_component_v_text_field, {
-                                modelValue: config._interval_time,
-                                "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config._interval_time) = $event)),
+                                modelValue: config.interval_time,
+                                "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.interval_time) = $event)),
                                 modelModifiers: { number: true },
                                 label: "固定间隔",
                                 type: "number",

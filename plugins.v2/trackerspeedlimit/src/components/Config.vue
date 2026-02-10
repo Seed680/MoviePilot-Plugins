@@ -79,7 +79,7 @@
             </v-col>
             <v-col cols="6" md="3" v-if="config.interval === '固定间隔'">
               <v-text-field
-                v-model.number="config._interval_time"
+                v-model.number="config.interval_time"
                 label="固定间隔"
                 type="number"
                 placeholder="输入间隔时间"
