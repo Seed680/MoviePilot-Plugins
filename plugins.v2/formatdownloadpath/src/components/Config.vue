@@ -20,7 +20,7 @@
             </v-card-item>
             <v-card-text>
               <v-row>
-                <v-col cols="12" md="4">
+                <v-col cols="12" md="6">
                   <v-switch
                     v-model="config.enabled"
                     label="启用插件"
@@ -29,99 +29,10 @@
                     inset
                   ></v-switch>
                 </v-col>
-                <v-col cols="12" md="4">
-                  <v-switch
-                    v-model="config.notify"
-                    label="启用通知"
-                    color="primary"
-                    persistent-hint
-                    inset
-                  ></v-switch>
-                </v-col>
-                <v-col cols="12" md="4">
-                  <v-switch
-                    v-model="config.add_tag_after_rename"
-                    label="重命名成功后添加标签"
-                    color="primary"
-                    persistent-hint
-                    inset
-                  ></v-switch>
-                </v-col>
-              </v-row>
-            </v-card-text>
-          </v-card>
-
-          <!-- 下载器设置 -->
-          <v-card variant="outlined" class="mb-4">
-            <v-card-item>
-              <v-card-title class="text-subtitle-1 font-weight-bold">下载器设置</v-card-title>
-            </v-card-item>
-            <v-card-text>
-              <v-row>
-                <v-col cols="12">
-                  <v-select
-                    v-model="config.downloader"
-                    :items="config.all_downloaders"
-                    label="下载器"
-                    placeholder="请选择下载器"
-                    item-title="title"
-                    item-value="value"
-                    multiple
-                    chips
-                    deletable-chips
-                  ></v-select>
-                </v-col>
-              </v-row>
-            </v-card-text>
-          </v-card>
-
-          <!-- 执行方式 -->
-          <v-card variant="outlined" class="mb-4">
-            <v-card-item>
-              <v-card-title class="text-subtitle-1 font-weight-bold">执行方式</v-card-title>
-            </v-card-item>
-            <v-card-text>
-              <v-row>
                 <v-col cols="12" md="6">
                   <v-switch
-                    v-model="config.cron_enabled"
-                    label="启用定时任务"
-                    color="primary"
-                    persistent-hint
-                    inset
-                  ></v-switch>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-switch
-                    v-model="config.event_enabled"
-                    label="启用事件监听"
-                    color="primary"
-                    persistent-hint
-                    inset
-                  ></v-switch>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-switch
-                    v-model="config.retry"
-                    label="尝试处理失败的种子"
-                    color="primary"
-                    persistent-hint
-                    inset
-                  ></v-switch>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-switch
-                    v-model="config.onlyonce"
-                    label="立即运行一次"
-                    color="primary"
-                    persistent-hint
-                    inset
-                  ></v-switch>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-switch
-                    v-model="config.recovery"
-                    label="恢复重命名"
+                    v-model="config.enable_listener"
+                    label="启用监听"
                     color="primary"
                     persistent-hint
                     inset
@@ -129,90 +40,40 @@
                 </v-col>
               </v-row>
               
-              <v-row v-if="config.cron_enabled">
-                <v-col cols="12" md="6">
-                  <VCronField
-                    v-model="config.cron"
-                    label="执行周期"
-                    hint="设置插件的执行周期，如：0 2 * * * (每天凌晨2点执行)"
+              <!-- 下载器选择 -->
+              <v-row v-if="config.enable_listener">
+                <v-col cols="12">
+                  <v-select
+                    v-model="config.downloaders"
+                    :items="downloaders"
+                    item-title="title"
+                    item-value="value"
+                    label="选择监听的下载器"
+                    multiple
+                    chips
+                    clearable
+                    :loading="loadingDownloaders"
+                    hint="选择要监听的下载器，留空则不监听下载器"
                     persistent-hint
-                  ></VCronField>
+                  />
                 </v-col>
               </v-row>
             </v-card-text>
           </v-card>
 
-          <!-- 标签过滤 -->
+          <!-- 路径格式化配置 -->
           <v-card variant="outlined" class="mb-4">
             <v-card-item>
-              <v-card-title class="text-subtitle-1 font-weight-bold">标签过滤</v-card-title>
-            </v-card-item>
-            <v-card-text>
-              <v-row>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="config.exclude_tags"
-                    label="排除标签"
-                    placeholder="已重命名"
-                    hint="排除包含指定标签的种子，多个标签用逗号分隔"
-                    persistent-hint
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="config.include_tags"
-                    label="包含标签"
-                    placeholder=""
-                    hint="仅处理包含指定标签的种子，多个标签用逗号分隔"
-                    persistent-hint
-                  ></v-text-field>
-                </v-col>
-              </v-row>
-            </v-card-text>
-          </v-card>
-
-          <!-- 路径过滤 -->
-          <v-card variant="outlined" class="mb-4">
-            <v-card-item>
-              <v-card-title class="text-subtitle-1 font-weight-bold">路径过滤</v-card-title>
+              <v-card-title class="text-subtitle-1 font-weight-bold">路径格式化配置</v-card-title>
             </v-card-item>
             <v-card-text>
               <v-row>
                 <v-col cols="12">
                   <v-textarea
-                    v-model="config.exclude_dirs"
-                    label="排除目录"
-                    placeholder=""
-                    hint="排除指定目录下的种子，每行一个目录"
-                    persistent-hint
-                  ></v-textarea>
-                </v-col>
-                <v-col cols="12">
-                  <v-textarea
-                    v-model="config.hash_white_list"
-                    label="种子哈希白名单"
-                    placeholder=""
-                    hint="仅处理指定哈希的种子，每行一个哈希值"
-                    persistent-hint
-                  ></v-textarea>
-                </v-col>
-              </v-row>
-            </v-card-text>
-          </v-card>
-
-          <!-- 重命名格式 -->
-          <v-card variant="outlined" class="mb-4">
-            <v-card-item>
-              <v-card-title class="text-subtitle-1 font-weight-bold">重命名格式</v-card-title>
-            </v-card-item>
-            <v-card-text>
-              <v-row>
-                <v-col cols="12">
-                  <v-textarea
-                    v-model="config.movie_format_torrent_name"
-                    label="电影格式化字符"
-                    placeholder="{{ title }}{% if year %} ({{ year }}){% endif %} - {{original_name}}"
-                    hint="电影种子重命名的格式模板"
+                    v-model="config.movie_format_path_template"
+                    label="电影格式化路径模板"
+                    placeholder="{{ title }}{% if year %}/{{ year }}{% endif %}"
+                    hint="使用Jinja2模板语法定义电影下载路径格式"
                     persistent-hint
                     ref="movieFormatTextarea"
                     id="movie-format-template"
@@ -225,10 +86,10 @@
               <v-row>
                 <v-col cols="12">
                   <v-textarea
-                    v-model="config.tv_format_torrent_name"
-                    label="剧集格式化字符"
-                    placeholder="{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %} - {{original_name}}"
-                    hint="剧集种子重命名的格式模板"
+                    v-model="config.tv_format_path_template"
+                    label="剧集格式化路径模板"
+                    placeholder="{{ title }}{% if year %}/{{ year }}{% endif %}/Season {{ season or 1 }}"
+                    hint="使用Jinja2模板语法定义剧集下载路径格式"
                     persistent-hint
                     ref="tvFormatTextarea"
                     id="tv-format-template"
@@ -334,6 +195,28 @@
               </v-row>
             </v-card-text>
           </v-card>
+
+          <!-- 排除目录设置 -->
+          <v-card variant="outlined" class="mb-4">
+            <v-card-item>
+              <v-card-title class="text-subtitle-1 font-weight-bold">排除目录设置</v-card-title>
+            </v-card-item>
+            <v-card-text>
+              <v-row>
+                <v-col cols="12">
+                  <v-textarea
+                    v-model="config.exclude_dirs"
+                    label="排除目录"
+                    placeholder="例:
+/path/to/exclude1
+/path/to/exclude2"
+                    hint="需要排除的目录，每行一个路径"
+                    persistent-hint
+                  />
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
         </v-form>
       </v-card-text>
       <v-card-actions>
@@ -365,14 +248,13 @@ const form = ref(null)
 const isFormValid = ref(true)
 const error = ref(null)
 const saving = ref(false)
-const formatTextarea = ref(null)
 const movieFormatTextarea = ref(null)
 const tvFormatTextarea = ref(null)
 // 跟踪当前活动的模板
 const activeTemplate = ref('movie') // 默认为电影模板
-
-// 可能为空的字段列表
-const nullableFields = ['en_name', 'tmdbid', 'imdbid', 'doubanid']
+// 下载器列表
+const downloaders = ref([])
+const loadingDownloaders = ref(false)
 
 // 示例数据用于预览
 const previewData = {
@@ -388,7 +270,7 @@ const previewData = {
   'episode': '33-34',
   'season_episode': 'S01E33-E34',
   'resourceType': 'WEB-DL',
-  'edition': 'WEB-DL',
+  'Edition': 'WEB-DL',
   'videoFormat': '2160p',
   'releaseGroup': 'XXXWEB',
   'videoCodec': 'H265',
@@ -403,25 +285,14 @@ const previewData = {
 
 // 配置数据，使用默认值和初始配置合并
 const defaultConfig = {
-  id: 'RenameTorrentVue',
-  name: '重命名种子Vue版',
+  id: 'FormatDownloadPath',
+  name: '下载路径格式化',
   enabled: false,
-  notify: false,
-  cron_enabled: false,
-  event_enabled: false,
-  downloader: [],
-  all_downloaders: [],
-  exclude_tags: '已重命名',
-  include_tags: '',
-  exclude_dirs: '',
-  hash_white_list: '',
-  movie_format_torrent_name: '{{ title }}{% if year %} ({{ year }}){% endif %} - {{original_name}}',
-  tv_format_torrent_name: '{{ title }}{% if year %} ({{ year }}){% endif %}{% if season_episode %} - {{season_episode}}{% endif %} - {{original_name}}',
-  onlyonce: false,
-  recovery: false,
-  retry: false,
-  add_tag_after_rename: false,
-  cron: ''
+  enable_listener: false,
+  downloaders: [],
+  movie_format_path_template: '{{ title }}{% if year %}({{ year }}){% endif %}',
+  tv_format_path_template: '{{ title }}{% if year %}({{ year }}){% endif %}',
+  exclude_dirs: ''
 }
 
 // 合并默认配置和初始配置
@@ -429,12 +300,14 @@ const config = reactive({ ...defaultConfig, ...props.initialConfig})
 
 // 计算预览结果
 const previewResult = computed(() => {
-  return renderTemplate(config.movie_format_torrent_name, previewData)
+  // 使用当前活动的模板进行预览
+  // 这里我们先使用电影模板进行预览
+  return renderTemplate(config.movie_format_path_template, previewData)
 })
-
+    
 // 计算TV预览结果
 const tvPreviewResult = computed(() => {
-  return renderTemplate(config.tv_format_torrent_name, {
+  return renderTemplate(config.tv_format_path_template, {
     ...previewData,
     type: '电视剧'
   })
@@ -443,6 +316,9 @@ const tvPreviewResult = computed(() => {
 // 初始化配置
 onMounted(async () => {
   try {
+    // 先获取下载器列表
+    await loadDownloaders()
+    
     const data = await props.api.get(`plugin/${config.id}/get_config`)
     Object.assign(config, {...config, ...data})
   } catch (err) {
@@ -450,6 +326,21 @@ onMounted(async () => {
     error.value = err.message || '获取配置失败'
   }
 })
+
+// 加载下载器列表
+async function loadDownloaders() {
+  try {
+    loadingDownloaders.value = true
+    const response = await props.api.get(`plugin/${config.id}/get_downloaders`)
+    // 直接使用返回的响应数据，因为后端现在返回正确的格式
+    downloaders.value = Array.isArray(response) ? response : []
+  } catch (err) {
+    console.error('获取下载器列表失败:', err)
+    error.value = err.message || '获取下载器列表失败'
+  } finally {
+    loadingDownloaders.value = false
+  }
+}
 
 // 自定义事件，用于保存配置
 const emit = defineEmits(['save', 'close'])
@@ -517,13 +408,13 @@ function insertVariable(variable) {
     if (textarea) {
       const startPos = textarea.selectionStart || 0;
       const endPos = textarea.selectionEnd || 0;
-      const textBefore = config.movie_format_torrent_name.substring(0, startPos);
-      const textAfter = config.movie_format_torrent_name.substring(endPos);
+      const textBefore = config.movie_format_path_template.substring(0, startPos);
+      const textAfter = config.movie_format_path_template.substring(endPos);
       
       // 默认插入带条件判断的语句
       let insertText = `{% if ${variable} %}{{ ${variable} }}{% endif %}`;
       
-      config.movie_format_torrent_name = textBefore + insertText + textAfter;
+      config.movie_format_path_template = textBefore + insertText + textAfter;
       
       // 设置焦点和光标位置
       setTimeout(() => {
@@ -537,13 +428,13 @@ function insertVariable(variable) {
     if (textarea) {
       const startPos = textarea.selectionStart || 0;
       const endPos = textarea.selectionEnd || 0;
-      const textBefore = config.tv_format_torrent_name.substring(0, startPos);
-      const textAfter = config.tv_format_torrent_name.substring(endPos);
+      const textBefore = config.tv_format_path_template.substring(0, startPos);
+      const textAfter = config.tv_format_path_template.substring(endPos);
       
       // 默认插入带条件判断的语句
       let insertText = `{% if ${variable} %}{{ ${variable} }}{% endif %}`;
       
-      config.tv_format_torrent_name = textBefore + insertText + textAfter;
+      config.tv_format_path_template = textBefore + insertText + textAfter;
       
       // 设置焦点和光标位置
       setTimeout(() => {
@@ -575,13 +466,13 @@ function insertConditional(variable) {
     if (textarea) {
       const startPos = textarea.selectionStart || 0;
       const endPos = textarea.selectionEnd || 0;
-      const textBefore = config.movie_format_torrent_name.substring(0, startPos);
-      const textAfter = config.movie_format_torrent_name.substring(endPos);
+      const textBefore = config.movie_format_path_template.substring(0, startPos);
+      const textAfter = config.movie_format_path_template.substring(endPos);
       
       // 插入条件语句
       const conditional = `{% if ${variable} %}{{ ${variable} }}{% endif %}`;
       
-      config.movie_format_torrent_name = textBefore + conditional + textAfter;
+      config.movie_format_path_template = textBefore + conditional + textAfter;
       
       // 设置焦点和光标位置
       setTimeout(() => {
@@ -595,13 +486,13 @@ function insertConditional(variable) {
     if (textarea) {
       const startPos = textarea.selectionStart || 0;
       const endPos = textarea.selectionEnd || 0;
-      const textBefore = config.tv_format_torrent_name.substring(0, startPos);
-      const textAfter = config.tv_format_torrent_name.substring(endPos);
+      const textBefore = config.tv_format_path_template.substring(0, startPos);
+      const textAfter = config.tv_format_path_template.substring(endPos);
       
       // 插入条件语句
       const conditional = `{% if ${variable} %}{{ ${variable} }}{% endif %}`;
       
-      config.tv_format_torrent_name = textBefore + conditional + textAfter;
+      config.tv_format_path_template = textBefore + conditional + textAfter;
       
       // 设置焦点和光标位置
       setTimeout(() => {
