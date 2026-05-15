@@ -35,7 +35,7 @@ class AutoSignInMod(_PluginBase):
     # 插件图标
     plugin_icon = "signin.png"
     # 插件版本
-    plugin_version = "2.8.2.3"
+    plugin_version = "2.8.3"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -45,8 +45,8 @@ class AutoSignInMod(_PluginBase):
     # 加载顺序
     plugin_order = 0
     # 可使用的用户级别
-    auth_level = 2
-
+    auth_level = 99
+    plugin_public_key = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAulgBefnwAYgfquHglvRFGoTUDYtiZgpfoYJIc5jFG1ibgynRJFjKP9YofUNgAUbghbRXH34ARnrUOMjp9Jakxbl7NHh0hEtT+Rz8rV03ylHFm1n4MzxPSvWTVK3+x+SnD9QoKsytyfSfSKN3lVgmqjEPhrdrUVaNSv7/jUBLdiiM3Qtx/ZNgEqLrotKoiQE5EmgC02XyhQru7QTYzYiRvEZjfI5M2WsbYYFP2NODlfVvwEu5/7ZcG1CEdmMhT7mdjBO8TFpM599HLcbiKWDcxU7PcrFxTqHhP/3p7cgHvtAuobAXv8bdD9E1WF7P0XvR8ZWpFOdydxnliv7ax4PReQIDAQAB'
     # 定时器
     _scheduler: Optional[BackgroundScheduler] = None
     # 加载的模块
