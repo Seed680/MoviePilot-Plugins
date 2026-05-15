@@ -341,8 +341,9 @@
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "thsrite,Seed680",
         "level": 99,
+        "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAulgBefnwAYgfquHglvRFGoTUDYtiZgpfoYJIc5jFG1ibgynRJFjKP9YofUNgAUbghbRXH34ARnrUOMjp9Jakxbl7NHh0hEtT+Rz8rV03ylHFm1n4MzxPSvWTVK3+x+SnD9QoKsytyfSfSKN3lVgmqjEPhrdrUVaNSv7/jUBLdiiM3Qtx/ZNgEqLrotKoiQE5EmgC02XyhQru7QTYzYiRvEZjfI5M2WsbYYFP2NODlfVvwEu5/7ZcG1CEdmMhT7mdjBO8TFpM599HLcbiKWDcxU7PcrFxTqHhP/3p7cgHvtAuobAXv8bdD9E1WF7P0XvR8ZWpFOdydxnliv7ax4PReQIDAQAB",
         "history": {
             "v2.8.3": "测试"
         }
-    }
+    }   
 }
