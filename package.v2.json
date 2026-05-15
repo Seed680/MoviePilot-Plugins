@@ -165,5 +165,17 @@
         "history": {
             "v0.1": "new"
         }
+    },
+    "AutoSignInMod": {
+        "name": "站点自动签到魔改版",
+        "description": "自动模拟登录、签到站点。",
+        "labels": "签到",
+        "version": "2.8.2.1",
+        "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
+        "author": "thsrite,Seed680",
+        "level": 1,
+        "history": {
+            "v2.8.2.1": "开始魔改"
+        }
     }
 }

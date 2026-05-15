@@ -1,0 +1,4 @@
+# CloakBrowser - 反检测浏览器
+# GitHub: https://github.com/CloakHQ/CloakBrowser
+# 安装命令: pip install cloakbrowser
+cloakbrowser>=0.3.26
