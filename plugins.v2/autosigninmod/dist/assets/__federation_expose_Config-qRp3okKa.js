@@ -36,8 +36,8 @@ const siteOptions = ref([]);
 
 // 配置数据，使用默认值和初始配置合并
 const defaultConfig = {
-  id: 'AutoSignIn',
-  name: '站点自动签到',
+  id: 'AutoSignInMod',
+  name: '站点自动签到魔改版',
   enabled: false,
   notify: true,
   cron: '',
@@ -57,7 +57,7 @@ const config = reactive({ ...defaultConfig, ...props.initialConfig });
 onMounted(async () => {
   try {
     // 获取当前配置
-    const data = await props.api.get(`plugin/AutoSignIn/config`);
+    const data = await props.api.get(`plugin/AutoSignInMod/config`);
     if (data) {
       Object.assign(config, { ...config, ...data });
     }
