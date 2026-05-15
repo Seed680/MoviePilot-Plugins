@@ -2,7 +2,7 @@
   <div class="app-container">
     <v-app>
       <v-app-bar color="primary" dark app>
-        <v-app-bar-title>站点自动签到</v-app-bar-title>
+        <v-app-bar-title>站点自动签到魔改版</v-app-bar-title>
       </v-app-bar>
 
       <v-main>
@@ -61,8 +61,8 @@ const activeTab = ref('config')
 
 // 配置初始值
 const initialConfig = {
-  id: 'AutoSignIn',
-  name: '站点自动签到',
+  id: 'AutoSignInMod',
+  name: '站点自动签到魔改版',
 }
 
 // API对象 - 在实际环境中由MoviePilot注入

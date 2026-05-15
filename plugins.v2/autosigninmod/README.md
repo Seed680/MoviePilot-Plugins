@@ -60,9 +60,9 @@ autosignin/
 
 插件提供以下 API 端点:
 
-1. **GET /plugin/AutoSignIn/config** - 获取当前配置
-2. **GET /plugin/AutoSignIn/history** - 获取签到和登录历史
-3. **GET /plugin/AutoSignIn/signin_by_domain** - 手动触发站点签到
+1. **GET /plugin/AutoSignInMod/config** - 获取当前配置
+2. **GET /plugin/AutoSignInMod/history** - 获取签到和登录历史
+3. **GET /plugin/AutoSignInMod/signin_by_domain** - 手动触发站点签到
 
 ## 功能特性
 

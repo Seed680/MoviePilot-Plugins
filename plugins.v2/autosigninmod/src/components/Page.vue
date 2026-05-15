@@ -160,7 +160,7 @@ const props = defineProps({
 })
 
 // 组件状态
-const title = ref('站点自动签到')
+const title = ref('站点自动签到魔改版')
 const loading = ref(true)
 const error = ref(null)
 const signinData = ref([])
@@ -290,7 +290,7 @@ async function refreshData() {
   error.value = null
 
   try {
-    const response = await props.api.get(`plugin/AutoSignIn/history`)
+    const response = await props.api.get(`plugin/AutoSignInMod/history`)
     
     if (response && response.signin) {
       signinData.value = response.signin

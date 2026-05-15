@@ -102,10 +102,10 @@ class AutoSignInMod(_PluginBase):
             if self._onlyonce:
                 # 定时服务
                 self._scheduler = BackgroundScheduler(timezone=settings.TZ)
-                logger.info("站点自动签到服务启动，立即运行一次")
+                logger.info("站点自动签到魔改版服务启动，立即运行一次")
                 self._scheduler.add_job(func=self.sign_in, trigger='date',
                                         run_date=datetime.now(tz=pytz.timezone(settings.TZ)) + timedelta(seconds=3),
-                                        name="站点自动签到")
+                                        name="站点自动签到魔改版")
 
                 # 关闭一次性开关
                 self._onlyonce = False
@@ -209,8 +209,8 @@ class AutoSignInMod(_PluginBase):
             try:
                 if str(self._cron).strip().count(" ") == 4:
                     return [{
-                        "id": "AutoSignIn",
-                        "name": "站点自动签到服务",
+                        "id": "AutoSignInMod",
+                        "name": "站点自动签到魔改版服务",
                         "trigger": CronTrigger.from_crontab(self._cron),
                         "func": self.sign_in,
                         "kwargs": {}
@@ -230,8 +230,8 @@ class AutoSignInMod(_PluginBase):
                             self._end_time = int(times[1])
                         if self._start_time and self._end_time:
                             return [{
-                                "id": "AutoSignIn",
-                                "name": "站点自动签到服务",
+                                "id": "AutoSignInMod",
+                                "name": "站点自动签到魔改版服务",
                                 "trigger": "interval",
                                 "func": self.sign_in,
                                 "kwargs": {
@@ -239,12 +239,12 @@ class AutoSignInMod(_PluginBase):
                                 }
                             }]
                         else:
-                            logger.error("站点自动签到服务启动失败，周期格式错误")
+                            logger.error("站点自动签到魔改版服务启动失败，周期格式错误")
                     else:
                         # 默认0-24 按照周期运行
                         return [{
-                            "id": "AutoSignIn",
-                            "name": "站点自动签到服务",
+                            "id": "AutoSignInMod",
+                            "name": "站点自动签到魔改版服务",
                             "trigger": "interval",
                             "func": self.sign_in,
                             "kwargs": {
@@ -263,8 +263,8 @@ class AutoSignInMod(_PluginBase):
             ret_jobs = []
             for trigger in triggers:
                 ret_jobs.append({
-                    "id": f"AutoSignIn|{trigger.hour}:{trigger.minute}",
-                    "name": "站点自动签到服务",
+                    "id": f"AutoSignInMod|{trigger.hour}:{trigger.minute}",
+                    "name": "站点自动签到魔改版服务",
                     "trigger": "cron",
                     "func": self.sign_in,
                     "kwargs": {
