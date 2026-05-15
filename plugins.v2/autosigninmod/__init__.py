@@ -11,7 +11,7 @@ from app import schemas
 from app.core.config import settings
 from app.core.event import eventmanager, Event
 from app.db.site_oper import SiteOper
-from app.plugins.autosignin.cloak_helper import CloakBrowserHelper
+from app.plugins.autosigninmod.cloak_helper import CloakBrowserHelper
 from app.helper.cloudflare import under_challenge
 from app.helper.module import ModuleHelper
 from app.helper.sites import SitesHelper
@@ -35,7 +35,7 @@ class AutoSignInMod(_PluginBase):
     # 插件图标
     plugin_icon = "signin.png"
     # 插件版本
-    plugin_version = "2.8.2.1"
+    plugin_version = "2.8.2.2"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
