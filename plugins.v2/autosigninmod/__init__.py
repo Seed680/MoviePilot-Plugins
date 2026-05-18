@@ -35,7 +35,7 @@ class AutoSignInMod(_PluginBase):
     # 插件图标
     plugin_icon = "signin.png"
     # 插件版本
-    plugin_version = "2.8.3"
+    plugin_version = "2.8.3.1"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -1579,6 +1579,7 @@ class AutoSignInMod(_PluginBase):
                 # 拼登签到地址
                 checkin_url = urljoin(site_url, "attendance.php")
             logger.info(f"开始站点签到：{site}，地址：{checkin_url}...")
+            render = True
             if render:
                 page_source = CloakBrowserHelper().get_page_source(url=checkin_url,
                                                                  cookies=site_cookie,
@@ -1682,6 +1683,7 @@ class AutoSignInMod(_PluginBase):
             # 访问链接
             site_url = str(site_url).replace("attendance.php", "")
             logger.info(f"开始站点模拟登录：{site}，地址：{site_url}...")
+            render = True
             if render:
                 page_source = CloakBrowserHelper().get_page_source(url=site_url,
                                                                  cookies=site_cookie,
