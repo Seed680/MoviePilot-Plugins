@@ -9,7 +9,8 @@ from apscheduler.triggers.cron import CronTrigger
 from app.chain.site import SiteChain
 from app.chain.subscribe import SubscribeChain
 from app.chain.tmdb import TmdbChain
-from app.chain.subscribe import SubscribeChain
+from app.chain.transfer import TransferChain
+from app.chain.recommend import RecommendChain
 from app.core.config import settings
 from app.log import logger
 from app.plugins import _PluginBase
@@ -26,7 +27,7 @@ class ServiceManagerMod(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png"
     # 插件版本
-    plugin_version = "1.9"
+    plugin_version = "1.9.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -45,10 +46,16 @@ class ServiceManagerMod(_PluginBase):
     _enabled = False
     # 恢复默认并停用
     _reset_and_disable = False
+    # CookieCloud同步（cron 表达式）
+    _cookiecloud_cron = ""
+    # 媒体服务器同步（cron 表达式）
+    _mediaserver_sync_cron = ""
     # 站点数据刷新（cron 表达式）
     _sitedata_refresh = ""
     # 订阅搜索补全（cron 表达式）
     _subscribe_search = ""
+    # 新增订阅搜索（cron 表达式）
+    _new_subscribe_search_cron = ""
     # 缓存清理（cron 表达式）
     _clear_cache = ""
     # 壁纸缓存（cron 表达式）
@@ -57,6 +64,20 @@ class ServiceManagerMod(_PluginBase):
     _subscribe_tmdb = ""
     # 订阅刷新（cron 表达式）
     _subscribe_refresh = ""
+    # 关注的订阅分享（cron 表达式）
+    _subscribe_follow_cron = ""
+    # 下载文件整理（cron 表达式）
+    _transfer_cron = ""
+    # 推荐缓存（cron 表达式）
+    _recommend_refresh_cron = ""
+    # 插件市场缓存（cron 表达式）
+    _plugin_market_refresh_cron = ""
+    # 订阅日历缓存（cron 表达式）
+    _subscribe_calendar_cache_cron = ""
+    # 公共定时服务（cron 表达式）
+    _scheduler_job_cron = ""
+    # 主动内存回收（cron 表达式）
+    _full_gc_cron = ""
     _scheduler = None
     # endregion
 
@@ -66,12 +87,22 @@ class ServiceManagerMod(_PluginBase):
 
         self._enabled = config.get("enabled", False)
         self._reset_and_disable = config.get("reset_and_disable", False)
+        self._cookiecloud_cron = config.get("cookiecloud_cron")
+        self._mediaserver_sync_cron = config.get("mediaserver_sync_cron")
         self._sitedata_refresh = config.get("sitedata_refresh")
         self._subscribe_search = config.get("subscribe_search")
+        self._new_subscribe_search_cron = config.get("new_subscribe_search_cron")
         self._clear_cache = config.get("clear_cache")
         self._random_wallpager = config.get("random_wallpager")
         self._subscribe_tmdb = config.get("subscribe_tmdb")
         self._subscribe_refresh = config.get("subscribe_refresh")
+        self._subscribe_follow_cron = config.get("subscribe_follow_cron")
+        self._transfer_cron = config.get("transfer_cron")
+        self._recommend_refresh_cron = config.get("recommend_refresh_cron")
+        self._plugin_market_refresh_cron = config.get("plugin_market_refresh_cron")
+        self._subscribe_calendar_cache_cron = config.get("subscribe_calendar_cache_cron")
+        self._scheduler_job_cron = config.get("scheduler_job_cron")
+        self._full_gc_cron = config.get("full_gc_cron")
         if self._enabled:
             # 延迟清除系统服务并添加自定义服务
             logger.info("插件已启用，30秒后清除系统服务并添加自定义服务")
@@ -165,7 +196,7 @@ class ServiceManagerMod(_PluginBase):
                                 'component': 'VCol',
                                 'props': {
                                     'cols': 12,
-                                    'md': 6
+                                    'md': 3
                                 },
                                 'content': [
                                     {
@@ -184,7 +215,7 @@ class ServiceManagerMod(_PluginBase):
                                 'component': 'VCol',
                                 'props': {
                                     'cols': 12,
-                                    'md': 6
+                                    'md': 3
                                 },
                                 'content': [
                                     {
@@ -203,7 +234,7 @@ class ServiceManagerMod(_PluginBase):
                                 'component': 'VCol',
                                 'props': {
                                     'cols': 12,
-                                    'md': 6
+                                    'md': 3
                                 },
                                 'content': [
                                     {
@@ -222,7 +253,7 @@ class ServiceManagerMod(_PluginBase):
                                 'component': 'VCol',
                                 'props': {
                                     'cols': 12,
-                                    'md': 6
+                                    'md': 3
                                 },
                                 'content': [
                                     {
@@ -236,12 +267,17 @@ class ServiceManagerMod(_PluginBase):
                                         }
                                     }
                                 ]
-                            },
+                            }
+                        ]
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
                             {
                                 'component': 'VCol',
                                 'props': {
                                     'cols': 12,
-                                    'md': 6
+                                    'md': 3
                                 },
                                 'content': [
                                     {
@@ -262,7 +298,7 @@ class ServiceManagerMod(_PluginBase):
                                 'component': 'VCol',
                                 'props': {
                                     'cols': 12,
-                                    'md': 6
+                                    'md': 3
                                 },
                                 'content': [
                                     {
@@ -272,6 +308,206 @@ class ServiceManagerMod(_PluginBase):
                                             'label': '订阅刷新',
                                             'placeholder': '5位cron表达式',
                                             'hint': '设置订阅刷新的周期，如 0 */6 * * * 表示每6小时执行一次',
+                                            'persistent-hint': True
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 3
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VCronField',
+                                        'props': {
+                                            'model': 'cookiecloud_cron',
+                                            'label': 'CookieCloud同步',
+                                            'placeholder': '5位cron表达式',
+                                            'hint': '设置CookieCloud同步周期，如 0 */2 * * * 表示每2小时执行一次',
+                                            'persistent-hint': True
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 3
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VCronField',
+                                        'props': {
+                                            'model': 'mediaserver_sync_cron',
+                                            'label': '媒体服务器同步',
+                                            'placeholder': '5位cron表达式',
+                                            'hint': '设置媒体服务器同步周期，如 0 */6 * * * 表示每6小时执行一次',
+                                            'persistent-hint': True
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 3
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VCronField',
+                                        'props': {
+                                            'model': 'full_gc_cron',
+                                            'label': '主动内存回收',
+                                            'placeholder': '5位cron表达式',
+                                            'hint': '设置主动内存回收周期，如 0 * * * * 表示每小时执行一次',
+                                            'persistent-hint': True
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 3
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VCronField',
+                                        'props': {
+                                            'model': 'new_subscribe_search_cron',
+                                            'label': '新增订阅搜索',
+                                            'placeholder': '5位cron表达式',
+                                            'hint': '设置新增订阅搜索周期，如 */5 * * * * 表示每5分钟执行一次',
+                                            'persistent-hint': True
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 3
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VCronField',
+                                        'props': {
+                                            'model': 'subscribe_follow_cron',
+                                            'label': '订阅分享',
+                                            'placeholder': '5位cron表达式',
+                                            'hint': '设置订阅分享周期，如 0 * * * * 表示每小时执行一次',
+                                            'persistent-hint': True
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 3
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VCronField',
+                                        'props': {
+                                            'model': 'transfer_cron',
+                                            'label': '文件整理',
+                                            'placeholder': '5位cron表达式',
+                                            'hint': '设置文件整理周期，如 */5 * * * * 表示每5分钟执行一次',
+                                            'persistent-hint': True
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 3
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VCronField',
+                                        'props': {
+                                            'model': 'recommend_refresh_cron',
+                                            'label': '推荐缓存',
+                                            'placeholder': '5位cron表达式',
+                                            'hint': '设置推荐缓存周期，如 0 0 * * * 表示每天凌晨执行',
+                                            'persistent-hint': True
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 3
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VCronField',
+                                        'props': {
+                                            'model': 'plugin_market_refresh_cron',
+                                            'label': '插件市场缓存',
+                                            'placeholder': '5位cron表达式',
+                                            'hint': '设置插件市场缓存周期，如 */30 * * * * 表示每30分钟执行一次',
+                                            'persistent-hint': True
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 3
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VCronField',
+                                        'props': {
+                                            'model': 'subscribe_calendar_cache_cron',
+                                            'label': '订阅日历缓存',
+                                            'placeholder': '5位cron表达式',
+                                            'hint': '设置订阅日历缓存周期，如 0 */6 * * * 表示每6小时执行一次',
+                                            'persistent-hint': True
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 3
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VCronField',
+                                        'props': {
+                                            'model': 'scheduler_job_cron',
+                                            'label': '公共定时服务',
+                                            'placeholder': '5位cron表达式',
+                                            'hint': '设置公共定时服务周期，如 */10 * * * * 表示每10分钟执行一次',
                                             'persistent-hint': True
                                         }
                                     }
@@ -346,7 +582,23 @@ class ServiceManagerMod(_PluginBase):
             }
         ], {
             "enabled": False,
-            "reset_and_disable": False
+            "reset_and_disable": False,
+            "sitedata_refresh": "",
+            "subscribe_search": "",
+            "clear_cache": "",
+            "random_wallpager": "",
+            "subscribe_tmdb": "",
+            "subscribe_refresh": "",
+            "cookiecloud_cron": "",
+            "mediaserver_sync_cron": "",
+            "full_gc_cron": "",
+            "new_subscribe_search_cron": "",
+            "subscribe_follow_cron": "",
+            "transfer_cron": "",
+            "recommend_refresh_cron": "",
+            "plugin_market_refresh_cron": "",
+            "subscribe_calendar_cache_cron": "",
+            "scheduler_job_cron": ""
         }
 
     def get_page(self) -> List[dict]:
@@ -362,7 +614,14 @@ class ServiceManagerMod(_PluginBase):
         scheduler_instance = Scheduler()
         
         # 移除插件添加的所有自定义服务
-        job_ids = ["sitedata_refresh", "subscribe_search", "clear_cache", "random_wallpager", "subscribe_tmdb", "subscribe_refresh"]
+        job_ids = [
+            "cookiecloud", "mediaserver_sync", "sitedata_refresh", 
+            "subscribe_search", "new_subscribe_search", "clear_cache", 
+            "random_wallpager", "subscribe_tmdb", "subscribe_refresh", 
+            "subscribe_follow", "transfer", "recommend_refresh", 
+            "plugin_market_refresh", "subscribe_calendar_cache", 
+            "scheduler_job", "full_gc"
+        ]
         for job_id in job_ids:
             try:
                 scheduler_instance.remove_plugin_job(pid=self.__class__.__name__, job_id=job_id)
@@ -388,10 +647,16 @@ class ServiceManagerMod(_PluginBase):
         scheduler_instance = Scheduler()
         
         # 移除默认服务
+        if self._cookiecloud_cron:
+            scheduler_instance.remove_plugin_job(pid="None", job_id="cookiecloud")
+        if self._mediaserver_sync_cron:
+            scheduler_instance.remove_plugin_job(pid="None", job_id="mediaserver_sync")
         if self._sitedata_refresh:
             scheduler_instance.remove_plugin_job(pid="None", job_id="sitedata_refresh")
         if settings.SUBSCRIBE_SEARCH and self._subscribe_search:
             scheduler_instance.remove_plugin_job(pid="None", job_id="subscribe_search")
+        if self._new_subscribe_search_cron:
+            scheduler_instance.remove_plugin_job(pid="None", job_id="new_subscribe_search")
         if self._clear_cache:
             scheduler_instance.remove_plugin_job(pid="None", job_id="clear_cache")
         if self._random_wallpager:
@@ -403,7 +668,6 @@ class ServiceManagerMod(_PluginBase):
         if self._subscribe_refresh:
             # 在spider模式下，需要移除所有以subscribe_refresh开头的任务
             if settings.SUBSCRIBE_MODE == "spider":
-                # 获取所有任务并移除subscribe_refresh相关的任务
                 jobs = scheduler_instance._scheduler.get_jobs()
                 for job in jobs:
                     if job.id.startswith("subscribe_refresh|"):
@@ -412,11 +676,26 @@ class ServiceManagerMod(_PluginBase):
                         except Exception as e:
                             logger.debug(f"移除任务 {job.id} 时出错: {str(e)}")
             else:
-                # RSS模式下直接移除subscribe_refresh任务
                 try:
                     scheduler_instance.remove_plugin_job(pid="None", job_id="subscribe_refresh")
                 except Exception as e:
                     logger.debug(f"移除任务 subscribe_refresh 时出错: {str(e)}")
+        
+        # 移除其他服务
+        if self._subscribe_follow_cron:
+            scheduler_instance.remove_plugin_job(pid="None", job_id="subscribe_follow")
+        if self._transfer_cron:
+            scheduler_instance.remove_plugin_job(pid="None", job_id="transfer")
+        if self._recommend_refresh_cron:
+            scheduler_instance.remove_plugin_job(pid="None", job_id="recommend_refresh")
+        if self._plugin_market_refresh_cron:
+            scheduler_instance.remove_plugin_job(pid="None", job_id="plugin_market_refresh")
+        if self._subscribe_calendar_cache_cron:
+            scheduler_instance.remove_plugin_job(pid="None", job_id="subscribe_calendar_cache")
+        if self._scheduler_job_cron:
+            scheduler_instance.remove_plugin_job(pid="None", job_id="scheduler_job")
+        if self._full_gc_cron:
+            scheduler_instance.remove_plugin_job(pid="None", job_id="full_gc")
         
         # 添加自定义服务
         self.add_custom_services(scheduler_instance)
@@ -426,6 +705,46 @@ class ServiceManagerMod(_PluginBase):
         """
         添加自定义服务到Scheduler
         """
+        # CookieCloud同步服务
+        if self._cookiecloud_cron:
+            job_id = "cookiecloud"
+            scheduler_instance._jobs[job_id] = {
+                "func": SiteChain().sync_cookies,
+                "name": "同步CookieCloud站点",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._cookiecloud_cron),
+                id=job_id,
+                name="同步CookieCloud站点",
+                kwargs={"job_id": job_id},
+                replace_existing=True
+            )
+
+        # 媒体服务器同步服务
+        if self._mediaserver_sync_cron:
+            job_id = "mediaserver_sync"
+            scheduler_instance._jobs[job_id] = {
+                "func": lambda: __import__('app.chain.mediaserver', fromlist=['MediaServerChain']).MediaServerChain().sync(),
+                "name": "同步媒体服务器",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._mediaserver_sync_cron),
+                id=job_id,
+                name="同步媒体服务器",
+                kwargs={"job_id": job_id},
+                replace_existing=True
+            )
+
         # 站点数据刷新服务
         if self._sitedata_refresh:
             job_id = "sitedata_refresh"
@@ -548,6 +867,166 @@ class ServiceManagerMod(_PluginBase):
                 CronTrigger.from_crontab(self._subscribe_refresh),
                 id=job_id,
                 name="订阅刷新",
+                kwargs={"job_id": job_id},
+                replace_existing=True
+            )
+
+        # 新增订阅搜索服务
+        if self._new_subscribe_search_cron:
+            job_id = "new_subscribe_search"
+            scheduler_instance._jobs[job_id] = {
+                "func": SubscribeChain().search,
+                "name": "新增订阅搜索",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {"state": "N"},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._new_subscribe_search_cron),
+                id=job_id,
+                name="新增订阅搜索",
+                kwargs={"job_id": job_id, "state": "N"},
+                replace_existing=True
+            )
+
+        # 关注的订阅分享服务
+        if self._subscribe_follow_cron:
+            job_id = "subscribe_follow"
+            scheduler_instance._jobs[job_id] = {
+                "func": SubscribeChain().follow,
+                "name": "关注的订阅分享",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._subscribe_follow_cron),
+                id=job_id,
+                name="关注的订阅分享",
+                kwargs={"job_id": job_id},
+                replace_existing=True
+            )
+
+        # 下载文件整理服务
+        if self._transfer_cron:
+            job_id = "transfer"
+            scheduler_instance._jobs[job_id] = {
+                "func": TransferChain().process,
+                "name": "下载文件整理",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._transfer_cron),
+                id=job_id,
+                name="下载文件整理",
+                kwargs={"job_id": job_id},
+                replace_existing=True
+            )
+
+        # 推荐缓存服务
+        if self._recommend_refresh_cron:
+            job_id = "recommend_refresh"
+            scheduler_instance._jobs[job_id] = {
+                "func": RecommendChain().refresh_recommend,
+                "name": "推荐缓存",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._recommend_refresh_cron),
+                id=job_id,
+                name="推荐缓存",
+                kwargs={"job_id": job_id},
+                replace_existing=True
+            )
+
+        # 插件市场缓存服务
+        if self._plugin_market_refresh_cron:
+            job_id = "plugin_market_refresh"
+            scheduler_instance._jobs[job_id] = {
+                "func": lambda: __import__('app.core.plugin', fromlist=['PluginManager']).PluginManager().async_get_online_plugins(force=True),
+                "name": "插件市场缓存",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {"force": True},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._plugin_market_refresh_cron),
+                id=job_id,
+                name="插件市场缓存",
+                kwargs={"job_id": job_id, "force": True},
+                replace_existing=True
+            )
+
+        # 订阅日历缓存服务
+        if self._subscribe_calendar_cache_cron:
+            job_id = "subscribe_calendar_cache"
+            scheduler_instance._jobs[job_id] = {
+                "func": SubscribeChain().cache_calendar,
+                "name": "订阅日历缓存",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._subscribe_calendar_cache_cron),
+                id=job_id,
+                name="订阅日历缓存",
+                kwargs={"job_id": job_id},
+                replace_existing=True
+            )
+
+        # 公共定时服务
+        if self._scheduler_job_cron:
+            job_id = "scheduler_job"
+            scheduler_instance._jobs[job_id] = {
+                "func": lambda: __import__('app.chain.scheduler', fromlist=['SchedulerChain']).SchedulerChain().scheduler_job(),
+                "name": "公共定时服务",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._scheduler_job_cron),
+                id=job_id,
+                name="公共定时服务",
+                kwargs={"job_id": job_id},
+                replace_existing=True
+            )
+
+        # 主动内存回收服务
+        if self._full_gc_cron:
+            job_id = "full_gc"
+            scheduler_instance._jobs[job_id] = {
+                "func": scheduler_instance.full_gc,
+                "name": "主动内存回收",
+                "pid": self.__class__.__name__,
+                "provider_name": self.plugin_name,
+                "kwargs": {},
+                "running": False,
+            }
+            scheduler_instance._scheduler.add_job(
+                scheduler_instance.start,
+                CronTrigger.from_crontab(self._full_gc_cron),
+                id=job_id,
+                name="主动内存回收",
                 kwargs={"job_id": job_id},
                 replace_existing=True
             )
