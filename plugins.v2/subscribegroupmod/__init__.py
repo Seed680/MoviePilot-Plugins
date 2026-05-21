@@ -5,12 +5,14 @@ from typing import Any, List, Dict, Tuple
 
 from app.core.event import eventmanager, Event
 from app.core.meta import MetaVideo
+from app.core.meta.streamingplatform import StreamingPlatforms
 from app.db.downloadhistory_oper import DownloadHistoryOper
 from app.db.site_oper import SiteOper
 from app.db.subscribe_oper import SubscribeOper
 from app.log import logger
 from app.plugins import _PluginBase
 from app.schemas.types import EventType, SystemConfigKey, MediaType
+from app.utils.tokens import Tokens
 
 
 class SubscribeGroupMod(_PluginBase):
@@ -21,7 +23,7 @@ class SubscribeGroupMod(_PluginBase):
     # 插件图标
     plugin_icon = "teamwork.png"
     # 插件版本
-    plugin_version = "2.8.7.2"
+    plugin_version = "2.8.7.3"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -33,6 +35,7 @@ class SubscribeGroupMod(_PluginBase):
     # 可使用的用户级别
     auth_level = 2
 
+    
     # 私有属性
     _enabled: bool = False
     _category: bool = False
@@ -329,17 +332,15 @@ class SubscribeGroupMod(_PluginBase):
                     if resource_team:
                         update_dict['include'] = f"(?=.*{resource_team})"
                 # 流媒体平台
-                logger.debug("开始填充流媒体平台")
                 if "流媒体平台" in self._update_details and isinstance(_meta, MetaVideo):
                     m: MetaVideo = _meta
-                    # 流媒体组
-                    web_source = m.web_source if m else None
+                    # 从 title 中匹配流媒体平台名称
+                    web_source = self._get_streaming_platform_from_title(m.title if m else None)
 
                     if web_source and not subscribe.include:
-                        update_dict['include'] = f"(?=.*{web_source})"
+                        update_dict['include'] += f"(?=.*{web_source})"
                     if web_source and subscribe.include:
                         update_dict['include'] += f"(?=.*{web_source})"
-                logger.debug(f"结束填充流媒体平台 流媒体平台:{web_source}")
                 # 站点
                 if "站点" in self._update_details and (
                         not subscribe.sites or (subscribe.sites and len(subscribe.sites) == 0)):
@@ -413,6 +414,34 @@ class SubscribeGroupMod(_PluginBase):
         if re.match(r"[\\s.]+SDR[\\s.]+", resource_effect, re.IGNORECASE):
             resource_effect = "[\\s.]+SDR[\\s.]+"
         return resource_effect
+
+    @staticmethod
+    def _get_streaming_platform_from_title(title: str) -> str:
+        """
+        从标题中匹配流媒体平台名称（仿照 __init_web_source 的 token 拆分方式）
+        :param title: 标题
+        :return: 匹配的流媒体平台名称，如果没有匹配则返回空字符串
+        """
+        if not title:
+            return ""
+        
+        # 使用 MetaVideo 的 Tokens 类进行分词（更专业的媒体标题解析）
+        tokens_obj = Tokens(title)
+        tokens = tokens_obj.tokens
+        
+        if not tokens:
+            return ""
+        
+        # 创建 StreamingPlatforms 实例
+        streaming_platforms = StreamingPlatforms()
+        
+        # 遍历所有 token，检查是否为流媒体平台
+        for i, token in enumerate(tokens):
+            # 1. 检查单个 token
+            if streaming_platforms.is_streaming_platform(token):
+                return token
+
+        return ""
 
     def get_state(self) -> bool:
         return self._enabled or self._category
