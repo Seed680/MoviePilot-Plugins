@@ -21,7 +21,7 @@ class SubscribeGroupMod(_PluginBase):
     # 插件图标
     plugin_icon = "teamwork.png"
     # 插件版本
-    plugin_version = "2.8.7.1"
+    plugin_version = "2.8.7.2"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -328,8 +328,9 @@ class SubscribeGroupMod(_PluginBase):
                         resource_team = customization
                     if resource_team:
                         update_dict['include'] = f"(?=.*{resource_team})"
-                # 流媒体组
-                if "流媒体组" in self._update_details and isinstance(_meta, MetaVideo):
+                # 流媒体平台
+                logger.debug("开始填充流媒体平台")
+                if "流媒体平台" in self._update_details and isinstance(_meta, MetaVideo):
                     m: MetaVideo = _meta
                     # 流媒体组
                     web_source = m.web_source if m else None
@@ -338,6 +339,7 @@ class SubscribeGroupMod(_PluginBase):
                         update_dict['include'] = f"(?=.*{web_source})"
                     if web_source and subscribe.include:
                         update_dict['include'] += f"(?=.*{web_source})"
+                logger.debug(f"结束填充流媒体平台 流媒体平台:{web_source}")
                 # 站点
                 if "站点" in self._update_details and (
                         not subscribe.sites or (subscribe.sites and len(subscribe.sites) == 0)):
