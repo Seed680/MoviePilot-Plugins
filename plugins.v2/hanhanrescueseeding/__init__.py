@@ -1,6 +1,7 @@
 import re
 import datetime
 import threading
+import traceback
 
 import pytz
 from typing import List, Tuple, Dict, Any, Optional
@@ -31,7 +32,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.2.6.1"
+    plugin_version = "1.2.6.2"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -406,20 +407,31 @@ class HanHanRescueSeeding(_PluginBase):
                 if len(elements) == 0:
                     break
                 for elem in elements:
-                    # 在每个找到的元素中再次通过xpath搜索
-                    # 做种人数
-                    seed = elem.xpath('div[3]/div/div[3]/a')
-                    # 英文标题
-                    title = elem.xpath('div[2]/div/a')
-                    # 中文标题
-                    zh_title = elem.xpath('div[2]/div/div[1]/div')
-                    # 种子大小
-                    size = elem.xpath('div[3]/div/div[1]')
-                    sub_elem = seed[0] if len(seed) > 0 else None
-                    # 打印子元素的文本内容和链接
-                    logger.info("做种人数:", sub_elem.text)
-                    # 检查做种人数是否在设定区间内
-                    if sub_elem.text:
+                    try:
+                        # 在每个找到的元素中再次通过xpath搜索
+                        # 做种人数
+                        seed = elem.xpath('div[3]/div/div[3]/a')
+                        # 英文标题
+                        title = elem.xpath('div[2]/div/a')
+                        # 中文标题
+                        zh_title = elem.xpath('div[2]/div/div[1]/div')
+                        # 种子大小
+                        size = elem.xpath('div[3]/div/div[1]')
+                        sub_elem = seed[0] if len(seed) > 0 else None
+                        # 打印子元素的文本内容和链接
+                        if sub_elem is not None and sub_elem.text is not None:
+                            logger.info(f"做种人数: {sub_elem.text}")
+                        else:
+                            logger.warning(f"未找到做种人数元素或做种人数为空，跳过此种子")
+                            continue
+                        # 检查做种人数是否在设定区间内
+                        # 将 text 转换为整数，处理 "0" 的情况
+                        try:
+                            seeders_count = int(sub_elem.text.strip())
+                        except (ValueError, AttributeError):
+                            logger.warning(f"做种人数格式错误: {sub_elem.text}，跳过此种子")
+                            continue
+                        
                         seeding_count_str = str(self._seeding_count)
                         if '-' in seeding_count_str:
                             # 分割范围字符串并转换为整数
@@ -429,15 +441,15 @@ class HanHanRescueSeeding(_PluginBase):
                                     lower_bound = int(range_parts[0])
                                     upper_bound = int(range_parts[1])
                                     # 检查做种人数是否在范围内
-                                    if (lower_bound > int(sub_elem.text)) or (upper_bound < int(sub_elem.text)):
+                                    if (lower_bound > seeders_count) or (upper_bound < seeders_count):
                                         continue
                                 except ValueError:
                                     logger.error(f"无效的范围格式: {seeding_count_str}")
                                     continue
                         else:
-                            # 不包含-号，判断sub_elem.text是否小于该数字
+                            # 不包含-号，判断做种人数是否小于该数字
                             try:
-                                if int(sub_elem.text) > int(seeding_count_str):
+                                if seeders_count > int(seeding_count_str):
                                     continue
                             except ValueError:
                                 logger.error(f"无效的数字格式: {seeding_count_str}")
@@ -491,7 +503,7 @@ class HanHanRescueSeeding(_PluginBase):
                                             title_text = title[0].text.strip() if title else "未知标题"
                                             zh_title_text = zh_title[0].text.strip() if zh_title else "无中文标题"
                                             size_text = size[0].text.strip() if size else "未知大小"
-                                            seed_count = sub_elem.text.strip() if sub_elem is not None else "0"
+                                            seed_count = str(seeders_count)
 
                                             # 保存下载记录
                                             download_record = {
@@ -521,6 +533,9 @@ class HanHanRescueSeeding(_PluginBase):
                                 else:
                                     logger.error(f"下载器 {downloader} 未连接或不可用")
                                     failed_downloaded_count += 1
+                    except Exception as e:
+                        logger.error(f"处理种子时出错: {str(e)}\n{traceback.format_exc()}")
+                        continue
 
             # 发送通知
             if self._enable_notification:
@@ -532,7 +547,7 @@ class HanHanRescueSeeding(_PluginBase):
                         text=f"成功拯救了 {success_downloaded_count} 个种子"
                     )
         except Exception as e:
-            logger.error(f"检查保种区异常:{str(e)}", exc_info=True)
+            logger.error(f"检查保种区异常: {str(e)}\n{traceback.format_exc()}")
             # 发送异常通知
             if self._enable_notification:
                 self.post_message(
