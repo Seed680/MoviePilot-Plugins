@@ -32,7 +32,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.2.6.2"
+    plugin_version = "1.2.7.0"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -53,6 +53,7 @@ class HanHanRescueSeeding(_PluginBase):
     _cron = None
     _downloader = None
     _seeding_count = None
+    _torrent_size = None
     _download_limit = None
     _save_path = None
     _custom_tag = None
@@ -87,6 +88,7 @@ class HanHanRescueSeeding(_PluginBase):
                 self._cron = config.get("cron")
                 self._downloader = config.get("downloader", None)
                 self._seeding_count = config.get("seeding_count", "1-3")
+                self._torrent_size = config.get("torrent_size", "")
                 self._download_limit = config.get("download_limit", 5)
                 self._save_path = config.get("save_path")
                 self._custom_tag = config.get("custom_tag")
@@ -173,6 +175,7 @@ class HanHanRescueSeeding(_PluginBase):
                     "cron",
                     "downloader",
                     "seeding_count",
+                    "torrent_size",
                     "download_limit",
                     "save_path",
                     "custom_tag",
@@ -202,6 +205,7 @@ class HanHanRescueSeeding(_PluginBase):
             "cron": self._cron,
             "downloader": self._downloader,
             "seeding_count": self._seeding_count,
+            "torrent_size": self._torrent_size,
             "download_limit": self._download_limit,
             "all_downloaders": self._all_downloaders,
             "save_path": self._save_path,
@@ -261,6 +265,42 @@ class HanHanRescueSeeding(_PluginBase):
         else:
             all_downloaders = []
         return all_downloaders
+
+    def _parse_size_to_gb(self, size_str: str) -> Optional[float]:
+        """
+        解析种子大小字符串为GB数值
+        支持格式: "1.5 GB", "500 MB", "2.3 TB", "100 KB"
+        返回: GB数值，如果解析失败返回None
+        """
+        if not size_str:
+            return None
+        
+        size_str = size_str.strip().upper()
+        
+        # 匹配数字和单位
+        match = re.match(r'([\d.]+)\s*(KB|MB|GB|TB)', size_str)
+        if not match:
+            logger.warning(f"无法解析种子大小格式: {size_str}")
+            return None
+        
+        try:
+            value = float(match.group(1))
+            unit = match.group(2)
+            
+            # 转换为GB
+            if unit == 'KB':
+                return value / (1024 * 1024)
+            elif unit == 'MB':
+                return value / 1024
+            elif unit == 'GB':
+                return value
+            elif unit == 'TB':
+                return value * 1024
+            else:
+                return None
+        except Exception as e:
+            logger.error(f"解析种子大小失败: {str(e)}")
+            return None
 
     def get_state(self) -> bool:
         return self._enable
@@ -454,6 +494,41 @@ class HanHanRescueSeeding(_PluginBase):
                             except ValueError:
                                 logger.error(f"无效的数字格式: {seeding_count_str}")
                                 continue
+                        
+                        # 检查种子大小是否在设定范围内
+                        size_text = size[0].text.strip() if size else None
+                        if size_text and self._torrent_size:
+                            size_gb = self._parse_size_to_gb(size_text)
+                            if size_gb is not None:
+                                torrent_size_str = str(self._torrent_size)
+                                size_in_range = False
+                                
+                                if '-' in torrent_size_str:
+                                    # 范围格式，如 1-5
+                                    range_parts = torrent_size_str.split('-')
+                                    if len(range_parts) == 2:
+                                        try:
+                                            lower_bound = float(range_parts[0])
+                                            upper_bound = float(range_parts[1])
+                                            if lower_bound <= size_gb <= upper_bound:
+                                                size_in_range = True
+                                        except ValueError:
+                                            logger.error(f"无效的种子大小范围格式: {torrent_size_str}")
+                                            continue
+                                else:
+                                    # 单个数字格式，检查种子大小是否小于该数字
+                                    try:
+                                        if size_gb <= float(torrent_size_str):
+                                            size_in_range = True
+                                    except ValueError:
+                                        logger.error(f"无效的种子大小数字格式: {torrent_size_str}")
+                                        continue
+                                
+                                if not size_in_range:
+                                    logger.info(f"种子大小 {size_gb:.2f}GB 不在设定范围内 {torrent_size_str}GB，跳过")
+                                    continue
+                            else:
+                                logger.warning(f"无法解析种子大小: {size_text}，跳过大小检查")
                         # 检查下载数量限制
                         if self._download_limit > 0 and downloaded_count >= self._download_limit:
                             logger.info(f"已达到单次下载数量限制 ({self._download_limit})，停止下载")
@@ -774,6 +849,40 @@ class HanHanRescueSeeding(_PluginBase):
                         if not is_in_range:
                             logger.info(f"种子 {torrent_id} 做种人数 {seeders} 不在设定范围内 {seeding_count_str}，跳过")
                             continue
+                        
+                        # 检查种子大小是否在设定范围内
+                        if self._torrent_size:
+                            size_gb = self._parse_size_to_gb(size)
+                            if size_gb is not None:
+                                torrent_size_str = str(self._torrent_size)
+                                size_in_range = False
+                                
+                                if '-' in torrent_size_str:
+                                    # 范围格式，如 1-5
+                                    range_parts = torrent_size_str.split('-')
+                                    if len(range_parts) == 2:
+                                        try:
+                                            lower_bound = float(range_parts[0])
+                                            upper_bound = float(range_parts[1])
+                                            if lower_bound <= size_gb <= upper_bound:
+                                                size_in_range = True
+                                        except ValueError:
+                                            logger.error(f"无效的种子大小范围格式: {torrent_size_str}")
+                                            continue
+                                else:
+                                    # 单个数字格式，检查种子大小是否小于该数字
+                                    try:
+                                        if size_gb <= float(torrent_size_str):
+                                            size_in_range = True
+                                    except ValueError:
+                                        logger.error(f"无效的种子大小数字格式: {torrent_size_str}")
+                                        continue
+                                
+                                if not size_in_range:
+                                    logger.info(f"种子 {torrent_id} 大小 {size_gb:.2f}GB 不在设定范围内 {torrent_size_str}GB，跳过")
+                                    continue
+                            else:
+                                logger.warning(f"无法解析种子大小: {size}，跳过大小检查")
                         
                         # 如果passkey为空，访问第一个种子的详情页获取passkey
                         if not passkey:
