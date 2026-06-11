@@ -110,6 +110,17 @@
             
             <v-col cols="12" md="6">
               <v-text-field
+                v-model="config.torrent_size"
+                label="种子大小(GB)"
+                type="text"
+                placeholder="请输入种子大小范围"
+                hint="例:10或者1-5 (单位:GB)"
+                persistent-hint
+              ></v-text-field>
+            </v-col>
+            
+            <v-col cols="12" md="6">
+              <v-text-field
                 v-model.number="config.download_limit"
                 label="单次下载数量"
                 type="number"
@@ -180,6 +191,7 @@ const defaultConfig = {
   cron: '',
   downloader: '',
   seeding_count: '1-3',
+  torrent_size: '',
   download_limit: 5,
   all_downloaders: [],
   save_path: '',
