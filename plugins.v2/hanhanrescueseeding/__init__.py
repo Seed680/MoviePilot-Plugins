@@ -32,7 +32,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.2.7.0"
+    plugin_version = "1.2.7.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -532,7 +532,7 @@ class HanHanRescueSeeding(_PluginBase):
                         # 检查下载数量限制
                         if self._download_limit > 0 and downloaded_count >= self._download_limit:
                             logger.info(f"已达到单次下载数量限制 ({self._download_limit})，停止下载")
-                            return
+                            break
                         # 如果做种人数在设定区间内，则下载种子
                         download_element = elem.xpath('div[4]/div/a')
                         if download_element:
@@ -780,7 +780,7 @@ class HanHanRescueSeeding(_PluginBase):
                 for i, tr in enumerate(tr_elements[1:], start=1):
                     try:
                         # 检查下载数量限制
-                        if self._download_limit > 0 and success_downloaded_count > self._download_limit:
+                        if self._download_limit > 0 and success_downloaded_count >= self._download_limit:
                             logger.info(f"已达到单次下载数量限制 ({self._download_limit})，停止下载")
                             break
                         # 通过td[2]/a/@href获取种子详情页的地址
