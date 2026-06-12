@@ -780,7 +780,7 @@ class HanHanRescueSeeding(_PluginBase):
                 for i, tr in enumerate(tr_elements[1:], start=1):
                     try:
                         # 检查下载数量限制
-                        if self._download_limit > 0 and success_downloaded_count >= self._download_limit:
+                        if self._download_limit > 0 and success_downloaded_count > self._download_limit:
                             logger.info(f"已达到单次下载数量限制 ({self._download_limit})，停止下载")
                             break
                         # 通过td[2]/a/@href获取种子详情页的地址
