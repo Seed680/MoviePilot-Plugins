@@ -61,6 +61,15 @@
                 inset
               ></v-switch>
             </v-col>
+            <v-col cols="12" md="6">
+              <v-switch
+                v-model="config.force_resume"
+                label="强制继续（仅QB支持）"
+                color="primary"
+                persistent-hint
+                hint="添加种子后设置为强制作种状态，仅Qbittorrent下载器支持"
+              ></v-switch>
+            </v-col>
           </v-row>
 
           <v-row>
@@ -200,7 +209,8 @@ const defaultConfig = {
   enable_notification: true,
   notify_on_zero_torrents: true,
   history_rescue_enabled: false,
-  user_id: ''
+  user_id: '',
+  force_resume: false
 }
 
 // 合并默认配置和初始配置
