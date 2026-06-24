@@ -50,7 +50,8 @@ const defaultConfig = {
   enable_notification: true,
   notify_on_zero_torrents: true,
   history_rescue_enabled: false,
-  user_id: ''
+  user_id: '',
+  force_resume: false
 };
 
 // 合并默认配置和初始配置
@@ -139,11 +140,11 @@ return (_ctx, _cache) => {
             }, {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, null, {
-                  default: _withCtx(() => _cache[14] || (_cache[14] = [
+                  default: _withCtx(() => _cache[15] || (_cache[15] = [
                     _createTextVNode("mdi-close", -1)
                   ])),
                   _: 1,
-                  __: [14]
+                  __: [15]
                 })
               ]),
               _: 1
@@ -177,11 +178,11 @@ return (_ctx, _cache) => {
               ref_key: "form",
               ref: form,
               modelValue: isFormValid.value,
-              "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((isFormValid).value = $event)),
+              "onUpdate:modelValue": _cache[14] || (_cache[14] = $event => ((isFormValid).value = $event)),
               onSubmit: _withModifiers(saveConfig, ["prevent"])
             }, {
               default: _withCtx(() => [
-                _cache[15] || (_cache[15] = _createElementVNode("div", { class: "text-subtitle-1 font-weight-bold mt-4 mb-2" }, "基本设置", -1)),
+                _cache[16] || (_cache[16] = _createElementVNode("div", { class: "text-subtitle-1 font-weight-bold mt-4 mb-2" }, "基本设置", -1)),
                 _createVNode(_component_v_row, null, {
                   default: _withCtx(() => [
                     _createVNode(_component_v_col, {
@@ -263,6 +264,22 @@ return (_ctx, _cache) => {
                         }, null, 8, ["modelValue"])
                       ]),
                       _: 1
+                    }),
+                    _createVNode(_component_v_col, {
+                      cols: "12",
+                      md: "6"
+                    }, {
+                      default: _withCtx(() => [
+                        _createVNode(_component_v_switch, {
+                          modelValue: config.force_resume,
+                          "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((config.force_resume) = $event)),
+                          label: "强制继续（仅QB支持）",
+                          color: "primary",
+                          "persistent-hint": "",
+                          hint: "添加种子后设置为强制作种状态，仅Qbittorrent下载器支持"
+                        }, null, 8, ["modelValue"])
+                      ]),
+                      _: 1
                     })
                   ]),
                   _: 1
@@ -273,7 +290,7 @@ return (_ctx, _cache) => {
                       default: _withCtx(() => [
                         _createVNode(_component_v_select, {
                           modelValue: config.downloader,
-                          "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((config.downloader) = $event)),
+                          "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.downloader) = $event)),
                           items: config.all_downloaders,
                           label: "下载器",
                           placeholder: "请选择下载器",
@@ -293,7 +310,7 @@ return (_ctx, _cache) => {
                           default: _withCtx(() => [
                             _createVNode(_component_v_text_field, {
                               modelValue: config.user_id,
-                              "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.user_id) = $event)),
+                              "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.user_id) = $event)),
                               label: "用户ID",
                               type: "number",
                               placeholder: "请输入用户ID",
@@ -316,7 +333,7 @@ return (_ctx, _cache) => {
                       default: _withCtx(() => [
                         _createVNode(_component_VCronField, {
                           modelValue: config.cron,
-                          "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((config.cron) = $event)),
+                          "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.cron) = $event)),
                           label: "执行周期",
                           hint: "设置插件的执行周期，如：0 2 * * * (每天凌晨2点执行)",
                           "persistent-hint": ""
@@ -331,7 +348,7 @@ return (_ctx, _cache) => {
                       default: _withCtx(() => [
                         _createVNode(_component_v_text_field, {
                           modelValue: config.seeding_count,
-                          "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.seeding_count) = $event)),
+                          "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.seeding_count) = $event)),
                           label: "做种人数",
                           type: "text",
                           placeholder: "请输入做种人数",
@@ -348,7 +365,7 @@ return (_ctx, _cache) => {
                       default: _withCtx(() => [
                         _createVNode(_component_v_text_field, {
                           modelValue: config.torrent_size,
-                          "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((config.torrent_size) = $event)),
+                          "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.torrent_size) = $event)),
                           label: "种子大小(GB)",
                           type: "text",
                           placeholder: "请输入种子大小范围",
@@ -365,7 +382,7 @@ return (_ctx, _cache) => {
                       default: _withCtx(() => [
                         _createVNode(_component_v_text_field, {
                           modelValue: config.download_limit,
-                          "onUpdate:modelValue": _cache[10] || (_cache[10] = $event => ((config.download_limit) = $event)),
+                          "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.download_limit) = $event)),
                           modelModifiers: { number: true },
                           label: "单次下载数量",
                           type: "number",
@@ -383,7 +400,7 @@ return (_ctx, _cache) => {
                       default: _withCtx(() => [
                         _createVNode(_component_v_text_field, {
                           modelValue: config.save_path,
-                          "onUpdate:modelValue": _cache[11] || (_cache[11] = $event => ((config.save_path) = $event)),
+                          "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.save_path) = $event)),
                           label: "保存路径",
                           placeholder: "请输入保存路径",
                           hint: "设置种子文件的保存路径",
@@ -399,7 +416,7 @@ return (_ctx, _cache) => {
                       default: _withCtx(() => [
                         _createVNode(_component_v_text_field, {
                           modelValue: config.custom_tag,
-                          "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((config.custom_tag) = $event)),
+                          "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((config.custom_tag) = $event)),
                           label: "自定义标签",
                           placeholder: "请输入自定义标签",
                           hint: "为下载的种子添加自定义标签",
@@ -414,7 +431,7 @@ return (_ctx, _cache) => {
                 _createVNode(_component_v_divider, { class: "my-4" })
               ]),
               _: 1,
-              __: [15]
+              __: [16]
             }, 8, ["modelValue"])
           ]),
           _: 1
@@ -425,11 +442,11 @@ return (_ctx, _cache) => {
               color: "secondary",
               onClick: resetForm
             }, {
-              default: _withCtx(() => _cache[16] || (_cache[16] = [
+              default: _withCtx(() => _cache[17] || (_cache[17] = [
                 _createTextVNode("重置", -1)
               ])),
               _: 1,
-              __: [16]
+              __: [17]
             }),
             _createVNode(_component_v_spacer),
             _createVNode(_component_v_btn, {
@@ -438,11 +455,11 @@ return (_ctx, _cache) => {
               onClick: saveConfig,
               loading: saving.value
             }, {
-              default: _withCtx(() => _cache[17] || (_cache[17] = [
+              default: _withCtx(() => _cache[18] || (_cache[18] = [
                 _createTextVNode("保存配置", -1)
               ])),
               _: 1,
-              __: [17]
+              __: [18]
             }, 8, ["disabled", "loading"])
           ]),
           _: 1

@@ -32,7 +32,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "1.2.7.1"
+    plugin_version = "1.2.7.2"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -61,6 +61,7 @@ class HanHanRescueSeeding(_PluginBase):
     _notify_on_zero_torrents = None
     _history_rescue_enabled = None
     _user_id = None
+    _force_resume = None
     # 退出事件
     _event = threading.Event()
 
@@ -96,6 +97,7 @@ class HanHanRescueSeeding(_PluginBase):
                 self._notify_on_zero_torrents = config.get("notify_on_zero_torrents", True)
                 self._history_rescue_enabled = config.get("history_rescue_enabled", False)
                 self._user_id = config.get("user_id", "")
+                self._force_resume = config.get("force_resume", False)
 
             # 停止现有任务
             self.stop_service()
@@ -162,7 +164,8 @@ class HanHanRescueSeeding(_PluginBase):
             "enable_notification": self._enable_notification,
             "notify_on_zero_torrents": self._notify_on_zero_torrents,
             "history_rescue_enabled": self._history_rescue_enabled,
-            "user_id": self._user_id
+            "user_id": self._user_id,
+            "force_resume": self._force_resume
         }
 
     def load_config(self, config: dict):
@@ -182,7 +185,8 @@ class HanHanRescueSeeding(_PluginBase):
                     "enable_notification",
                     "notify_on_zero_torrents",
                     "history_rescue_enabled",
-                    "user_id"
+                    "user_id",
+                    "force_resume"
             ):
                 setattr(self, f"_{key}", config.get(key, getattr(self, f"_{key}")))
 
@@ -213,7 +217,8 @@ class HanHanRescueSeeding(_PluginBase):
             "enable_notification": self._enable_notification,
             "notify_on_zero_torrents": self._notify_on_zero_torrents,
             "history_rescue_enabled": self._history_rescue_enabled,
-            "user_id": self._user_id
+            "user_id": self._user_id,
+            "force_resume": self._force_resume
         }
 
 
@@ -574,6 +579,18 @@ class HanHanRescueSeeding(_PluginBase):
                                             logger.info(f"成功下载种子: {download_link}")
                                             downloaded_count += 1
                                             success_downloaded_count += 1
+                                            
+                                            # 如果启用了强制继续且是qbittorrent，设置强制作种
+                                            if self._force_resume and service_info.type == "qbittorrent":
+                                                try:
+                                                    # 等待一下让种子添加到下载器
+                                                    import time
+                                                    time.sleep(1)
+                                                    service_info.instance.torrents_set_force_start(ids=torrent_hash)
+                                                    logger.info(f"已设置种子强制作种: {torrent_hash}")
+                                                except Exception as e:
+                                                    logger.error(f"设置强制作种失败: {str(e)}")
+                                            
                                             # 获取种子信息
                                             title_text = title[0].text.strip() if title else "未知标题"
                                             zh_title_text = zh_title[0].text.strip() if zh_title else "无中文标题"
@@ -952,6 +969,17 @@ class HanHanRescueSeeding(_PluginBase):
                                     logger.info(f"成功下载种子: {download_link}")
                                     downloaded_count += 1
                                     success_downloaded_count += 1
+                                    
+                                    # 如果启用了强制继续且是qbittorrent，设置强制作种
+                                    if self._force_resume and service_info.type == "qbittorrent":
+                                        try:
+                                            # 等待一下让种子添加到下载器
+                                            import time
+                                            time.sleep(1)
+                                            service_info.instance.torrents_set_force_start(ids=torrent_hash)
+                                            logger.info(f"已设置种子强制作种: {torrent_hash}")
+                                        except Exception as e:
+                                            logger.error(f"设置强制作种失败: {str(e)}")
                                     
                                     # 获取种子信息
                                     zh_title = "历史种子"  # 历史种子可能没有中文标题

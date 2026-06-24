@@ -240,11 +240,12 @@
         "name": "憨憨保种区",
         "description": "拯救憨憨保种区",
         "labels": "保种",
-        "version": "1.2.7.1",
+        "version": "1.2.7.2",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "Seed680",
         "level": 1,
         "history": {
+            "v1.2.7.2": "qb增加强制下载选项",
             "v1.2.7.1": "修复设置下载数量限制后未按预期发送通知的问题",
             "1.2.7.0": "增加种子大小筛选",
             "v1.2.6.2": "修复保种人数为0时报错的问题",
