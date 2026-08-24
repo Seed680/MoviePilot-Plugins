@@ -3,7 +3,6 @@ import re
 import time
 from typing import Any, List, Dict, Tuple
 
-from app.db.models.subscribe import Subscribe
 from app.db.oper.downloadhistory import DownloadHistoryOper
 from app.db.oper.site import SiteOper
 from app.db.oper.subscribe import SubscribeOper
@@ -23,7 +22,7 @@ class SubscribeGroupMod(_PluginBase):
     # 插件图标
     plugin_icon = "teamwork.png"
     # 插件版本
-    plugin_version = "3.0.0"
+    plugin_version = "3.0.1"
     # 插件作者
     plugin_author = "thsrite,Seed680"
     # 作者主页
@@ -295,7 +294,7 @@ class SubscribeGroupMod(_PluginBase):
             # 根据统一媒体身份查询订阅记录，并保留原有按季筛选语义
             season = (int(download_history.seasons.replace('S', ''))
                       if download_history.seasons and download_history.seasons.count('-') == 0 else None)
-            subscribes = Subscribe.list_by_media_identity(
+            subscribes = self._subscribeoper.list_by_media_identity(
                 media_source=media_source,
                 media_id=media_id,
                 music_type=download_history.music_type

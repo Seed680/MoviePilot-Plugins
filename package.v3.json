@@ -299,12 +299,13 @@
         "name": "订阅规则自动填充魔改版",
         "description": "电视剧下载后自动添加官组等信息到订阅；添加订阅后根据二级分类名称自定义订阅规则。",
         "labels": "订阅",
-        "version": "3.0.0",
+        "version": "3.0.1",
         "system_version": ">=3.0.0",
         "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
         "author": "thsrite,Seed680",
         "level": 2,
         "history": {
+            "v3.0.1": "修复订阅统一媒体身份查询",
             "v3.0.0": "适配 MoviePilot V3",
             "v2.8.7.1": "增加流媒体平台填充"
         }
