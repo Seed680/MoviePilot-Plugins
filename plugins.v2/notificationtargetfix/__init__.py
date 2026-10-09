@@ -23,7 +23,7 @@ class NotificationTargetFix(_PluginBase):
     plugin_name = "通知目标修复"
     plugin_desc = "修复他人订阅影片时管理员无法收到通知的问题。"
     plugin_icon = "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png"
-    plugin_version = "1.0.0"
+    plugin_version = "1.0.1"
     plugin_author = "Seed680"
     author_url = "https://github.com/Seed680"
     plugin_config_prefix = "notificationtargetfix_"
