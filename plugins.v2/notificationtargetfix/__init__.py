@@ -23,7 +23,7 @@ class NotificationTargetFix(_PluginBase):
     plugin_name = "通知目标修复"
     plugin_desc = "修复他人订阅影片时管理员无法收到通知的问题。"
     plugin_icon = "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png"
-    plugin_version = "1.0.1"
+    plugin_version = "1.0.2"
     plugin_author = "Seed680"
     author_url = "https://github.com/Seed680"
     plugin_config_prefix = "notificationtargetfix_"
@@ -140,33 +140,9 @@ def _patched_post_message(self, message=None, meta: Optional[MetaBase] = None,
     message = _render_message(self, message, meta, mediainfo, torrentinfo, transferinfo, kwargs)
     if not message:
         return
-    if message.userid and message.mtype and message.username != settings.SUPERUSER:
+    if message.mtype:
         notify_action = ServiceConfigHelper.get_notification_switch(message.mtype)
-        if notify_action and "admin" in notify_action.split(","):
-            self.eventmanager.send_event(
-                etype=EventType.NoticeMessage,
-                data=_notice_message_data(self, message),
-            )
-            user_kwargs = dict(kwargs)
-            user_kwargs.setdefault("immediately", True)
-            self.messagequeue.send_message(
-                "post_message", message=message, **user_kwargs,
-            )
-            admin_message = copy.deepcopy(message)
-            admin_message.targets = UserOper().get_settings(settings.SUPERUSER)
-            if admin_message.targets is not None:
-                self.eventmanager.send_event(
-                    etype=EventType.NoticeMessage,
-                    data=_notice_message_data(self, admin_message),
-                )
-                admin_kwargs = dict(kwargs)
-                admin_kwargs.setdefault("immediately", True)
-                self.messagequeue.send_message(
-                    "post_message", message=admin_message, **admin_kwargs,
-                )
-            return
-    if not message.userid and message.mtype:
-        notify_action = ServiceConfigHelper.get_notification_switch(message.mtype)
+        logger.debug(f"消息 {message.mtype} 发送范围: {notify_action}")
         if notify_action:
             admin_sent = False
             send_original = False
@@ -188,6 +164,7 @@ def _patched_post_message(self, message=None, meta: Optional[MetaBase] = None,
                         admin_sent = True
                 else:
                     if not admin_sent:
+                        message.userid = None
                         send_original = True
                     break
                 self.eventmanager.send_event(
@@ -213,32 +190,7 @@ async def _patched_async_post_message(self, message=None, meta: Optional[MetaBas
     message = await _async_render_message(self, message, meta, mediainfo, torrentinfo, transferinfo, kwargs)
     if not message:
         return
-    if message.userid and message.mtype and message.username != settings.SUPERUSER:
-        notify_action = ServiceConfigHelper.get_notification_switch(message.mtype)
-        if notify_action and "admin" in notify_action.split(","):
-            await self.eventmanager.async_send_event(
-                etype=EventType.NoticeMessage,
-                data=_notice_message_data(self, message),
-            )
-            user_kwargs = dict(kwargs)
-            user_kwargs.setdefault("immediately", True)
-            await self.messagequeue.async_send_message(
-                "post_message", message=message, **user_kwargs,
-            )
-            admin_message = copy.deepcopy(message)
-            admin_message.targets = UserOper().get_settings(settings.SUPERUSER)
-            if admin_message.targets is not None:
-                await self.eventmanager.async_send_event(
-                    etype=EventType.NoticeMessage,
-                    data=_notice_message_data(self, admin_message),
-                )
-                admin_kwargs = dict(kwargs)
-                admin_kwargs.setdefault("immediately", True)
-                await self.messagequeue.async_send_message(
-                    "post_message", message=admin_message, **admin_kwargs,
-                )
-            return
-    if not message.userid and message.mtype:
+    if message.mtype:
         notify_action = ServiceConfigHelper.get_notification_switch(message.mtype)
         if notify_action:
             admin_sent = False
@@ -261,6 +213,7 @@ async def _patched_async_post_message(self, message=None, meta: Optional[MetaBas
                         admin_sent = True
                 else:
                     if not admin_sent:
+                        message.userid = None
                         send_original = True
                     break
                 await self.eventmanager.async_send_event(
