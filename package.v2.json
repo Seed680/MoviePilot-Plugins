@@ -361,5 +361,17 @@
         "history": {
             "v2.8.7.1": "增加流媒体平台填充"
         }
+    },
+    "NotificationTargetFix": {
+        "name": "通知目标修复",
+        "description": "修复他人订阅影片时管理员无法收到通知的问题。",
+        "labels": "通知",
+        "version": "1.0.0",
+        "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
+        "author": "Seed680",
+        "level": 1,
+        "history": {
+            "v1.0.0": "修复 user,admin 通知目标路由"
+        }
     }
 }
