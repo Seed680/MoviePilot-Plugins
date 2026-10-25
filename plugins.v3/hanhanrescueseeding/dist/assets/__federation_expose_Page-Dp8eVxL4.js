@@ -1,5 +1,4 @@
 import { importShared } from './__federation_fn_import-JrT3xvdd.js';
-import { _ as _export_sfc } from './_plugin-vue_export-helper-pcqpp-6-.js';
 
 var __defProp = Object.defineProperty;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
@@ -1351,24 +1350,24 @@ return (_ctx, _cache) => {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, null, {
                   default: _withCtx(() => _cache[6] || (_cache[6] = [
-                    _createTextVNode("mdi-close", -1 /* CACHED */)
+                    _createTextVNode("mdi-close", -1)
                   ])),
-                  _: 1 /* STABLE */,
+                  _: 1,
                   __: [6]
                 })
               ]),
-              _: 1 /* STABLE */
+              _: 1
             })
           ]),
           default: _withCtx(() => [
             _createVNode(_component_v_card_title, null, {
               default: _withCtx(() => [
-                _createTextVNode(_toDisplayString(title.value), 1 /* TEXT */)
+                _createTextVNode(_toDisplayString(title.value), 1)
               ]),
-              _: 1 /* STABLE */
+              _: 1
             })
           ]),
-          _: 1 /* STABLE */
+          _: 1
         }),
         _createVNode(_component_v_card_text, null, {
           default: _withCtx(() => [
@@ -1379,18 +1378,17 @@ return (_ctx, _cache) => {
                   class: "mb-4"
                 }, {
                   default: _withCtx(() => [
-                    _createTextVNode(_toDisplayString(error.value), 1 /* TEXT */)
+                    _createTextVNode(_toDisplayString(error.value), 1)
                   ]),
-                  _: 1 /* STABLE */
+                  _: 1
                 }))
-              : _createCommentVNode("v-if", true),
+              : _createCommentVNode("", true),
             (loading.value)
               ? (_openBlock(), _createBlock(_component_v_skeleton_loader, {
                   key: 1,
                   type: "table"
                 }))
               : (_openBlock(), _createElementBlock("div", _hoisted_2, [
-                  _createCommentVNode(" 搜索和筛选工具栏 "),
                   _createVNode(_component_v_row, { class: "mb-4" }, {
                     default: _withCtx(() => [
                       _createVNode(_component_v_col, {
@@ -1412,16 +1410,16 @@ return (_ctx, _cache) => {
                             "prepend-inner": _withCtx(() => [
                               _createVNode(_component_v_icon, null, {
                                 default: _withCtx(() => _cache[7] || (_cache[7] = [
-                                  _createTextVNode("mdi-magnify", -1 /* CACHED */)
+                                  _createTextVNode("mdi-magnify", -1)
                                 ])),
-                                _: 1 /* STABLE */,
+                                _: 1,
                                 __: [7]
                               })
                             ]),
-                            _: 1 /* STABLE */
-                          }, 8 /* PROPS */, ["modelValue"])
+                            _: 1
+                          }, 8, ["modelValue"])
                         ]),
-                        _: 1 /* STABLE */
+                        _: 1
                       }),
                       _createVNode(_component_v_col, {
                         cols: "12",
@@ -1437,9 +1435,9 @@ return (_ctx, _cache) => {
                             variant: "outlined",
                             "hide-details": "",
                             onKeyup: _withKeys(filterRecords, ["enter"])
-                          }, null, 8 /* PROPS */, ["modelValue"])
+                          }, null, 8, ["modelValue"])
                         ]),
-                        _: 1 /* STABLE */
+                        _: 1
                       }),
                       _createVNode(_component_v_col, {
                         cols: "12",
@@ -1455,9 +1453,9 @@ return (_ctx, _cache) => {
                             variant: "outlined",
                             "hide-details": "",
                             onKeyup: _withKeys(filterRecords, ["enter"])
-                          }, null, 8 /* PROPS */, ["modelValue"])
+                          }, null, 8, ["modelValue"])
                         ]),
-                        _: 1 /* STABLE */
+                        _: 1
                       }),
                       _createVNode(_component_v_col, {
                         cols: "12",
@@ -1473,26 +1471,25 @@ return (_ctx, _cache) => {
                             default: _withCtx(() => [
                               _createVNode(_component_v_icon, { start: "" }, {
                                 default: _withCtx(() => _cache[8] || (_cache[8] = [
-                                  _createTextVNode("mdi-filter", -1 /* CACHED */)
+                                  _createTextVNode("mdi-filter", -1)
                                 ])),
-                                _: 1 /* STABLE */,
+                                _: 1,
                                 __: [8]
                               }),
-                              _cache[9] || (_cache[9] = _createTextVNode(" 筛选 ", -1 /* CACHED */))
+                              _cache[9] || (_cache[9] = _createTextVNode(" 筛选 ", -1))
                             ]),
-                            _: 1 /* STABLE */,
+                            _: 1,
                             __: [9]
-                          }, 8 /* PROPS */, ["disabled"])
+                          }, 8, ["disabled"])
                         ]),
-                        _: 1 /* STABLE */
+                        _: 1
                       })
                     ]),
-                    _: 1 /* STABLE */
+                    _: 1
                   }),
-                  _createCommentVNode(" 下载记录展示 "),
                   _createElementVNode("div", _hoisted_3, [
                     _createElementVNode("div", _hoisted_4, [
-                      _cache[11] || (_cache[11] = _createElementVNode("div", { class: "text-h6" }, "下载记录", -1 /* CACHED */)),
+                      _cache[11] || (_cache[11] = _createElementVNode("div", { class: "text-h6" }, "下载记录", -1)),
                       (selectedRecords.value.length > 0)
                         ? (_openBlock(), _createBlock(_component_v_btn, {
                             key: 0,
@@ -1503,16 +1500,16 @@ return (_ctx, _cache) => {
                             default: _withCtx(() => [
                               _createVNode(_component_v_icon, { start: "" }, {
                                 default: _withCtx(() => _cache[10] || (_cache[10] = [
-                                  _createTextVNode("mdi-delete", -1 /* CACHED */)
+                                  _createTextVNode("mdi-delete", -1)
                                 ])),
-                                _: 1 /* STABLE */,
+                                _: 1,
                                 __: [10]
                               }),
-                              _createTextVNode(" 删除选中 (" + _toDisplayString(selectedRecords.value.length) + ") ", 1 /* TEXT */)
+                              _createTextVNode(" 删除选中 (" + _toDisplayString(selectedRecords.value.length) + ") ", 1)
                             ]),
-                            _: 1 /* STABLE */
-                          }, 8 /* PROPS */, ["disabled"]))
-                        : _createCommentVNode("v-if", true)
+                            _: 1
+                          }, 8, ["disabled"]))
+                        : _createCommentVNode("", true)
                     ]),
                     (filteredRecords.value && filteredRecords.value.length > 0)
                       ? (_openBlock(), _createBlock(_component_v_data_table, {
@@ -1530,30 +1527,30 @@ return (_ctx, _cache) => {
                           class: "elevation-1"
                         }, {
                           "item.download_time": _withCtx(({ item }) => [
-                            _createTextVNode(_toDisplayString(formatTime(item.download_time)), 1 /* TEXT */)
+                            _createTextVNode(_toDisplayString(formatTime(item.download_time)), 1)
                           ]),
                           "item.torrent_hash": _withCtx(({ item }) => [
                             (item.torrent_hash)
-                              ? (_openBlock(), _createElementBlock("span", _hoisted_5, _toDisplayString(item.torrent_hash.substring(0, 8)) + "...", 1 /* TEXT */))
+                              ? (_openBlock(), _createElementBlock("span", _hoisted_5, _toDisplayString(item.torrent_hash.substring(0, 8)) + "...", 1))
                               : (_openBlock(), _createElementBlock("span", _hoisted_6, "-"))
                           ]),
-                          _: 1 /* STABLE */
-                        }, 8 /* PROPS */, ["headers", "items", "modelValue"]))
+                          _: 1
+                        }, 8, ["headers", "items", "modelValue"]))
                       : (_openBlock(), _createBlock(_component_v_alert, {
                           key: 1,
                           type: "info",
                           class: "mt-4"
                         }, {
                           default: _withCtx(() => _cache[12] || (_cache[12] = [
-                            _createTextVNode(" 暂无下载记录 ", -1 /* CACHED */)
+                            _createTextVNode(" 暂无下载记录 ", -1)
                           ])),
-                          _: 1 /* STABLE */,
+                          _: 1,
                           __: [12]
                         }))
                   ])
                 ]))
           ]),
-          _: 1 /* STABLE */
+          _: 1
         }),
         _createVNode(_component_v_card_actions, null, {
           default: _withCtx(() => [
@@ -1565,16 +1562,16 @@ return (_ctx, _cache) => {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, { start: "" }, {
                   default: _withCtx(() => _cache[13] || (_cache[13] = [
-                    _createTextVNode("mdi-refresh", -1 /* CACHED */)
+                    _createTextVNode("mdi-refresh", -1)
                   ])),
-                  _: 1 /* STABLE */,
+                  _: 1,
                   __: [13]
                 }),
-                _cache[14] || (_cache[14] = _createTextVNode(" 刷新数据 ", -1 /* CACHED */))
+                _cache[14] || (_cache[14] = _createTextVNode(" 刷新数据 ", -1))
               ]),
-              _: 1 /* STABLE */,
+              _: 1,
               __: [14]
-            }, 8 /* PROPS */, ["loading"]),
+            }, 8, ["loading"]),
             _createVNode(_component_v_spacer),
             _createVNode(_component_v_btn, {
               color: "primary",
@@ -1583,23 +1580,22 @@ return (_ctx, _cache) => {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, { start: "" }, {
                   default: _withCtx(() => _cache[15] || (_cache[15] = [
-                    _createTextVNode("mdi-cog", -1 /* CACHED */)
+                    _createTextVNode("mdi-cog", -1)
                   ])),
-                  _: 1 /* STABLE */,
+                  _: 1,
                   __: [15]
                 }),
-                _cache[16] || (_cache[16] = _createTextVNode(" 配置 ", -1 /* CACHED */))
+                _cache[16] || (_cache[16] = _createTextVNode(" 配置 ", -1))
               ]),
-              _: 1 /* STABLE */,
+              _: 1,
               __: [16]
             })
           ]),
-          _: 1 /* STABLE */
+          _: 1
         })
       ]),
-      _: 1 /* STABLE */
+      _: 1
     }),
-    _createCommentVNode(" 删除确认对话框 "),
     _createVNode(_component_v_dialog, {
       modelValue: deleteDialog.value,
       "onUpdate:modelValue": _cache[5] || (_cache[5] = $event => ((deleteDialog).value = $event)),
@@ -1610,18 +1606,18 @@ return (_ctx, _cache) => {
           default: _withCtx(() => [
             _createVNode(_component_v_card_title, null, {
               default: _withCtx(() => _cache[17] || (_cache[17] = [
-                _createTextVNode("确认删除", -1 /* CACHED */)
+                _createTextVNode("确认删除", -1)
               ])),
-              _: 1 /* STABLE */,
+              _: 1,
               __: [17]
             }),
             _createVNode(_component_v_card_text, null, {
               default: _withCtx(() => [
                 (selectedRecords.value.length > 0)
-                  ? (_openBlock(), _createElementBlock("p", _hoisted_7, " 确定要删除 " + _toDisplayString(selectedRecords.value.length) + " 条记录吗？ 包含种子hash的记录将同时删除下载器中的种子。 ", 1 /* TEXT */))
-                  : _createCommentVNode("v-if", true)
+                  ? (_openBlock(), _createElementBlock("p", _hoisted_7, " 确定要删除 " + _toDisplayString(selectedRecords.value.length) + " 条记录吗？ 包含种子hash的记录将同时删除下载器中的种子。 ", 1))
+                  : _createCommentVNode("", true)
               ]),
-              _: 1 /* STABLE */
+              _: 1
             }),
             _createVNode(_component_v_card_actions, null, {
               default: _withCtx(() => [
@@ -1630,9 +1626,9 @@ return (_ctx, _cache) => {
                   onClick: _cache[4] || (_cache[4] = $event => (deleteDialog.value = false))
                 }, {
                   default: _withCtx(() => _cache[18] || (_cache[18] = [
-                    _createTextVNode("取消", -1 /* CACHED */)
+                    _createTextVNode("取消", -1)
                   ])),
-                  _: 1 /* STABLE */,
+                  _: 1,
                   __: [18]
                 }),
                 _createVNode(_component_v_btn, {
@@ -1650,22 +1646,21 @@ return (_ctx, _cache) => {
                         }))
                       : (_openBlock(), _createElementBlock("span", _hoisted_8, "确认删除"))
                   ]),
-                  _: 1 /* STABLE */
-                }, 8 /* PROPS */, ["loading"])
+                  _: 1
+                }, 8, ["loading"])
               ]),
-              _: 1 /* STABLE */
+              _: 1
             })
           ]),
-          _: 1 /* STABLE */
+          _: 1
         })
       ]),
-      _: 1 /* STABLE */
-    }, 8 /* PROPS */, ["modelValue"])
+      _: 1
+    }, 8, ["modelValue"])
   ]))
 }
 }
 
 };
-const Page = /*#__PURE__*/_export_sfc(_sfc_main, [['__file',"C:/Users/joe/IdeaProjects/MoviePilot-Plugins/plugins.v3/hanhanrescueseeding/src/components/Page.vue"]]);
 
-export { Page as default };
+export { _sfc_main as default };

@@ -29,7 +29,7 @@ class HanHanRescueSeeding(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/wikrin/MoviePilot-Plugins/main/icons/alter_1.png"
     # 插件版本
-    plugin_version = "2.0.0"
+    plugin_version = "2.0.1"
     # 插件作者
     plugin_author = "Seed680"
     # 作者主页
@@ -197,33 +197,39 @@ class HanHanRescueSeeding(_PluginBase):
         return "vue", "dist/assets"
 
     # --- Instance methods for API endpoints ---
-    def _get_config(self) -> Dict[str, Any]:
+    # 前端组件（src/components/Config.vue、Page.vue）按宿主统一响应读取 response.success 与
+    # response.data，而宿主不会替插件 API 补 envelope，因此这里必须显式返回 Response。
+    def _get_config(self) -> Response[Dict[str, Any]]:
         """API Endpoint: Returns current plugin configuration."""
 
-        return {
-            "enable": self._enable,
-            "run_once": self._run_once,
-            "cron": self._cron,
-            "downloader": self._downloader,
-            "seeding_count": self._seeding_count,
-            "torrent_size": self._torrent_size,
-            "download_limit": self._download_limit,
-            "all_downloaders": self._all_downloaders,
-            "save_path": self._save_path,
-            "custom_tag": self._custom_tag,
-            "enable_notification": self._enable_notification,
-            "notify_on_zero_torrents": self._notify_on_zero_torrents,
-            "history_rescue_enabled": self._history_rescue_enabled,
-            "user_id": self._user_id,
-            "force_resume": self._force_resume
-        }
+        return Response(
+            success=True,
+            message="",
+            data={
+                "enable": self._enable,
+                "run_once": self._run_once,
+                "cron": self._cron,
+                "downloader": self._downloader,
+                "seeding_count": self._seeding_count,
+                "torrent_size": self._torrent_size,
+                "download_limit": self._download_limit,
+                "all_downloaders": self._all_downloaders,
+                "save_path": self._save_path,
+                "custom_tag": self._custom_tag,
+                "enable_notification": self._enable_notification,
+                "notify_on_zero_torrents": self._notify_on_zero_torrents,
+                "history_rescue_enabled": self._history_rescue_enabled,
+                "user_id": self._user_id,
+                "force_resume": self._force_resume
+            }
+        )
 
 
-    def _get_download_records(self) -> List[Dict[str, Any]]:
+    def _get_download_records(self) -> Response[List[Dict[str, Any]]]:
         """API Endpoint: Returns download records."""
         records = self.get_data("download_records") or []
         records.reverse()
-        return records
+        return Response(success=True, message="", data=records)
 
     @property
     def service_infos(self) -> Optional[Dict[str, ServiceInfo]]:
@@ -313,6 +319,7 @@ class HanHanRescueSeeding(_PluginBase):
                 "endpoint": self._get_config,
                 "methods": ["GET"],
                 "auth": "bear",
+                "response_model": Response[Dict[str, Any]],
                 "summary": "获取当前配置"
             },
             {
@@ -320,6 +327,7 @@ class HanHanRescueSeeding(_PluginBase):
                 "endpoint": self._get_download_records,
                 "methods": ["GET"],
                 "auth": "bear",
+                "response_model": Response[List[Dict[str, Any]]],
                 "summary": "获取下载记录"
             },
 
@@ -328,6 +336,7 @@ class HanHanRescueSeeding(_PluginBase):
                 "endpoint": self._delete_torrents,
                 "methods": ["POST"],
                 "auth": "bear",
+                "response_model": Response[List[Dict[str, Any]]],
                 "summary": "批量删除下载器中的种子"
             },
             {
@@ -335,6 +344,7 @@ class HanHanRescueSeeding(_PluginBase):
                 "endpoint": self._delete_download_records,
                 "methods": ["POST"],
                 "auth": "bear",
+                "response_model": Response[None],
                 "summary": "批量删除下载记录"
             }
         ]
