@@ -309,5 +309,18 @@
             "v3.0.0": "适配 MoviePilot V3",
             "v2.8.7.1": "增加流媒体平台填充"
         }
+    },
+    "WechatNotificationTargetFix": {
+        "name": "企业微信通知范围修复",
+        "description": "让企业微信渠道的用户消息也按通知发送范围追加管理员或全体投递。",
+        "labels": "通知",
+        "version": "1.0.0",
+        "system_version": ">=3.0.0",
+        "icon": "https://raw.githubusercontent.com/Seed680/MoviePilot-Plugins/main/icons/customplugin.png",
+        "author": "Seed680",
+        "level": 1,
+        "history": {
+            "v1.0.0": "适配 MoviePilot V3，补齐企业微信用户消息的通知发送范围"
+        }
     }
 }
