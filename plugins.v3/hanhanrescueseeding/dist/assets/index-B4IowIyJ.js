@@ -1,6 +1,5 @@
 import { importShared } from './__federation_fn_import-JrT3xvdd.js';
-import ConfigComponent from './__federation_expose_Config-Am6tP423.js';
-import { _ as _export_sfc } from './_plugin-vue_export-helper-pcqpp-6-.js';
+import _sfc_main$1 from './__federation_expose_Config-mVqe2RUW.js';
 import { p as propsFactory, i as includes, a as isOn, e as eventName, g as genericComponent, b as getCurrentInstance, c as provideTheme, d as createLayout, u as useRtl, m as makeThemeProps, f as makeLayoutProps, h as provideDefaults, j as convertToUnit, k as destructComputed, l as isCssColor, n as isParsableColor, o as parseColor, q as getForeground, r as getCurrentInstanceName, S as SUPPORTS_INTERSECTION, s as clamp, t as consoleWarn, v as useProxiedModel, w as useToggleScope, x as useLayoutItem, y as makeLayoutItemProps, z as getUid, A as deepEqual, B as wrapInArray, C as findChildrenWithProvide, D as useIcon, I as IconValue, E as flattenFragments, F as useResizeObserver, G as IN_BROWSER, H as hasEvent, J as isObject, K as keyCodes, L as useLocale, M as EventProp, N as filterInputAttrs, O as matchesSelector, P as omit, Q as only, R as useDisplay, T as useGoTo, U as makeDisplayProps, V as focusableChildren, W as consoleError, X as defineComponent, Y as deprecate, Z as getPropertyFromItem, _ as focusChild, $ as defer, a0 as templateRef, a1 as isClickInsideElement, a2 as getNextElement, a3 as pick, a4 as callEvent, a5 as debounce, a6 as ensureValidVNode, a7 as checkPrintable, a8 as noop, a9 as useTheme, aa as pickWithRest, ab as keys, ac as getEventCoordinates, ad as HexToHSV, ae as HSVtoHex, af as HSLtoHSV, ag as HSVtoHSL, ah as RGBtoHSV, ai as HSVtoRGB, aj as has, ak as getDecimals, al as createRange, am as keyValues, an as SUPPORTS_EYE_DROPPER, ao as HSVtoCSS, ap as RGBtoCSS, aq as getContrast, ar as isComposingIgnoreKey, as as getObjectValueByPath, at as isEmpty, au as defineFunctionalComponent, av as breakpoints, aw as useDate, ax as getWeek, ay as humanReadableFileSize, az as provideLocale, aA as useLayout, aB as CircularBuffer, aC as VuetifyLayoutKey, aD as refElement, aE as VClassIcon, aF as VComponentIcon, aG as VLigatureIcon, aH as VSvgIcon } from './date-DQnjbpZI.js';
 
 true&&(function polyfill() {
@@ -41,7 +40,15 @@ true&&(function polyfill() {
   }
 }());
 
-const {createTextVNode:_createTextVNode$7,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode$2h,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,createCommentVNode:_createCommentVNode,openBlock:_openBlock,createElementBlock:_createElementBlock} = await importShared('vue');
+const _export_sfc = (sfc, props) => {
+  const target = sfc.__vccOpts || sfc;
+  for (const [key, val] of props) {
+    target[key] = val;
+  }
+  return target;
+};
+
+const {createTextVNode:_createTextVNode$7,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode$2h,createElementVNode:_createElementVNode,toDisplayString:_toDisplayString,openBlock:_openBlock,createElementBlock:_createElementBlock} = await importShared('vue');
 
 
 const _hoisted_1 = { class: "app-container" };
@@ -116,13 +123,13 @@ return (_ctx, _cache) => {
           default: _withCtx(() => [
             _createVNode$2h(_component_v_app_bar_title, null, {
               default: _withCtx(() => _cache[4] || (_cache[4] = [
-                _createTextVNode$7("憨憨保种区", -1 /* CACHED */)
+                _createTextVNode$7("憨憨保种区", -1)
               ])),
-              _: 1 /* STABLE */,
+              _: 1,
               __: [4]
             })
           ]),
-          _: 1 /* STABLE */
+          _: 1
         }),
         _createVNode$2h(_component_v_main, null, {
           default: _withCtx(() => [
@@ -136,14 +143,14 @@ return (_ctx, _cache) => {
                   default: _withCtx(() => [
                     _createVNode$2h(_component_v_tab, { value: "config" }, {
                       default: _withCtx(() => _cache[5] || (_cache[5] = [
-                        _createTextVNode$7("配置", -1 /* CACHED */)
+                        _createTextVNode$7("配置", -1)
                       ])),
-                      _: 1 /* STABLE */,
+                      _: 1,
                       __: [5]
                     })
                   ]),
-                  _: 1 /* STABLE */
-                }, 8 /* PROPS */, ["modelValue"]),
+                  _: 1
+                }, 8, ["modelValue"]),
                 _createVNode$2h(_component_v_window, {
                   modelValue: activeTab.value,
                   "onUpdate:modelValue": _cache[1] || (_cache[1] = $event => ((activeTab).value = $event)),
@@ -153,24 +160,24 @@ return (_ctx, _cache) => {
                     _createVNode$2h(_component_v_window_item, { value: "config" }, {
                       default: _withCtx(() => [
                         _createElementVNode("div", _hoisted_2, [
-                          _createVNode$2h(ConfigComponent, {
+                          _createVNode$2h(_sfc_main$1, {
                             api: _ctx.api,
                             "initial-config": initialConfig,
                             onSave: handleConfigSave,
                             onClose: handleClose
-                          }, null, 8 /* PROPS */, ["api"])
+                          }, null, 8, ["api"])
                         ])
                       ]),
-                      _: 1 /* STABLE */
+                      _: 1
                     })
                   ]),
-                  _: 1 /* STABLE */
-                }, 8 /* PROPS */, ["modelValue"])
+                  _: 1
+                }, 8, ["modelValue"])
               ]),
-              _: 1 /* STABLE */
+              _: 1
             })
           ]),
-          _: 1 /* STABLE */
+          _: 1
         }),
         _createVNode$2h(_component_v_footer, {
           app: "",
@@ -178,14 +185,13 @@ return (_ctx, _cache) => {
           class: "text-center d-flex justify-center"
         }, {
           default: _withCtx(() => [
-            _createElementVNode("span", _hoisted_3, "憨憨保种区插件 ©" + _toDisplayString(new Date().getFullYear()), 1 /* TEXT */)
+            _createElementVNode("span", _hoisted_3, "憨憨保种区插件 ©" + _toDisplayString(new Date().getFullYear()), 1)
           ]),
-          _: 1 /* STABLE */
+          _: 1
         })
       ]),
-      _: 1 /* STABLE */
+      _: 1
     }),
-    _createCommentVNode(" 通知弹窗 "),
     _createVNode$2h(_component_v_snackbar, {
       modelValue: snackbar.show,
       "onUpdate:modelValue": _cache[3] || (_cache[3] = $event => ((snackbar.show) = $event)),
@@ -198,23 +204,23 @@ return (_ctx, _cache) => {
           onClick: _cache[2] || (_cache[2] = $event => (snackbar.show = false))
         }, {
           default: _withCtx(() => _cache[6] || (_cache[6] = [
-            _createTextVNode$7("关闭", -1 /* CACHED */)
+            _createTextVNode$7("关闭", -1)
           ])),
-          _: 1 /* STABLE */,
+          _: 1,
           __: [6]
         })
       ]),
       default: _withCtx(() => [
-        _createTextVNode$7(_toDisplayString(snackbar.text) + " ", 1 /* TEXT */)
+        _createTextVNode$7(_toDisplayString(snackbar.text) + " ", 1)
       ]),
-      _: 1 /* STABLE */
-    }, 8 /* PROPS */, ["modelValue", "color", "timeout"])
+      _: 1
+    }, 8, ["modelValue", "color", "timeout"])
   ]))
 }
 }
 
 };
-const App = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-7a7a37b1"],['__file',"C:/Users/joe/IdeaProjects/MoviePilot-Plugins/plugins.v3/hanhanrescueseeding/src/App.vue"]]);
+const App = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-fbe4d109"]]);
 
 // Utilities
 // Composables

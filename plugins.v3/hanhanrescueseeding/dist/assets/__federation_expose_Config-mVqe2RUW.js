@@ -1,5 +1,4 @@
 import { importShared } from './__federation_fn_import-JrT3xvdd.js';
-import { _ as _export_sfc } from './_plugin-vue_export-helper-pcqpp-6-.js';
 
 const {toDisplayString:_toDisplayString,createTextVNode:_createTextVNode,resolveComponent:_resolveComponent,withCtx:_withCtx,createVNode:_createVNode,openBlock:_openBlock,createBlock:_createBlock,createCommentVNode:_createCommentVNode,createElementVNode:_createElementVNode,withModifiers:_withModifiers,createElementBlock:_createElementBlock} = await importShared('vue');
 
@@ -145,24 +144,24 @@ return (_ctx, _cache) => {
               default: _withCtx(() => [
                 _createVNode(_component_v_icon, null, {
                   default: _withCtx(() => _cache[15] || (_cache[15] = [
-                    _createTextVNode("mdi-close", -1 /* CACHED */)
+                    _createTextVNode("mdi-close", -1)
                   ])),
-                  _: 1 /* STABLE */,
+                  _: 1,
                   __: [15]
                 })
               ]),
-              _: 1 /* STABLE */
+              _: 1
             })
           ]),
           default: _withCtx(() => [
             _createVNode(_component_v_card_title, null, {
               default: _withCtx(() => [
-                _createTextVNode(_toDisplayString(config.name), 1 /* TEXT */)
+                _createTextVNode(_toDisplayString(config.name), 1)
               ]),
-              _: 1 /* STABLE */
+              _: 1
             })
           ]),
-          _: 1 /* STABLE */
+          _: 1
         }),
         _createVNode(_component_v_card_text, { class: "overflow-y-auto" }, {
           default: _withCtx(() => [
@@ -173,11 +172,11 @@ return (_ctx, _cache) => {
                   class: "mb-4"
                 }, {
                   default: _withCtx(() => [
-                    _createTextVNode(_toDisplayString(error.value), 1 /* TEXT */)
+                    _createTextVNode(_toDisplayString(error.value), 1)
                   ]),
-                  _: 1 /* STABLE */
+                  _: 1
                 }))
-              : _createCommentVNode("v-if", true),
+              : _createCommentVNode("", true),
             _createVNode(_component_v_form, {
               ref_key: "form",
               ref: form,
@@ -186,8 +185,7 @@ return (_ctx, _cache) => {
               onSubmit: _withModifiers(saveConfig, ["prevent"])
             }, {
               default: _withCtx(() => [
-                _createCommentVNode(" 基本设置区域 "),
-                _cache[16] || (_cache[16] = _createElementVNode("div", { class: "text-subtitle-1 font-weight-bold mt-4 mb-2" }, "基本设置", -1 /* CACHED */)),
+                _cache[16] || (_cache[16] = _createElementVNode("div", { class: "text-subtitle-1 font-weight-bold mt-4 mb-2" }, "基本设置", -1)),
                 _createVNode(_component_v_row, null, {
                   default: _withCtx(() => [
                     _createVNode(_component_v_col, {
@@ -202,9 +200,9 @@ return (_ctx, _cache) => {
                           color: "primary",
                           "persistent-hint": "",
                           inset: ""
-                        }, null, 8 /* PROPS */, ["modelValue"])
+                        }, null, 8, ["modelValue"])
                       ]),
-                      _: 1 /* STABLE */
+                      _: 1
                     }),
                     _createVNode(_component_v_col, {
                       cols: "12",
@@ -218,9 +216,9 @@ return (_ctx, _cache) => {
                           color: "primary",
                           "persistent-hint": "",
                           inset: ""
-                        }, null, 8 /* PROPS */, ["modelValue"])
+                        }, null, 8, ["modelValue"])
                       ]),
-                      _: 1 /* STABLE */
+                      _: 1
                     }),
                     _createVNode(_component_v_col, {
                       cols: "12",
@@ -234,9 +232,9 @@ return (_ctx, _cache) => {
                           color: "primary",
                           "persistent-hint": "",
                           inset: ""
-                        }, null, 8 /* PROPS */, ["modelValue"])
+                        }, null, 8, ["modelValue"])
                       ]),
-                      _: 1 /* STABLE */
+                      _: 1
                     }),
                     _createVNode(_component_v_col, {
                       cols: "12",
@@ -250,9 +248,9 @@ return (_ctx, _cache) => {
                           color: "primary",
                           "persistent-hint": "",
                           inset: ""
-                        }, null, 8 /* PROPS */, ["modelValue"])
+                        }, null, 8, ["modelValue"])
                       ]),
-                      _: 1 /* STABLE */
+                      _: 1
                     }),
                     _createVNode(_component_v_col, {
                       cols: "12",
@@ -266,9 +264,9 @@ return (_ctx, _cache) => {
                           color: "primary",
                           "persistent-hint": "",
                           inset: ""
-                        }, null, 8 /* PROPS */, ["modelValue"])
+                        }, null, 8, ["modelValue"])
                       ]),
-                      _: 1 /* STABLE */
+                      _: 1
                     }),
                     _createVNode(_component_v_col, {
                       cols: "12",
@@ -282,12 +280,12 @@ return (_ctx, _cache) => {
                           color: "primary",
                           "persistent-hint": "",
                           hint: "添加种子后设置为强制作种状态，仅Qbittorrent下载器支持"
-                        }, null, 8 /* PROPS */, ["modelValue"])
+                        }, null, 8, ["modelValue"])
                       ]),
-                      _: 1 /* STABLE */
+                      _: 1
                     })
                   ]),
-                  _: 1 /* STABLE */
+                  _: 1
                 }),
                 _createVNode(_component_v_row, null, {
                   default: _withCtx(() => [
@@ -302,9 +300,9 @@ return (_ctx, _cache) => {
                           "item-title": "title",
                           "item-value": "value",
                           chips: ""
-                        }, null, 8 /* PROPS */, ["modelValue", "items"])
+                        }, null, 8, ["modelValue", "items"])
                       ]),
-                      _: 1 /* STABLE */
+                      _: 1
                     }),
                     (config.history_rescue_enabled)
                       ? (_openBlock(), _createBlock(_component_v_col, {
@@ -321,13 +319,13 @@ return (_ctx, _cache) => {
                               placeholder: "请输入用户ID",
                               hint: "用于下载历史保种任务的用户ID",
                               "persistent-hint": ""
-                            }, null, 8 /* PROPS */, ["modelValue"])
+                            }, null, 8, ["modelValue"])
                           ]),
-                          _: 1 /* STABLE */
+                          _: 1
                         }))
-                      : _createCommentVNode("v-if", true)
+                      : _createCommentVNode("", true)
                   ]),
-                  _: 1 /* STABLE */
+                  _: 1
                 }),
                 _createVNode(_component_v_row, null, {
                   default: _withCtx(() => [
@@ -342,9 +340,9 @@ return (_ctx, _cache) => {
                           label: "执行周期",
                           hint: "设置插件的执行周期，如：0 2 * * * (每天凌晨2点执行)",
                           "persistent-hint": ""
-                        }, null, 8 /* PROPS */, ["modelValue"])
+                        }, null, 8, ["modelValue"])
                       ]),
-                      _: 1 /* STABLE */
+                      _: 1
                     }),
                     _createVNode(_component_v_col, {
                       cols: "12",
@@ -359,9 +357,9 @@ return (_ctx, _cache) => {
                           placeholder: "请输入做种人数",
                           hint: "例:3或者1-3",
                           "persistent-hint": ""
-                        }, null, 8 /* PROPS */, ["modelValue"])
+                        }, null, 8, ["modelValue"])
                       ]),
-                      _: 1 /* STABLE */
+                      _: 1
                     }),
                     _createVNode(_component_v_col, {
                       cols: "12",
@@ -376,9 +374,9 @@ return (_ctx, _cache) => {
                           placeholder: "请输入种子大小范围",
                           hint: "例:10或者1-5 (单位:GB)",
                           "persistent-hint": ""
-                        }, null, 8 /* PROPS */, ["modelValue"])
+                        }, null, 8, ["modelValue"])
                       ]),
-                      _: 1 /* STABLE */
+                      _: 1
                     }),
                     _createVNode(_component_v_col, {
                       cols: "12",
@@ -394,9 +392,9 @@ return (_ctx, _cache) => {
                           placeholder: "请输入单次下载数量",
                           hint: "每次执行时最多下载的种子数量，0表示无限制",
                           "persistent-hint": ""
-                        }, null, 8 /* PROPS */, ["modelValue"])
+                        }, null, 8, ["modelValue"])
                       ]),
-                      _: 1 /* STABLE */
+                      _: 1
                     }),
                     _createVNode(_component_v_col, {
                       cols: "12",
@@ -410,9 +408,9 @@ return (_ctx, _cache) => {
                           placeholder: "请输入保存路径",
                           hint: "设置种子文件的保存路径",
                           "persistent-hint": ""
-                        }, null, 8 /* PROPS */, ["modelValue"])
+                        }, null, 8, ["modelValue"])
                       ]),
-                      _: 1 /* STABLE */
+                      _: 1
                     }),
                     _createVNode(_component_v_col, {
                       cols: "12",
@@ -426,20 +424,20 @@ return (_ctx, _cache) => {
                           placeholder: "请输入自定义标签",
                           hint: "为下载的种子添加自定义标签",
                           "persistent-hint": ""
-                        }, null, 8 /* PROPS */, ["modelValue"])
+                        }, null, 8, ["modelValue"])
                       ]),
-                      _: 1 /* STABLE */
+                      _: 1
                     })
                   ]),
-                  _: 1 /* STABLE */
+                  _: 1
                 }),
                 _createVNode(_component_v_divider, { class: "my-4" })
               ]),
-              _: 1 /* STABLE */,
+              _: 1,
               __: [16]
-            }, 8 /* PROPS */, ["modelValue"])
+            }, 8, ["modelValue"])
           ]),
-          _: 1 /* STABLE */
+          _: 1
         }),
         _createVNode(_component_v_card_actions, null, {
           default: _withCtx(() => [
@@ -448,9 +446,9 @@ return (_ctx, _cache) => {
               onClick: resetForm
             }, {
               default: _withCtx(() => _cache[17] || (_cache[17] = [
-                _createTextVNode("重置", -1 /* CACHED */)
+                _createTextVNode("重置", -1)
               ])),
-              _: 1 /* STABLE */,
+              _: 1,
               __: [17]
             }),
             _createVNode(_component_v_spacer),
@@ -461,22 +459,21 @@ return (_ctx, _cache) => {
               loading: saving.value
             }, {
               default: _withCtx(() => _cache[18] || (_cache[18] = [
-                _createTextVNode("保存配置", -1 /* CACHED */)
+                _createTextVNode("保存配置", -1)
               ])),
-              _: 1 /* STABLE */,
+              _: 1,
               __: [18]
-            }, 8 /* PROPS */, ["disabled", "loading"])
+            }, 8, ["disabled", "loading"])
           ]),
-          _: 1 /* STABLE */
+          _: 1
         })
       ]),
-      _: 1 /* STABLE */
+      _: 1
     })
   ]))
 }
 }
 
 };
-const ConfigComponent = /*#__PURE__*/_export_sfc(_sfc_main, [['__file',"C:/Users/joe/IdeaProjects/MoviePilot-Plugins/plugins.v3/hanhanrescueseeding/src/components/Config.vue"]]);
 
-export { ConfigComponent as default };
+export { _sfc_main as default };
