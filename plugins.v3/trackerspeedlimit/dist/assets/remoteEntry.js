@@ -42,7 +42,7 @@ const currentImports = {};
          } else {
            href = cssPath;
          }
-         
+
           if (dontAppendStylesToHead) {
             const key = 'css__trackerspeedlimit__' + exposeItemName;
             window[key] = window[key] || [];

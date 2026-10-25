@@ -45,7 +45,7 @@ const currentImports = {};
          } else {
            href = cssPath;
          }
-         
+
           if (dontAppendStylesToHead) {
             const key = 'css__hanhanrescueseeding__' + exposeItemName;
             window[key] = window[key] || [];

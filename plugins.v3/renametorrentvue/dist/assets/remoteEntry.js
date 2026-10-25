@@ -45,7 +45,7 @@ const currentImports = {};
          } else {
            href = cssPath;
          }
-         
+
           if (dontAppendStylesToHead) {
             const key = 'css__renametorrentvue__' + exposeItemName;
             window[key] = window[key] || [];
